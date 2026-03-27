@@ -11,11 +11,11 @@
 - [x] 2.1 Refactor the existing Rick agents into the shared-kit structure without changing their plan/build behavior
 - [x] 2.2 Promote the existing OpenSpec commands and OpenSpec support skills as the initial canonical shared command/skill set
 - [x] 2.3 Add only the minimum placeholder shared assets needed to validate the architecture without importing the broader external skill catalog
-- [ ] 2.4 Create an atomic commit for the bootstrap asset set once section 2 is complete and verified
+- [x] 2.4 Create an atomic commit for the bootstrap asset set once section 2 is complete and verified
 
 ## 3. Validate layering and collision rules
 
 - [x] 3.1 Define and document the rule that shared skill names are canonical and project-local specializations must use distinct names
 - [x] 3.2 Test the shared kit in another repository by loading it through `OPENCODE_CONFIG_DIR` with local `.opencode/` additions to confirm the layering model works without copying the shared assets into the target project
 - [x] 3.3 Review the bootstrap set for OpenCode-only compatibility and remove or defer any framework-specific assumptions
-- [ ] 3.4 Create an atomic commit for layering and compatibility validation once section 3 is complete and verified
+- [x] 3.4 Create an atomic commit for layering and compatibility validation once section 3 is complete and verified
