@@ -50,14 +50,14 @@ Shared agents, skills, and commands will use a common `pac-` namespace in their 
 - **Use punctuation-based namespaces like `pac:` or `pac+`:** rejected because skill names must use kebab-case and punctuation increases portability and tooling risk.
 - **Use an author-based prefix like `lad-` or `ldt-`:** rejected for now because `pac-` better matches the repository's role as a personal AI config kit rather than a purely personal initials namespace.
 
-### Decision: Canonical identifiers may differ from visible labels
+### Decision: Canonical identifiers may differ from visible labels when the runtime supports it
 
-Shared assets will use `pac-` in canonical identifiers such as filenames, skill names, and command names. User-facing labels should remain concise and readable where OpenCode supports them, but implementation must treat the canonical names as the source of truth.
+Shared assets will use `pac-` in canonical identifiers where OpenCode provides a distinct internal identifier, most notably shared skill names. For assets whose runtime-visible name is derived directly from the filename, the bootstrap may preserve established compatibility names when renaming would create unnecessary churn or break the intended interface. In this bootstrap, that means the primary agents remain `RickBuild` and `RickPlan`, and the existing OpenSpec workflow commands remain `opsx-*`.
 
 **Alternatives considered:**
 
-- **Use unprefixed visible and internal names everywhere:** rejected because it reintroduces collision risk.
-- **Force every visible label to include the full canonical prefix:** deferred because it may reduce usability in the interface and can be decided per asset where runtime support is clearer.
+- **Use unprefixed visible and internal names everywhere:** rejected because it reintroduces collision risk for assets that do support canonical internal naming.
+- **Force every visible label to include the full canonical prefix:** rejected for bootstrap because OpenCode derives command and agent names from filenames, so renaming working assets would create avoidable churn.
 
 ### Decision: Shared assets remain reusable, project-local assets remain additive
 
@@ -79,7 +79,7 @@ Implementation will be delivered in small, coherent commits aligned to the numbe
 
 ### Decision: Bootstrap implementation should prefer minimal structural change
 
-The bootstrap implementation should make the smallest structural changes needed to prove the shared-kit architecture works. Existing working agents, commands, and skills should be preserved where possible rather than being renamed, moved, or generalized beyond what the bootstrap requires.
+The bootstrap implementation should make the smallest structural changes needed to prove the shared-kit architecture works. Existing working agents, commands, and skills should be preserved where possible rather than being renamed, moved, or generalized beyond what the bootstrap requires. The repository's existing `.opencode/` directory will serve as the shared kit root for `OPENCODE_CONFIG_DIR`, so bootstrap does not need a parallel top-level `agents/`, `commands/`, or `skills/` tree.
 
 **Alternatives considered:**
 

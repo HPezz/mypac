@@ -33,33 +33,43 @@ The system SHALL support loading the shared OpenCode kit via `OPENCODE_CONFIG_DI
 - **WHEN** a user runs OpenCode without `OPENCODE_CONFIG_DIR` set for a repository
 - **THEN** the shared personal kit is not loaded for that session
 
-### Requirement: Shared OpenCode assets use a canonical namespace
+### Requirement: Shared OpenCode assets use a canonical namespace with runtime-compatible bootstrap exceptions
 
-The system SHALL define a canonical naming convention for shared OpenCode agents, skills, and commands using a common namespace prefix so reusable assets do not collide with built-in or project-local assets.
+The system SHALL define a canonical naming convention for shared OpenCode assets using a common `pac-` namespace prefix, while explicitly documenting bootstrap exceptions for asset types whose runtime-visible name is derived directly from the filename.
 
 #### Scenario: Shared skill is uniquely identifiable
 
 - **WHEN** a shared skill is added to the kit
 - **THEN** its canonical identifier uses the shared namespace prefix and does not rely on punctuation outside kebab-case
 
-#### Scenario: Shared command is clearly distinguishable
+#### Scenario: Bootstrap command remains clearly distinguishable
 
-- **WHEN** a user invokes a shared command from the kit
-- **THEN** the command name is visibly distinguishable from unprefixed project-local commands
+- **WHEN** the bootstrap preserves an existing shared command whose runtime name is derived from the filename
+- **THEN** that command remains visibly distinguishable from unprefixed project-local commands and the exception is documented as a compatibility choice
 
-### Requirement: Canonical identifiers are the source of truth
+#### Scenario: Bootstrap agent remains compatible
 
-The system SHALL treat the canonical shared identifiers as the source of truth for filenames and internal asset names, even when a user-facing label is shorter or formatted differently in the interface.
+- **WHEN** the bootstrap preserves an existing shared primary agent whose runtime name is derived from the filename
+- **THEN** that agent may keep its established runtime name and the exception is documented as a compatibility choice
 
-#### Scenario: File and internal name use canonical namespace
+### Requirement: Canonical identifiers are the source of truth where OpenCode supports them cleanly
 
-- **WHEN** a shared agent, skill, or command is defined in the repository
-- **THEN** its filename or internal identifier uses the canonical `pac-` namespace
+The system SHALL treat canonical shared identifiers as the source of truth for asset types that support them cleanly, while documenting compatibility-preserving exceptions for bootstrap assets whose visible runtime identity is filename-bound.
+
+#### Scenario: Skill file and internal name use canonical namespace
+
+- **WHEN** a shared skill is defined in the repository
+- **THEN** its directory name and internal skill name use the canonical `pac-` namespace
 
 #### Scenario: User-facing label may remain concise
 
 - **WHEN** OpenCode supports a separate user-facing label or description for a shared asset
 - **THEN** that visible label may remain more concise than the canonical identifier without changing the underlying canonical name
+
+#### Scenario: Bootstrap compatibility exception is documented
+
+- **WHEN** a shared bootstrap agent or command keeps an established runtime-visible name for compatibility
+- **THEN** the repository documentation explains that exception and ties it to the minimal-change bootstrap strategy
 
 ### Requirement: Bootstrap implementation remains intentionally small
 

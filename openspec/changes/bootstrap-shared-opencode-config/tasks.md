@@ -1,9 +1,9 @@
 ## 1. Define the shared kit structure
 
-- [ ] 1.1 Decide and document the canonical shared namespace (`pac-`) and where shared agents, commands, and skills live in the repository
-- [ ] 1.2 Decide and document how canonical `pac-` identifiers map to visible user-facing names for shared assets
-- [ ] 1.3 Update repository-level documentation to describe this repo as a reusable OpenCode kit loaded via `OPENCODE_CONFIG_DIR` with project-local `.opencode/` overlays
-- [ ] 1.4 Confirm the bootstrap structure uses the smallest required structural changes before refactoring existing assets
+- [x] 1.1 Decide and document the canonical shared namespace (`pac-`) and where shared agents, commands, and skills live in the repository
+- [x] 1.2 Decide and document how canonical `pac-` identifiers map to visible user-facing names for shared assets
+- [x] 1.3 Update repository-level documentation to describe this repo as a reusable OpenCode kit loaded via `OPENCODE_CONFIG_DIR` with project-local `.opencode/` overlays
+- [x] 1.4 Confirm the bootstrap structure uses the smallest required structural changes before refactoring existing assets
 - [ ] 1.5 Create an atomic commit for the shared kit structure once section 1 is complete and verified
 
 ## 2. Bootstrap the initial shared asset set
