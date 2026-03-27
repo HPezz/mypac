@@ -42,6 +42,18 @@ OpenCode derives some visible names directly from filenames, so the bootstrap ke
 
 This means the repository treats `pac-` as the canonical shared namespace, but the bootstrap intentionally preserves established command and agent names where OpenCode binds the visible identifier to the filename.
 
+## Initial Bootstrap Asset Set
+
+- Shared primary agents: `RickBuild`, `RickPlan`
+- Shared OpenSpec commands: `/opsx-propose`, `/opsx-explore`, `/opsx-apply`, `/opsx-archive`
+- Canonical shared OpenSpec skills:
+  - `pac-openspec-propose`
+  - `pac-openspec-explore`
+  - `pac-openspec-apply-change`
+  - `pac-openspec-archive-change`
+- Minimal placeholder shared skill:
+  - `pac-bootstrap-placeholder`
+
 ## Skill Collision Rule
 
 - Shared skill names are canonical and must stay unique.

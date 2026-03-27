@@ -4,13 +4,13 @@
 - [x] 1.2 Decide and document how canonical `pac-` identifiers map to visible user-facing names for shared assets
 - [x] 1.3 Update repository-level documentation to describe this repo as a reusable OpenCode kit loaded via `OPENCODE_CONFIG_DIR` with project-local `.opencode/` overlays
 - [x] 1.4 Confirm the bootstrap structure uses the smallest required structural changes before refactoring existing assets
-- [ ] 1.5 Create an atomic commit for the shared kit structure once section 1 is complete and verified
+- [x] 1.5 Create an atomic commit for the shared kit structure once section 1 is complete and verified
 
 ## 2. Bootstrap the initial shared asset set
 
-- [ ] 2.1 Refactor the existing Rick agents into the shared-kit structure without changing their plan/build behavior
-- [ ] 2.2 Promote the existing OpenSpec commands and OpenSpec support skills as the initial canonical shared command/skill set
-- [ ] 2.3 Add only the minimum placeholder shared assets needed to validate the architecture without importing the broader external skill catalog
+- [x] 2.1 Refactor the existing Rick agents into the shared-kit structure without changing their plan/build behavior
+- [x] 2.2 Promote the existing OpenSpec commands and OpenSpec support skills as the initial canonical shared command/skill set
+- [x] 2.3 Add only the minimum placeholder shared assets needed to validate the architecture without importing the broader external skill catalog
 - [ ] 2.4 Create an atomic commit for the bootstrap asset set once section 2 is complete and verified
 
 ## 3. Validate layering and collision rules
