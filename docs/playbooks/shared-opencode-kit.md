@@ -60,6 +60,28 @@ This means the repository treats `pac-` as the canonical shared namespace, but t
 - Project-local specializations must use distinct names instead of redefining the same shared skill name.
 - If a project needs specialized behavior, create a new local skill name or encode the specialization in project instructions.
 
+## Layering Validation Snapshot
+
+The bootstrap layering model was validated in the sibling repository `../opencode-setup` with:
+
+- Shared kit loaded from `OPENCODE_CONFIG_DIR=/Users/ladislas/dev/ladislas/mypac/.opencode`
+- Local overlay assets defined in `../opencode-setup/.opencode/`
+
+Validated observations:
+
+- `opencode agent list` exposed shared agents `RickBuild` and `RickPlan` alongside the local overlay agent `LocalOverlay`
+- `opencode debug skill` exposed shared skills `pac-openspec-*` and `pac-bootstrap-placeholder` alongside the local `local-overlay-skill`
+- `opencode debug config` showed both shared `/opsx-*` commands and the local `local-overlay` command in the resolved configuration
+
+This confirms the shared kit works as an additive layer without copying shared assets into the target repository.
+
+## OpenCode-Only Compatibility Review
+
+- The bootstrap set uses OpenCode-native `.opencode/agents/`, `.opencode/commands/`, and `.opencode/skills/` locations as the primary source of truth.
+- The initial canonical shared skill set avoids imported external catalogs and keeps the bootstrap intentionally small.
+- The bootstrap preserves existing runtime-visible command and agent names only where OpenCode derives them from filenames.
+- No additional `.claude/`, `.cursor/`, or other vendor-specific compatibility structures were added as part of the bootstrap.
+
 ## Minimal Structural Change Rule
 
 - Reuse the existing `.opencode/` structure as the shared kit.

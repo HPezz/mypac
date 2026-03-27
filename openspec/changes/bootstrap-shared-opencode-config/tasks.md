@@ -15,7 +15,7 @@
 
 ## 3. Validate layering and collision rules
 
-- [ ] 3.1 Define and document the rule that shared skill names are canonical and project-local specializations must use distinct names
-- [ ] 3.2 Test the shared kit in another repository by loading it through `OPENCODE_CONFIG_DIR` with local `.opencode/` additions to confirm the layering model works without copying the shared assets into the target project
-- [ ] 3.3 Review the bootstrap set for OpenCode-only compatibility and remove or defer any framework-specific assumptions
+- [x] 3.1 Define and document the rule that shared skill names are canonical and project-local specializations must use distinct names
+- [x] 3.2 Test the shared kit in another repository by loading it through `OPENCODE_CONFIG_DIR` with local `.opencode/` additions to confirm the layering model works without copying the shared assets into the target project
+- [x] 3.3 Review the bootstrap set for OpenCode-only compatibility and remove or defer any framework-specific assumptions
 - [ ] 3.4 Create an atomic commit for layering and compatibility validation once section 3 is complete and verified
