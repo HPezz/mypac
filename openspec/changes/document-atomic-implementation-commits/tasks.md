@@ -10,8 +10,8 @@
 
 ## 3. Prevent unrelated files from leaking into commits
 
-- [ ] 3.1 Update `commands/commit.md` so commit file selection is explicit and unrelated staged files are excluded from the current commit group
-- [ ] 3.2 Update `agents/RickBuild.md` so manual todo-driven implementation follows the same atomic-commit and explicit-file-selection rules
+- [x] 3.1 Update `commands/commit.md` so commit file selection is explicit and unrelated staged files are excluded from the current commit group
+- [x] 3.2 Update `agents/RickBuild.md` so manual todo-driven implementation follows the same atomic-commit and explicit-file-selection rules
 
 ## 4. Verify consistency
 
