@@ -42,6 +42,7 @@ When ready to implement, run /pac-apply
    ```
 
    Parse the JSON to get:
+
    - `applyRequires`: array of artifact IDs needed before implementation (e.g., `["tasks"]`)
    - `artifacts`: list of all artifacts with their status and dependencies
 
@@ -51,7 +52,8 @@ When ready to implement, run /pac-apply
 
    Loop through artifacts in dependency order (artifacts with no pending dependencies first):
 
-   a. **For each artifact that is `ready` (dependencies satisfied)**:
+   1. **For each artifact that is `ready` (dependencies satisfied)**:
+
       - Get instructions:
 
         ```bash
@@ -59,6 +61,7 @@ When ready to implement, run /pac-apply
         ```
 
       - The instructions JSON includes:
+
         - `context`: Project background (constraints for you - do NOT include in output)
         - `rules`: Artifact-specific rules (constraints for you - do NOT include in output)
         - `template`: The structure to use for your output file
@@ -70,12 +73,14 @@ When ready to implement, run /pac-apply
       - Apply `context` and `rules` as constraints - but do NOT copy them into the file
       - Show brief progress: "Created <artifact-id>"
 
-   b. **Continue until all `applyRequires` artifacts are complete**
+   2. **Continue until all `applyRequires` artifacts are complete**
+
       - After creating each artifact, re-run `openspec status --change "<name>" --json`
       - Check if every artifact ID in `applyRequires` has `status: "done"` in the artifacts array
       - Stop when all `applyRequires` artifacts are done
 
-   c. **If an artifact requires user input** (unclear context):
+   3. **If an artifact requires user input** (unclear context):
+
       - Use **AskUserQuestion tool** to clarify
       - Then continue with creation
 
