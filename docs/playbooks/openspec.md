@@ -53,8 +53,11 @@ Use OpenSpec as the default planning layer for meaningful, multi-step work in th
 1. Start a meaningful change with `/pac-propose "idea"`.
 2. Review and edit the generated proposal, specs, design, and tasks yourself.
 3. Implement one small slice at a time with `/pac-apply` or with manual edits.
-4. Review the code and adjust artifacts if scope or decisions changed.
-5. Archive and commit the change trail when the work is complete and worth preserving.
+4. For OpenSpec work, update the relevant `tasks.md` checkboxes in the same commit as the completed implementation slice.
+5. Commit each meaningful task group or manual work slice once it is complete and verified.
+6. Select the file list for each commit explicitly; if unrelated files are already staged, leave them out of the current commit.
+7. Review the code and adjust artifacts if scope or decisions changed.
+8. Archive and commit the change trail when the work is complete and worth preserving.
 
 ## When to Use It
 
@@ -75,6 +78,12 @@ Skip OpenSpec when the task is:
 
 - OpenSpec artifacts live under `openspec/`.
 - Meaningful `proposal.md`, `design.md`, `specs/`, and `tasks.md` artifacts are committed when they capture durable context.
+- Commit implementation work during execution, not only at the end of the whole change.
+- For OpenSpec changes, prefer one atomic commit per meaningful numbered task section once that section is complete and verified.
+- For OpenSpec changes, include the corresponding `tasks.md` checkbox updates in the same commit as the completed implementation slice.
+- For manual work outside OpenSpec, use the same atomic-commit rule with coherent manual task groups.
+- Do not create one commit per file or tiny checkbox, and do not batch unrelated work into one large commit.
+- Select the file list for each commit explicitly; if unrelated files are already staged, leave them out of the current commit.
 - Keep artifacts short, current, and decision-oriented.
 - Prefer updating existing artifacts over creating verbose parallel notes.
 
@@ -84,7 +93,10 @@ Skip OpenSpec when the task is:
 2. Review and edit the proposal yourself before implementation.
 3. Add or refine specs and design only to the level that improves execution.
 4. Implement in small slices, reviewing code between slices.
-5. Commit the OpenSpec trail with the code when it explains why the change exists or how it was scoped.
+5. For OpenSpec work, commit the matching `tasks.md` checkbox updates in the same commit as each completed slice.
+6. Commit each coherent, verified implementation slice as you go.
+7. Use an explicit file list for each commit instead of assuming the full staging area belongs together.
+8. Commit the OpenSpec trail with the code when it explains why the change exists or how it was scoped.
 
 OpenSpec is a planning scaffold, not an autopilot. The human stays responsible for scope, design judgment, code review, and final approval.
 
