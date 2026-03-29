@@ -32,12 +32,21 @@ Repository guidance will define an atomic implementation commit as one coherent,
 
 ### Decision: OpenSpec task groups are the default commit boundary for planned changes
 
-For OpenSpec changes, the preferred commit boundary will be the meaningful numbered task section or task group in `tasks.md`. The guidance will instruct implementers to finish and verify a section before creating its commit, while allowing multiple tiny checkboxes inside that section to stay uncommitted until the section forms a coherent unit.
+For OpenSpec changes, the preferred commit boundary will be the meaningful numbered task section or task group in `tasks.md`. The guidance will instruct implementers to finish and verify a section before creating its commit, while allowing multiple tiny checkboxes inside that section to stay uncommitted until the section forms a coherent unit. The same commit must include the corresponding `tasks.md` checkbox updates for the completed slice so the code and task list remain in sync at every review boundary.
 
 **Alternatives considered:**
 
 - **Commit only when all tasks are done:** rejected because it hides progress boundaries and makes review and rollback harder.
 - **Commit after every checkbox:** rejected because task lists often include tiny bookkeeping items that do not deserve their own commit.
+
+### Decision: OpenSpec task completion updates travel with the implementation slice
+
+For OpenSpec-driven work, the relevant `tasks.md` checkbox updates must be committed in the same atomic commit as the implementation slice they describe. This keeps the history honest: each commit shows both the code state and the matching task-tracking state for that slice.
+
+**Alternatives considered:**
+
+- **Flip task checkboxes in a later bookkeeping commit:** rejected because it lets `tasks.md` drift behind the code and makes progress review less trustworthy.
+- **Update every checkbox immediately in its own commit:** rejected because it creates the same noisy micro-commit problem as per-file commits.
 
 ### Decision: Manual work uses the same rule with explicit task grouping
 

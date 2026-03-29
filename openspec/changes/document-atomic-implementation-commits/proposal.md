@@ -6,6 +6,7 @@ The repository currently explains atomic commits in a few isolated places, but i
 
 - Document a repository-wide rule that meaningful implementation work must be committed in small, coherent, verifiable units during the work rather than only at the end.
 - Clarify that OpenSpec implementation should usually create one commit per meaningful task section or task group once that section is complete and verified.
+- Clarify that OpenSpec commits should include the corresponding `tasks.md` checkbox updates in the same atomic commit as the implementation slice they describe.
 - Clarify that non-OpenSpec/manual work follows the same atomic-commit principle using coherent manual task groups.
 - Update commit guidance so commit file selection is explicit, and unrelated staged files must be left out rather than bundled into the current commit.
 - Align the OpenSpec apply guidance, repository playbooks, and build-agent instructions around the same commit model.
@@ -18,7 +19,7 @@ The repository currently explains atomic commits in a few isolated places, but i
 
 ### Modified Capabilities
 
-- `ai-workflow-conventions`: clarify that both OpenSpec and non-OpenSpec implementation workflows use atomic commits tied to coherent progress boundaries, with explicit file selection for each commit.
+- `ai-workflow-conventions`: clarify that both OpenSpec and non-OpenSpec implementation workflows use atomic commits tied to coherent progress boundaries, with explicit file selection for each commit, and matching `tasks.md` updates for OpenSpec slices.
 
 ## Impact
 

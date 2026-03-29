@@ -16,3 +16,8 @@
 ## 4. Verify consistency
 
 - [x] 4.1 Review the updated docs, commands, and agent guidance for consistent wording around atomic task-group commits and explicit file selection
+
+## 5. Keep OpenSpec task state in sync with implementation commits
+
+- [x] 5.1 Update the change artifacts so OpenSpec slices require matching `tasks.md` checkbox updates in the same atomic commit
+- [x] 5.2 Update workflow guidance so OpenSpec implementation commits include the corresponding `tasks.md` updates for the completed slice

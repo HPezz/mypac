@@ -74,6 +74,7 @@ Optionally specify a change name. If omitted, check if it can be inferred from c
     - Keep changes minimal and focused
     - Commit during implementation, not only at the end
     - Prefer one atomic commit per meaningful numbered task section or task group once it is complete and verified
+    - Include the corresponding `tasks.md` checkbox updates in that same commit so the task list matches the code state
     - Do not create one commit per tiny checkbox or file
     - Select the file list for each commit explicitly; if unrelated files are already staged, leave them out of the current commit
     - Mark task complete in the tasks file: `- [ ]` → `- [x]`
@@ -152,6 +153,7 @@ What would you like to do?
 - If implementation reveals issues, pause and suggest artifact updates
 - Keep code changes minimal and scoped to each task
 - Create atomic commits during implementation for meaningful task groups, not one giant commit at the end
+- For OpenSpec work, keep the relevant `tasks.md` checkbox updates in the same commit as the implementation slice they describe
 - Use explicit file selection for each commit instead of assuming the full staging area belongs together
 - Update task checkbox immediately after completing each task
 - Pause on errors, blockers, or unclear requirements - don't guess

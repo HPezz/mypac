@@ -50,6 +50,7 @@ The repository SHALL document that implementation work is committed during execu
 
 - **WHEN** a reader follows repository guidance for implementing an OpenSpec change
 - **THEN** the guidance tells them to commit after each meaningful numbered task section or task group once that section is complete and verified
+- **AND** the guidance tells them to include the corresponding `tasks.md` checkbox updates in that same commit
 - **AND** the guidance tells them not to create one commit for every tiny checkbox or file
 
 #### Scenario: Reader applies atomic commits to manual work
