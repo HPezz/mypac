@@ -11,9 +11,11 @@ metadata:
 
 Archive a completed change in the experimental workflow.
 
-**Input**: Optionally specify a change name. If omitted, check if it can be inferred from conversation context. If vague or ambiguous you MUST prompt for available changes.
+## Input
 
-**Steps**
+Optionally specify a change name. If omitted, check if it can be inferred from conversation context. If vague or ambiguous you MUST prompt for available changes.
+
+## Steps
 
 1. **If no change name provided, prompt for selection**
 
@@ -99,7 +101,7 @@ Archive a completed change in the experimental workflow.
    - Whether specs were synced (if applicable)
    - Note about any warnings (incomplete artifacts/tasks)
 
-**Output On Success**
+## Output On Success
 
 ```
 ## Archive Complete
@@ -112,7 +114,7 @@ Archive a completed change in the experimental workflow.
 All artifacts complete. All tasks complete.
 ```
 
-**Guardrails**
+## Guardrails
 
 - Always prompt for change selection if not provided
 - Use artifact graph (openspec status --json) for completion checking

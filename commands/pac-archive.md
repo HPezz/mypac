@@ -4,9 +4,11 @@ description: Archive a completed change in the experimental workflow
 
 Archive a completed change in the experimental workflow.
 
-**Input**: Optionally specify a change name after `/pac-archive` (e.g., `/pac-archive add-auth`). If omitted, check if it can be inferred from conversation context. If vague or ambiguous you MUST prompt for available changes.
+## Input
 
-**Steps**
+Optionally specify a change name after `/pac-archive` (e.g., `/pac-archive add-auth`). If omitted, check if it can be inferred from conversation context. If vague or ambiguous you MUST prompt for available changes.
+
+## Steps
 
 1. **If no change name provided, prompt for selection**
 
@@ -92,7 +94,7 @@ Archive a completed change in the experimental workflow.
    - Spec sync status (synced / sync skipped / no delta specs)
    - Note about any warnings (incomplete artifacts/tasks)
 
-**Output On Success**
+## Output On Success
 
 ```
 ## Archive Complete
@@ -105,7 +107,7 @@ Archive a completed change in the experimental workflow.
 All artifacts complete. All tasks complete.
 ```
 
-**Output On Success (No Delta Specs)**
+## Output On Success (No Delta Specs)
 
 ```
 ## Archive Complete
@@ -118,7 +120,7 @@ All artifacts complete. All tasks complete.
 All artifacts complete. All tasks complete.
 ```
 
-**Output On Success With Warnings**
+## Output On Success With Warnings
 
 ```
 ## Archive Complete (with warnings)
@@ -136,7 +138,7 @@ All artifacts complete. All tasks complete.
 Review the archive if this was not intentional.
 ```
 
-**Output On Error (Archive Exists)**
+## Output On Error (Archive Exists)
 
 ```
 ## Archive Failed
@@ -152,7 +154,7 @@ Target archive directory already exists.
 3. Wait until a different date to archive
 ```
 
-**Guardrails**
+## Guardrails
 
 - Always prompt for change selection if not provided
 - Use artifact graph (openspec status --json) for completion checking

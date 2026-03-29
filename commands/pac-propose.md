@@ -12,11 +12,11 @@ I'll create a change with artifacts:
 
 When ready to implement, run /pac-apply
 
----
+## Input
 
-**Input**: The argument after `/pac-propose` is the change name (kebab-case), OR a description of what the user wants to build.
+The argument after `/pac-propose` is the change name (kebab-case), OR a description of what the user wants to build.
 
-**Steps**
+## Steps
 
 1. **If no input provided, ask what they want to build**
 
@@ -90,7 +90,7 @@ When ready to implement, run /pac-apply
    openspec status --change "<name>"
    ```
 
-**Output**
+## Output
 
 After completing all artifacts, summarize:
 
@@ -99,7 +99,7 @@ After completing all artifacts, summarize:
 - What's ready: "All artifacts created! Ready for implementation."
 - Prompt: "Run `/pac-apply` to start implementing."
 
-**Artifact Creation Guidelines**
+## Artifact Creation Guidelines
 
 - Follow the `instruction` field from `openspec instructions` for each artifact type
 - The schema defines what each artifact should contain - follow it
@@ -109,7 +109,7 @@ After completing all artifacts, summarize:
   - Do NOT copy `<context>`, `<rules>`, `<project_context>` blocks into the artifact
   - These guide what you write, but should never appear in the output
 
-**Guardrails**
+## Guardrails
 
 - Create ALL artifacts needed for implementation (as defined by schema's `apply.requires`)
 - Always read dependency artifacts before creating a new one
