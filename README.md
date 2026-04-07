@@ -5,7 +5,7 @@
 This repository is my personal lab for building an AI-native way of working.
 I use it to collect knowledge, configs, prompts, and experiments for my personal AI workflow.
 
-It also doubles as a reusable OpenCode kit that can be loaded from other repositories through `OPENCODE_CONFIG_DIR`.
+It is now primarily set up to be used with **[pi](https://github.com/badlogic/pi-mono/tree/main/packages/pi-coding-agent)**, while preserving separate OpenCode compatibility documentation.
 
 ## What lives here
 
@@ -36,33 +36,42 @@ These docs are intentionally lightweight and biased toward durable ideas over fa
 The hk configuration lints YAML and Markdown files before commit.
 If a check fails, fix the reported file and run the hook again or retry the commit.
 
-## Reusing this repository as a shared OpenCode kit
+## Using this repository with pi
 
-The reusable OpenCode kit lives at the repository root in this repository.
-
-For day-to-day work in this repo, use the supported launcher:
+For day-to-day work in this repo, use:
 
 ```bash
-mise run opencode
+mise run pi
 ```
 
-Use it from another repository like this:
+To make `mypac` available from any repository, add this repo as a local pi package in `~/.pi/agent/settings.json`:
 
-```bash
-export OPENCODE_CONFIG_DIR=/path/to/mypac
+```json
+{
+  "packages": [
+    "/Users/ladislas/dev/ladislas/mypac"
+  ]
+}
 ```
 
-That loads the shared agents, commands, plugins, and skills from this repo while keeping the target repository's local `.opencode/` content additive.
+If you already have other packages configured, append this repository path to the existing `packages` array instead of replacing it.
 
-Shared asset locations:
+This keeps pi using its normal runtime state in `~/.pi/agent/` for auth, settings, and sessions while loading shared resources from this repository.
 
-- `agents/`
-- `commands/`
-- `plugins/`
+Shared pi resource locations in this repository:
+
+- `prompts/`
+- `extensions/`
 - `skills/`
+- `themes/`
 
-Manual `OPENCODE_CONFIG_DIR=... opencode` exports are still useful as compatibility context, but `mise run opencode` is the supported local workflow here.
+The first validation prompt is:
 
+- `/hello-world`
+
+## OpenCode compatibility
+
+OpenCode setup and shared-kit usage are documented separately in `docs/opencode-setup.md`.
 For naming and layering rules, see `docs/playbooks/shared-opencode-kit.md`.
 
 ## Why this exists
