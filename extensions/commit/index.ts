@@ -1,3 +1,5 @@
+import { existsSync } from "node:fs";
+import path from "node:path";
 import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
 
 type ModelRef = {
@@ -7,6 +9,16 @@ type ModelRef = {
 
 type CommitFlowState = {
 	previousModel?: ModelRef;
+};
+
+type CommitCommandOptions = {
+	includes: string[];
+	excludes: string[];
+	hint: string;
+};
+
+type CommitPromptOptions = CommitCommandOptions & {
+	scopedFiles: string[];
 };
 
 const CHEAP_MODEL_CANDIDATES: readonly ModelRef[] = [
@@ -22,9 +34,151 @@ function sameModel(left?: ModelRef, right?: ModelRef): boolean {
 	return left?.provider === right?.provider && left?.id === right?.id;
 }
 
-function buildCommitPrompt(args: string): string {
-	const hint = args.trim();
+function normalizeRepoPath(input: string): string {
+	const normalized = path.normalize(input).replace(/\\/g, "/");
+	if (normalized === ".") {
+		return normalized;
+	}
+	return normalized.replace(/^\.\//, "").replace(/\/$/, "");
+}
 
+function toRepoRelativePath(input: string, cwd: string): string {
+	const absolute = path.isAbsolute(input) ? input : path.resolve(cwd, input);
+	const relative = path.relative(cwd, absolute);
+	return normalizeRepoPath(relative);
+}
+
+function tokenizeArgs(args: string): string[] {
+	const tokens: string[] = [];
+	let current = "";
+	let quote: '"' | "'" | undefined;
+
+	for (let i = 0; i < args.length; i += 1) {
+		const char = args[i];
+
+		if (quote) {
+			if (char === quote) {
+				quote = undefined;
+				continue;
+			}
+			if (char === "\\" && i + 1 < args.length) {
+				i += 1;
+				current += args[i];
+				continue;
+			}
+			current += char;
+			continue;
+		}
+
+		if (char === '"' || char === "'") {
+			quote = char;
+			continue;
+		}
+
+		if (/\s/.test(char)) {
+			if (current) {
+				tokens.push(current);
+				current = "";
+			}
+			continue;
+		}
+
+		if (char === "\\" && i + 1 < args.length) {
+			i += 1;
+			current += args[i];
+			continue;
+		}
+
+		current += char;
+	}
+
+	if (current) {
+		tokens.push(current);
+	}
+
+	return tokens;
+}
+
+function parseCommitArgs(args: string, cwd: string): CommitCommandOptions {
+	const tokens = tokenizeArgs(args);
+	const includes: string[] = [];
+	const excludes: string[] = [];
+	const hintTokens: string[] = [];
+
+	for (let index = 0; index < tokens.length; index += 1) {
+		const token = tokens[index];
+		const next = tokens[index + 1];
+
+		if ((token === "--include" || token === "-i") && next) {
+			includes.push(toRepoRelativePath(next, cwd));
+			index += 1;
+			continue;
+		}
+
+		if ((token === "--exclude" || token === "-e") && next) {
+			excludes.push(toRepoRelativePath(next, cwd));
+			index += 1;
+			continue;
+		}
+
+		if (token.startsWith("--include=")) {
+			includes.push(toRepoRelativePath(token.slice("--include=".length), cwd));
+			continue;
+		}
+
+		if (token.startsWith("--exclude=")) {
+			excludes.push(toRepoRelativePath(token.slice("--exclude=".length), cwd));
+			continue;
+		}
+
+		const candidatePath = path.isAbsolute(token) ? token : path.resolve(cwd, token);
+		if (existsSync(candidatePath)) {
+			includes.push(toRepoRelativePath(candidatePath, cwd));
+			continue;
+		}
+
+		hintTokens.push(token);
+	}
+
+	return {
+		includes: [...new Set(includes)],
+		excludes: [...new Set(excludes)],
+		hint: hintTokens.join(" ").trim(),
+	};
+}
+
+function parseChangedFiles(statusOutput: string): string[] {
+	const files = new Set<string>();
+
+	for (const line of statusOutput.split("\n")) {
+		if (!line.trim()) {
+			continue;
+		}
+
+		const rawPath = line.slice(3).trim();
+		const targetPath = rawPath.includes(" -> ") ? rawPath.split(" -> ").at(-1) ?? rawPath : rawPath;
+		files.add(normalizeRepoPath(targetPath));
+	}
+
+	return [...files];
+}
+
+function matchesScope(file: string, scope: string): boolean {
+	if (scope === ".") {
+		return true;
+	}
+	return file === scope || file.startsWith(`${scope}/`);
+}
+
+function buildScopedFiles(changedFiles: string[], options: CommitCommandOptions): string[] {
+	return changedFiles.filter((file) => {
+		const included = options.includes.length === 0 || options.includes.some((scope) => matchesScope(file, scope));
+		const excluded = options.excludes.some((scope) => matchesScope(file, scope));
+		return included && !excluded;
+	});
+}
+
+function buildCommitPrompt(options: CommitPromptOptions): string {
 	return [
 		"Create one or more atomic git commits following the project's gitmoji conventions.",
 		"",
@@ -34,25 +188,36 @@ function buildCommitPrompt(args: string): string {
 		"",
 		"Workflow:",
 		"1. Inspect the repository state with git status and git diff.",
-		"2. Group the changes into logical, atomic units. Unrelated changes belong in separate commits.",
-		"3. If there is more than one unrelated commit group, STOP and present the proposed split for approval before committing anything.",
-		"4. For each approved commit group:",
+		"2. Restrict your analysis and commit staging to the scoped files listed below.",
+		"3. Group the scoped changes into logical, atomic units. Unrelated changes belong in separate commits.",
+		"4. If there is more than one unrelated commit group, STOP and present the proposed split for approval before committing anything.",
+		"5. For each approved commit group:",
 		"   - Run gitmoji list to choose the most appropriate emoji.",
 		"   - Select the file list for that commit explicitly.",
 		"   - Stage only the files for that logical unit.",
 		"   - Verify the staged file list matches the intended commit.",
 		"   - Commit with the format <emoji> (<topic>): <message>.",
-		"5. Report each resulting commit hash and message.",
+		"6. Report each resulting commit hash and message.",
 		"",
 		"Constraints:",
 		"- Never use --no-verify.",
 		"- Keep messages concise, imperative, and without a trailing period.",
 		"- Topic should be a short lowercase noun such as git, docs, ui, deps, or agent.",
+		"- Do not stage or commit files outside the scoped file list below.",
 		"- Do not sweep unrelated staged files into a commit just because they were already staged.",
 		"- If a commit hook fails, report the failure clearly and do not bypass it.",
 		"- At the end, summarize what happened, including any commits created or any reason you stopped.",
-		hint ? "" : undefined,
-		hint ? `Hint from user: ${hint}` : undefined,
+		"",
+		"Scoped changed files:",
+		...options.scopedFiles.map((file) => `- ${file}`),
+		options.includes.length > 0 ? "" : undefined,
+		options.includes.length > 0 ? "Requested include scopes:" : undefined,
+		...options.includes.map((scope) => `- ${scope}`),
+		options.excludes.length > 0 ? "" : undefined,
+		options.excludes.length > 0 ? "Requested exclude scopes:" : undefined,
+		...options.excludes.map((scope) => `- ${scope}`),
+		options.hint ? "" : undefined,
+		options.hint ? `Hint from user: ${options.hint}` : undefined,
 	]
 		.filter((line): line is string => line !== undefined)
 		.join("\n");
@@ -62,7 +227,7 @@ export default function commitExtension(pi: ExtensionAPI) {
 	let commitFlow: CommitFlowState | undefined;
 
 	pi.registerCommand("commit", {
-		description: "Create atomic git commits with temporary cheap-model routing",
+		description: "Create atomic git commits with optional -i/--include and -e/--exclude scopes",
 		handler: async (args, ctx) => {
 			if (!ctx.isIdle()) {
 				ctx.ui.notify("/commit can only run while the agent is idle", "warning");
@@ -75,14 +240,22 @@ export default function commitExtension(pi: ExtensionAPI) {
 				return;
 			}
 
-			const status = await pi.exec("git", ["status", "--porcelain"]);
+			const status = await pi.exec("git", ["status", "--porcelain", "--untracked-files=all"]);
 			if (status.code !== 0) {
 				ctx.ui.notify(status.stderr.trim() || "Failed to inspect git status", "error");
 				return;
 			}
 
-			if (!status.stdout.trim()) {
+			const changedFiles = parseChangedFiles(status.stdout);
+			if (changedFiles.length === 0) {
 				ctx.ui.notify("No git changes to commit", "info");
+				return;
+			}
+
+			const options = parseCommitArgs(args, ctx.cwd);
+			const scopedFiles = buildScopedFiles(changedFiles, options);
+			if (scopedFiles.length === 0) {
+				ctx.ui.notify("No changed files match the requested commit scope", "warning");
 				return;
 			}
 
@@ -124,9 +297,22 @@ export default function commitExtension(pi: ExtensionAPI) {
 				ctx.ui.notify(`No preferred cheap model available; using current model: ${formatModel(selectedModel)}`, "warning");
 			}
 
-			commitFlow = { previousModel };
+			if (options.includes.length > 0 || options.excludes.length > 0 || options.hint) {
+				const parts = [`Scoped ${scopedFiles.length} changed file${scopedFiles.length === 1 ? "" : "s"}`];
+				if (options.includes.length > 0) {
+					parts.push(`include: ${options.includes.join(", ")}`);
+				}
+				if (options.excludes.length > 0) {
+					parts.push(`exclude: ${options.excludes.join(", ")}`);
+				}
+				if (options.hint) {
+					parts.push(`hint: ${options.hint}`);
+				}
+				ctx.ui.notify(parts.join(" | "), "info");
+			}
 
-			pi.sendUserMessage(buildCommitPrompt(args));
+			commitFlow = { previousModel };
+			pi.sendUserMessage(buildCommitPrompt({ ...options, scopedFiles }));
 		},
 	});
 
