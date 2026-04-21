@@ -1,0 +1,20 @@
+schema: spec-driven
+
+context: |
+  Use OpenSpec in this repository for meaningful multi-step work, not tiny obvious edits.
+  OpenSpec is a planning scaffold, not an autopilot.
+  Keep artifacts short, current, and decision-oriented.
+  Prefer updating existing artifacts over creating verbose parallel notes.
+  Implement in small coherent slices and keep task tracking aligned with real progress.
+
+rules:
+  proposal:
+    - Focus on the problem, scope, and expected impact.
+    - Call out non-goals when they help prevent scope creep.
+  design:
+    - Record only implementation-relevant decisions, constraints, and tradeoffs.
+    - Avoid speculative architecture or flexibility that is not required.
+  tasks:
+    - Break work into small coherent slices that can be reviewed and verified incrementally.
+    - Prefer task groupings that can map cleanly to atomic commits.
+    - Keep tasks aligned with actual implementation order and update them as the plan changes.
