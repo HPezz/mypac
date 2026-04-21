@@ -22,5 +22,5 @@
 
 ## 5. Verify the Pi-only end state
 
-- [ ] 5.1 Re-scan the repository for active OpenCode-facing docs/config/task leftovers and remove any remaining supported-path references.
-- [ ] 5.2 Run the relevant repo checks after the cleanup and confirm the Pi-only surface is internally consistent.
+- [x] 5.1 Re-scan the repository for active OpenCode-facing docs/config/task leftovers and remove any remaining supported-path references.
+- [x] 5.2 Run the relevant repo checks after the cleanup and confirm the Pi-only surface is internally consistent.
