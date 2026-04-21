@@ -1,8 +1,8 @@
 ## 1. Re-establish the active repository story
 
-- [ ] 1.1 Update `README.md` so Pi is the only supported interface and the README is the primary setup/source-of-truth document.
-- [ ] 1.2 Remove or simplify stale interface/strategy documents that no longer add practical value or that contradict the Pi-only setup.
-- [ ] 1.3 Align `package.json` Pi metadata with the directories and assets that actually remain in the Pi-only repository layout.
+- [x] 1.1 Update `README.md` so Pi is the only supported interface and the README is the primary setup/source-of-truth document.
+- [x] 1.2 Remove or simplify stale interface/strategy documents that no longer add practical value or that contradict the Pi-only setup.
+- [x] 1.3 Align `package.json` Pi metadata with the directories and assets that actually remain in the Pi-only repository layout.
 
 ## 2. Remove OpenCode runtime and tooling
 

@@ -11,9 +11,6 @@
     ],
     "extensions": [
       "./extensions"
-    ],
-    "themes": [
-      "./themes"
     ]
   },
   "dependencies": {
