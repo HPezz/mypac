@@ -10,5 +10,5 @@
 
 ## 3. Retire the unsupported GitHub task capture spec
 
-- [ ] 3.1 Remove `openspec/specs/github-task-capture/spec.md` from the active spec surface.
-- [ ] 3.2 Verify that no active Pi prompt, skill, or extension currently implements the removed `/add-task` capability.
+- [x] 3.1 Remove `openspec/specs/github-task-capture/spec.md` from the active spec surface.
+- [x] 3.2 Verify that no active Pi prompt, skill, or extension currently implements the removed `/add-task` capability.
