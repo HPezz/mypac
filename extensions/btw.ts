@@ -401,8 +401,9 @@ export default function (pi: ExtensionAPI) {
 		const lines: string[] = [];
 		for (const item of thread.slice(-6)) {
 			// User message
-			const userText = item.question.trim().split("\n")[0];
-			lines.push(theme.fg("accent", theme.bold("You: ")) + truncateToWidth(userText, width - 5, "…"));
+			const userLines = renderMarkdownLines(item.question.trim(), width);
+			lines.push(theme.fg("accent", theme.bold("You: ")) + (userLines[0] ?? ""));
+			lines.push(...userLines.slice(1));
 			lines.push("");
 
 			// Assistant message rendered as markdown
@@ -413,8 +414,9 @@ export default function (pi: ExtensionAPI) {
 		}
 
 		if (pendingQuestion) {
-			const userText = pendingQuestion.trim().split("\n")[0];
-			lines.push(theme.fg("accent", theme.bold("You: ")) + truncateToWidth(userText, width - 5, "…"));
+			const userPendingLines = renderMarkdownLines(pendingQuestion.trim(), width);
+			lines.push(theme.fg("accent", theme.bold("You: ")) + (userPendingLines[0] ?? ""));
+			lines.push(...userPendingLines.slice(1));
 
 			// Show tool calls inline
 			if (pendingToolCalls.length > 0) {
