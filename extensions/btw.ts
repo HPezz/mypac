@@ -334,6 +334,8 @@ export default function (pi: ExtensionAPI) {
 	let pendingError: string | null = null;
 	let pendingToolCalls: ToolCallInfo[] = [];
 	let sideBusy = false;
+	let sideRequestId = 0;
+	let cancelledSideRequestId: number | null = null;
 	let overlayStatus = "Ready";
 	let overlayDraft = "";
 	let overlayRuntime: OverlayRuntime | null = null;
@@ -523,6 +525,9 @@ export default function (pi: ExtensionAPI) {
 	}
 
 	async function resetThread(ctx: ExtensionContext | ExtensionCommandContext, persist = true): Promise<void> {
+		if (sideBusy) {
+			cancelledSideRequestId = sideRequestId;
+		}
 		thread = [];
 		pendingQuestion = null;
 		pendingAnswer = "";
@@ -547,6 +552,7 @@ export default function (pi: ExtensionAPI) {
 		pendingError = null;
 		pendingToolCalls = [];
 		sideBusy = false;
+		cancelledSideRequestId = null;
 		overlayStatus = "Ready";
 		overlayDraft = "";
 		const branch = ctx.sessionManager.getBranch();
@@ -832,9 +838,16 @@ export default function (pi: ExtensionAPI) {
 			return;
 		}
 
-		const choice = await ctx.ui.select("Close BTW:", ["Keep side thread", "Inject summary into main chat"]);
+		const choice = await ctx.ui.select("Close BTW:", [
+			"Keep side thread",
+			"Inject summary into main chat",
+			"Discard side thread permanently",
+		]);
 		if (choice === "Inject summary into main chat") {
 			await injectSummaryIntoMain(ctx);
+		} else if (choice === "Discard side thread permanently") {
+			await resetThread(ctx);
+			notify(ctx, "Discarded BTW side thread.", "info");
 		}
 	}
 
@@ -866,6 +879,7 @@ export default function (pi: ExtensionAPI) {
 		}
 
 		sideBusy = true;
+		const requestId = ++sideRequestId;
 		pendingQuestion = question;
 		pendingAnswer = "";
 		pendingError = null;
@@ -875,6 +889,9 @@ export default function (pi: ExtensionAPI) {
 
 		try {
 			await side.session.prompt(question, { source: "extension" });
+			if (cancelledSideRequestId === requestId) {
+				return;
+			}
 			const response = getLastAssistantMessage(side.session);
 			if (!response) {
 				throw new Error("BTW request finished without a response.");
@@ -906,13 +923,21 @@ export default function (pi: ExtensionAPI) {
 			pendingToolCalls = [];
 			setOverlayStatus("Ready for the next side question.");
 		} catch (error) {
+			if (cancelledSideRequestId === requestId) {
+				return;
+			}
 			const message = error instanceof Error ? error.message : String(error);
 			pendingError = message;
 			setOverlayStatus("BTW request failed.");
 			notify(ctx, message, "error");
 		} finally {
-			sideBusy = false;
-			syncOverlay();
+			if (cancelledSideRequestId === requestId) {
+				cancelledSideRequestId = null;
+			}
+			if (requestId === sideRequestId) {
+				sideBusy = false;
+				syncOverlay();
+			}
 		}
 	}
 
