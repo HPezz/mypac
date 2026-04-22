@@ -90,6 +90,62 @@ When the work follows an OpenSpec change:
 - Include the corresponding `tasks.md` checkbox updates in the same commit as the completed implementation slice.
 - Commit meaningful OpenSpec artifacts when they preserve rationale, review context, or implementation history.
 
+## Fixup workflow
+
+Use `git commit --fixup` + `git rebase --autosquash` when a small correction clearly belongs inside an earlier commit rather than standing as a new one.
+
+**When to suggest it:**
+
+- The user wants to fix or amend something in a recent local commit.
+- A follow-up change logically belongs in a specific prior commit (e.g., a typo fix, a missed file, a review correction).
+- The branch has not been pushed, or the user is working on a local branch where history rewriting is safe.
+- Creating a new standalone commit would clutter the log with noise (e.g., `fix typo`, `oops forgot file`).
+
+**Do not use it** if the target commit is already on `main`, has been pushed to a shared remote, or the user has not confirmed that rewriting is acceptable.
+
+**How to do it:**
+
+1. Find the target commit SHA:
+
+   ```bash
+   git log --oneline
+   ```
+
+2. Stage the correction normally, then commit with `--fixup`:
+
+   ```bash
+   git add <files>
+   git commit --fixup=<sha>
+   ```
+
+   Git will create a commit titled `fixup! <original message>` automatically — no gitmoji format needed for the fixup commit itself.
+
+   To **reword** a commit message instead of (or in addition to) fixing content, use an `amend!` commit. Create it manually with `--allow-empty` to avoid editor complications:
+
+   ```bash
+   git commit --allow-empty -m "amend! <exact original subject>
+
+   <new desired commit message>"
+   ```
+
+   During autosquash, git squashes the empty commit and replaces the original's message with the body of the `amend!` commit (i.e., the new message you wrote). The `amend!` subject line must match the original commit's subject exactly for autosquash to locate it.
+
+3. Squash it in with autosquash (replace `<sha>` with the target commit's SHA):
+
+   ```bash
+   GIT_SEQUENCE_EDITOR=true git rebase -i --autosquash <sha>^
+   ```
+
+   `GIT_SEQUENCE_EDITOR=true` skips the interactive editor and accepts the autosquash plan directly. Omit it if the user wants to review the rebase plan first.
+
+4. Verify the result:
+
+   ```bash
+   git log --oneline
+   ```
+
+**Tip:** If multiple fixup commits target the same base, you can batch them: stage and `--fixup` each in turn, then run a single `rebase --autosquash` at the end.
+
 ## Steps
 
 1. Determine commit scope from the user's request.
@@ -124,6 +180,7 @@ When the work follows an OpenSpec change:
    - Verify the staged file list matches the intended scope.
    - Commit with the format `<emoji> <type>(<scope>): <summary>` or `<emoji> <type>: <summary>` when no scope is needed.
    - Add a body when needed to explain why, tradeoffs, issue references, or breaking-change migration notes.
+   - If the change is a small correction to a specific recent local commit, prefer the **fixup workflow** described above instead of creating a standalone fix commit.
 
 6. Report the result.
 
@@ -134,5 +191,5 @@ When the work follows an OpenSpec change:
 
 - Do not sweep unrelated already-staged files into the commit.
 - Do not guess when commit boundaries are unclear.
-- Do not push, merge, or rewrite history unless the user explicitly asks.
+- Do not push, merge, or rewrite history unless the user explicitly asks. The one approved exception is `git rebase --autosquash` as part of the fixup workflow above, on local branches that have not been pushed to a shared remote.
 - Keep the repository's gitmoji, branch, and OpenSpec rules intact even when the user asks casually to “commit this”.
