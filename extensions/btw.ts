@@ -4,6 +4,8 @@
 import { existsSync } from "node:fs";
 import path from "node:path";
 import {
+	buildSessionContext,
+	convertToLlm,
 	createAgentSession,
 	createExtensionRuntime,
 	getMarkdownTheme,
@@ -19,6 +21,7 @@ import { type AssistantMessage, type Message, type ThinkingLevel as AiThinkingLe
 import {
 	Container,
 	Editor,
+	matchesKey,
 	Markdown,
 	truncateToWidth,
 	visibleWidth,
@@ -38,7 +41,7 @@ const TRUNCATED_TOOL_CALL_SUFFIX = "...";
 
 const BTW_SYSTEM_PROMPT = [
 	"You are BTW, an isolated side-channel assistant embedded in the user's coding agent.",
-	"You do not have access to the main conversation or live tool activity unless the user explicitly shares that context here.",
+	"You are isolated from the main conversation by default; the user may explicitly import a frozen main-session snapshot for reference.",
 	"Help with focused questions, planning, and quick explorations.",
 	"Be direct and practical.",
 ].join(" ");
@@ -388,8 +391,10 @@ class BtwOverlay extends Container implements Focusable {
 	private readonly keybindings: KeybindingsManager;
 	private readonly getTranscript: (width: number, theme: ExtensionContext["ui"]["theme"]) => string[];
 	private readonly getStatus: () => string;
+	private readonly getImportActionLabel: () => string;
 	private readonly onSubmitCallback: (value: string) => void;
 	private readonly onDismissCallback: () => void;
+	private readonly onImportContextCallback: () => void;
 	private _focused = false;
 
 	get focused(): boolean {
@@ -407,8 +412,10 @@ class BtwOverlay extends Container implements Focusable {
 		keybindings: KeybindingsManager,
 		getTranscript: (width: number, theme: ExtensionContext["ui"]["theme"]) => string[],
 		getStatus: () => string,
+		getImportActionLabel: () => string,
 		onSubmit: (value: string) => void,
 		onDismiss: () => void,
+		onImportContext: () => void,
 	) {
 		super();
 		this.tui = tui;
@@ -416,8 +423,10 @@ class BtwOverlay extends Container implements Focusable {
 		this.keybindings = keybindings;
 		this.getTranscript = getTranscript;
 		this.getStatus = getStatus;
+		this.getImportActionLabel = getImportActionLabel;
 		this.onSubmitCallback = onSubmit;
 		this.onDismissCallback = onDismiss;
+		this.onImportContextCallback = onImportContext;
 
 		const editorTheme: EditorTheme = {
 			borderColor: (s) => theme.fg("borderMuted", s),
@@ -438,6 +447,11 @@ class BtwOverlay extends Container implements Focusable {
 	handleInput(data: string): void {
 		if (this.keybindings.matches(data, "tui.select.cancel")) {
 			this.onDismissCallback();
+			return;
+		}
+
+		if (matchesKey(data, "alt+i")) {
+			this.onImportContextCallback();
 			return;
 		}
 
@@ -465,7 +479,7 @@ class BtwOverlay extends Container implements Focusable {
 		return this.theme.fg("borderMuted", `${left}${"─".repeat(innerWidth)}${right}`);
 	}
 
-	override render(width: number): string[] {
+		override render(width: number): string[] {
 		const dialogWidth = Math.max(56, Math.min(width, Math.floor(width * 0.9)));
 		const innerWidth = Math.max(40, dialogWidth - 2);
 		const terminalRows = process.stdout.rows ?? 30;
@@ -484,11 +498,12 @@ class BtwOverlay extends Container implements Focusable {
 		const transcriptPadding = Math.max(0, transcriptHeight - visibleTranscript.length);
 
 		const status = this.getStatus();
+		const importActionLabel = this.getImportActionLabel();
 
 		const lines = [
 			this.borderLine(innerWidth, "top"),
 			this.frameLine(this.theme.fg("accent", this.theme.bold(" BTW side chat ")), innerWidth),
-			this.frameLine(this.theme.fg("dim", "Separate side conversation. Esc closes."), innerWidth),
+			this.frameLine(this.theme.fg("dim", `Isolated side conversation. Alt+I ${importActionLabel.toLowerCase()}.`), innerWidth),
 			this.theme.fg("borderMuted", `├${"─".repeat(innerWidth)}┤`),
 		];
 
@@ -504,7 +519,12 @@ class BtwOverlay extends Container implements Focusable {
 		for (const line of editorLines) {
 			lines.push(this.frameLine(line, innerWidth));
 		}
-		lines.push(this.frameLine(this.theme.fg("dim", "Enter submit · Shift+Enter newline · Esc close"), innerWidth));
+		lines.push(
+			this.frameLine(
+				this.theme.fg("dim", `Enter submit · Shift+Enter newline · Alt+I ${importActionLabel.toLowerCase()} · Esc close`),
+				innerWidth,
+			),
+		);
 		lines.push(this.borderLine(innerWidth, "bottom"));
 
 		return lines;
@@ -529,6 +549,8 @@ export default function (pi: ExtensionAPI) {
 	let importedContextMessages: Message[] | null = null;
 	let importedContextTimestamp: number | null = null;
 	let importedContextMessageCount = 0;
+	let importedContextSource: BtwImportSource | null = null;
+	let launchAnchor: BtwLaunchAnchor | null = null;
 
 	const mdTheme = getMarkdownTheme();
 
@@ -554,6 +576,8 @@ export default function (pi: ExtensionAPI) {
 		importedContextMessages = restored.importedContext?.messages ?? null;
 		importedContextTimestamp = restored.importedContext?.timestamp ?? null;
 		importedContextMessageCount = restored.importedContext?.messageCount ?? 0;
+		importedContextSource = restored.importedContext?.source ?? null;
+		launchAnchor = state?.anchor ?? null;
 		if (activeSidecar) {
 			activeSidecar.state = state ?? activeSidecar.state;
 		}
@@ -674,6 +698,167 @@ export default function (pi: ExtensionAPI) {
 		}
 	}
 
+	function getImportActionLabel(): string {
+		return importedContextMessages !== null ? "Refresh context" : "Import context";
+	}
+
+	function getImportSourceLabel(source: BtwImportSource | null): string {
+		switch (source) {
+			case "launch":
+				return "launch snapshot";
+			case "refresh":
+				return "refreshed snapshot";
+			case "legacy":
+				return "restored snapshot";
+			default:
+				return "imported snapshot";
+		}
+	}
+
+	function filterMessagesForBtw(messages: ReturnType<typeof buildSessionContext>["messages"]): Message[] {
+		return convertToLlm(
+			messages.filter((message) => {
+				return (
+					message.role === "user" ||
+					message.role === "assistant" ||
+					message.role === "branchSummary" ||
+					message.role === "compactionSummary"
+				);
+			}),
+		);
+	}
+
+	function buildImportedContextMessages(
+		messages: Message[],
+		timestamp: number,
+		source: BtwImportSource,
+	): Message[] {
+		const MAX_CHARS = 15000;
+		const markerTimestamp = Math.max(0, timestamp - 2);
+		const sourceLabel = source === "launch" ? "BTW launch time" : source === "refresh" ? "the current main session" : "a previous BTW session";
+		const startMarker: Message = {
+			role: "user",
+			content: [{
+				type: "text",
+				text: `Imported frozen snapshot from ${sourceLabel} at ${new Date(timestamp).toISOString()}. The following messages are reference context for BTW and stay frozen until you refresh or reset BTW.`,
+			}],
+			timestamp: markerTimestamp,
+		};
+		const endMarker: Message = {
+			role: "user",
+			content: [{
+				type: "text",
+				text: "End of imported main-session snapshot. Continue the BTW side conversation below.",
+			}],
+			timestamp: Math.max(0, timestamp - 1),
+		};
+		const truncatedMarker: Message = {
+			role: "user",
+			content: [{ type: "text", text: "[...older imported context omitted...]" }],
+			timestamp: markerTimestamp,
+		};
+
+		const normalizedBlocks: Message[] = [];
+		let bodyChars = 0;
+
+		for (const msg of messages) {
+			if (msg.role === "user") {
+				const content = (msg as { role: "user"; content: string | Array<{ type: string; text?: string }> }).content;
+				const text =
+					typeof content === "string"
+						? content.trim()
+						: (content as Array<{ type: string; text?: string }>)
+								.filter((part) => part.type === "text")
+								.map((part) => part.text ?? "")
+								.join("\n")
+								.trim();
+				if (!text) {
+					continue;
+				}
+				normalizedBlocks.push({
+					role: "user",
+					content: [{ type: "text", text }],
+					timestamp: msg.timestamp,
+				});
+				bodyChars += text.length;
+				continue;
+			}
+
+			if (msg.role !== "assistant") {
+				continue;
+			}
+
+			const assistantMsg = msg as AssistantMessage;
+			const lines: string[] = [];
+			for (const part of assistantMsg.content) {
+				if (part.type === "text") {
+					if (part.text.trim()) {
+						lines.push(part.text.trim());
+					}
+				} else if (part.type === "toolCall") {
+					const argSummary = formatToolArgs(part.name, part.arguments);
+					lines.push(`[Tool: ${part.name}${argSummary ? ` ${argSummary}` : ""}]`);
+				}
+			}
+			const text = lines.join("\n").trim();
+			if (!text) {
+				continue;
+			}
+			normalizedBlocks.push({
+				role: "assistant",
+				content: [{ type: "text", text }],
+				provider: assistantMsg.provider,
+				model: assistantMsg.model,
+				api: assistantMsg.api,
+				usage:
+					assistantMsg.usage ??
+					{
+						input: 0,
+						output: 0,
+						cacheRead: 0,
+						cacheWrite: 0,
+						totalTokens: 0,
+						cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 },
+					},
+				stopReason: "stop",
+				timestamp: assistantMsg.timestamp,
+			});
+			bodyChars += text.length;
+		}
+
+		const markerChars =
+			(startMarker.content as Array<{ type: "text"; text: string }>)[0].text.length +
+			(endMarker.content as Array<{ type: "text"; text: string }>)[0].text.length +
+			(truncatedMarker.content as Array<{ type: "text"; text: string }>)[0].text.length;
+		const originalNormalizedCount = normalizedBlocks.length;
+		while (normalizedBlocks.length > 0 && bodyChars + markerChars > MAX_CHARS) {
+			const removed = normalizedBlocks.shift();
+			if (!removed) {
+				break;
+			}
+			const removedText =
+				removed.role === "user"
+					? typeof removed.content === "string"
+						? removed.content
+						: removed.content
+								.filter((part): part is { type: "text"; text: string } => part.type === "text")
+								.map((part) => part.text)
+								.join("\n")
+					: removed.content
+							.filter((part): part is { type: "text"; text: string } => part.type === "text")
+							.map((part) => part.text)
+							.join("\n");
+			bodyChars -= removedText.length;
+		}
+
+		const importedMessages: Message[] = [startMarker];
+		if (normalizedBlocks.length < originalNormalizedCount) {
+			importedMessages.push(truncatedMarker);
+		}
+		importedMessages.push(...normalizedBlocks, endMarker);
+		return importedMessages;
+	}
+
 	function renderToolCallLines(toolCalls: ToolCallInfo[], theme: ExtensionContext["ui"]["theme"], width: number): string[] {
 		const lines: string[] = [];
 		for (const tc of toolCalls) {
@@ -703,7 +888,8 @@ export default function (pi: ExtensionAPI) {
 		if (importedContextMessages !== null && importedContextTimestamp !== null) {
 			const time = new Date(importedContextTimestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 			const countStr = importedContextMessageCount > 0 ? ` · ${importedContextMessageCount} msgs` : "";
-			lines.push(theme.fg("dim", `↑ context from main session (${time}${countStr})`));
+			const sourceStr = importedContextSource ? ` · ${getImportSourceLabel(importedContextSource)}` : "";
+			lines.push(theme.fg("dim", `↑ context from main session (${time}${countStr}${sourceStr})`));
 			lines.push("");
 		}
 
@@ -807,6 +993,89 @@ export default function (pi: ExtensionAPI) {
 		overlayRuntime?.setDraft?.(value);
 	}
 
+	function recordLaunchAnchor(ctx: ExtensionContext | ExtensionCommandContext): void {
+		const sidecar = ensureSidecarRuntime(ctx);
+		if (!sidecar) {
+			return;
+		}
+
+		launchAnchor = {
+			leafId: ctx.sessionManager.getLeafId(),
+			timestamp: Date.now(),
+		};
+
+		persistSidecarState(ctx, sidecar, {
+			...sidecar.state,
+			anchor: launchAnchor,
+		});
+	}
+
+	async function performImport(ctx: ExtensionContext | ExtensionCommandContext): Promise<boolean> {
+		try {
+			const source: BtwImportSource = importedContextMessages !== null ? "refresh" : "launch";
+			const targetLeafId = source === "launch" ? (launchAnchor?.leafId ?? ctx.sessionManager.getLeafId()) : ctx.sessionManager.getLeafId();
+			const sessionCtx = buildSessionContext(ctx.sessionManager.getEntries(), targetLeafId);
+			const filtered = filterMessagesForBtw(sessionCtx.messages);
+
+			if (filtered.length === 0) {
+				notify(ctx, "No conversation context to import from main session.", "warning");
+				return false;
+			}
+
+			const sidecar = ensureSidecarRuntime(ctx);
+			if (!sidecar) {
+				return false;
+			}
+
+			const timestamp = Date.now();
+			const importedMessages = buildImportedContextMessages(filtered, timestamp, source);
+			const details: BtwImportDetails = {
+				messages: importedMessages,
+				timestamp,
+				messageCount: filtered.length,
+				source,
+			};
+
+			importedContextMessages = importedMessages;
+			importedContextTimestamp = timestamp;
+			importedContextMessageCount = filtered.length;
+			importedContextSource = source;
+
+			appendSidecarEntry(sidecar, BTW_IMPORT_TYPE, details);
+			persistSidecarState(ctx, sidecar, {
+				...sidecar.state,
+				importedContext: getImportedContextSummary(details),
+			});
+
+			await disposeSideSession();
+			syncOverlay();
+			return true;
+		} catch (error) {
+			notify(ctx, `Context import failed: ${error instanceof Error ? error.message : String(error)}`, "error");
+			return false;
+		}
+	}
+
+	async function importContextFromOverlay(ctx: ExtensionContext | ExtensionCommandContext): Promise<void> {
+		if (sideBusy) {
+			notify(ctx, "Cannot import context while BTW is processing.", "warning");
+			return;
+		}
+
+		const isRefresh = importedContextMessages !== null;
+		setOverlayStatus(isRefresh ? "Refreshing imported context..." : "Importing context...");
+
+		const success = await performImport(ctx);
+		if (success) {
+			setOverlayStatus(isRefresh ? "Context refreshed." : "Context imported. Ask a question below.");
+			notify(ctx, isRefresh ? "BTW context refreshed." : "Main session context imported into BTW.", "info");
+		} else {
+			setOverlayStatus(importedContextMessages !== null ? "Context refresh failed. Previous import still active." : "Ready");
+		}
+
+		syncOverlay();
+	}
+
 	async function disposeSideSession(): Promise<void> {
 		const current = activeSideSession;
 		activeSideSession = null;
@@ -846,6 +1115,8 @@ export default function (pi: ExtensionAPI) {
 		importedContextMessages = null;
 		importedContextTimestamp = null;
 		importedContextMessageCount = 0;
+		importedContextSource = null;
+		launchAnchor = null;
 		setOverlayDraft("");
 		setOverlayStatus("Ready");
 		await disposeSideSession();
@@ -856,6 +1127,7 @@ export default function (pi: ExtensionAPI) {
 				appendSidecarEntry(sidecar, BTW_RESET_TYPE, details);
 				persistSidecarState(ctx, sidecar, {
 					...sidecar.state,
+					anchor: undefined,
 					importedContext: undefined,
 				});
 			}
@@ -877,6 +1149,8 @@ export default function (pi: ExtensionAPI) {
 		importedContextMessages = null;
 		importedContextTimestamp = null;
 		importedContextMessageCount = 0;
+		importedContextSource = null;
+		launchAnchor = null;
 
 		const sidecar = ensureSidecarRuntime(ctx, { createIfMissing: false });
 		if (sidecar) {
@@ -1020,11 +1294,15 @@ export default function (pi: ExtensionAPI) {
 						keybindings,
 						(width, t) => getTranscriptLines(width, t),
 						() => overlayStatus,
+						() => getImportActionLabel(),
 						(value) => {
 							void submitFromOverlay(ctx, value);
 						},
 						() => {
 							void closeOverlayFlow(ctx);
+						},
+						() => {
+							void importContextFromOverlay(ctx);
 						},
 					);
 
@@ -1285,24 +1563,28 @@ export default function (pi: ExtensionAPI) {
 						"Start fresh",
 					]);
 					if (choice === "Continue previous conversation") {
+						recordLaunchAnchor(ctx);
 						// Dispose the session so it is recreated from the saved BTW thread on next submit.
 						await disposeSideSession();
 						setOverlayStatus("Continuing BTW thread.");
 						await ensureOverlay(ctx);
 					} else if (choice === "Start fresh") {
 						await resetThread(ctx, true);
+						recordLaunchAnchor(ctx);
 						setOverlayStatus("Ready");
 						await ensureOverlay(ctx);
 					}
 					// null = user cancelled (Esc), do nothing
 				} else {
 					await resetThread(ctx, true);
+					recordLaunchAnchor(ctx);
 					setOverlayStatus("Ready");
 					await ensureOverlay(ctx);
 				}
 				return;
 			}
 
+			recordLaunchAnchor(ctx);
 			await ensureOverlay(ctx);
 			await runBtwPrompt(ctx, question);
 		},
