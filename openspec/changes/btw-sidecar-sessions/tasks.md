@@ -14,4 +14,4 @@
 
 - [x] 3.1 Ensure BTW sidecar reuse/reset follows main-session identity rules across reopen, reload, branch navigation, new sessions, and fork/clone flows.
 - [x] 3.2 Remove the old main-session BTW persistence path once sidecar persistence is in place.
-- [ ] 3.3 Add or update automated coverage where practical and complete manual verification for legacy migration, session lifecycle, import/refresh behavior, and hidden-session storage.
+- [x] 3.3 Add or update automated coverage where practical and complete manual verification for legacy migration, session lifecycle, import/refresh behavior, and hidden-session storage.

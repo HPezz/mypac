@@ -21,7 +21,6 @@ import { type AssistantMessage, type Message, type ThinkingLevel as AiThinkingLe
 import {
 	Container,
 	Editor,
-	matchesKey,
 	Markdown,
 	truncateToWidth,
 	visibleWidth,
@@ -31,12 +30,28 @@ import {
 	type OverlayHandle,
 	type TUI,
 } from "@mariozechner/pi-tui";
+import {
+	BTW_IMPORT_TYPE,
+	BTW_SIDECAR_STATE_TYPE,
+	createBaseSidecarState,
+	getBtwSidecarLocation,
+	getImportOverlayHint,
+	getImportedContextSummary,
+	getImportSourceLabel,
+	isImportOverlayCommand,
+	isPartialImportOverlayCommand,
+	normalizeSidecarState,
+	resolveImportTarget,
+	restorePersistedState,
+	type BtwImportSource,
+	type BtwLaunchAnchor,
+	type BtwRestoredState,
+	type BtwSidecarLocation,
+	type BtwSidecarState,
+} from "./sidecar.ts";
 
 const BTW_ENTRY_TYPE = "btw-thread-entry";
 const BTW_RESET_TYPE = "btw-thread-reset";
-const BTW_IMPORT_TYPE = "btw-import-context";
-const BTW_SIDECAR_STATE_TYPE = "btw-sidecar-state";
-const BTW_SIDECAR_VERSION = 1;
 const TRUNCATED_TOOL_CALL_SUFFIX = "...";
 
 const BTW_SYSTEM_PROMPT = [
@@ -67,43 +82,11 @@ type BtwResetDetails = {
 	timestamp: number;
 };
 
-type BtwImportSource = "legacy" | "launch" | "refresh";
-
 type BtwImportDetails = {
 	messages: Message[];
 	timestamp: number;
 	messageCount: number;
 	source?: BtwImportSource;
-};
-
-type BtwLaunchAnchor = {
-	leafId: string | null;
-	timestamp: number;
-};
-
-type BtwSidecarState = {
-	version: number;
-	mainSessionId: string;
-	mainSessionFile?: string;
-	anchor?: BtwLaunchAnchor;
-	importedContext?: {
-		timestamp: number;
-		messageCount: number;
-		source?: BtwImportSource;
-	};
-	migratedFromInlineAt?: number;
-};
-
-type BtwRestoredState = {
-	thread: BtwDetails[];
-	importedContext: BtwImportDetails | null;
-	state: BtwSidecarState | null;
-	hasLegacyEntries: boolean;
-};
-
-type BtwSidecarLocation = {
-	dir: string;
-	file: string;
 };
 
 type OverlayRuntime = {
@@ -257,40 +240,6 @@ function getCurrentSessionKey(ctx: ExtensionContext | ExtensionCommandContext): 
 	return `${ctx.sessionManager.getSessionId()}:${getMainSessionFile(ctx) ?? ""}`;
 }
 
-function getBtwSidecarLocation(ctx: ExtensionContext | ExtensionCommandContext): BtwSidecarLocation {
-	const sidecarDir = path.join(ctx.sessionManager.getSessionDir(), ".btw-sidecars", ctx.sessionManager.getSessionId());
-	return {
-		dir: sidecarDir,
-		file: path.join(sidecarDir, "default.jsonl"),
-	};
-}
-
-function createBaseSidecarState(ctx: ExtensionContext | ExtensionCommandContext): BtwSidecarState {
-	return {
-		version: BTW_SIDECAR_VERSION,
-		mainSessionId: ctx.sessionManager.getSessionId(),
-		mainSessionFile: getMainSessionFile(ctx),
-	};
-}
-
-function normalizeSidecarState(
-	ctx: ExtensionContext | ExtensionCommandContext,
-	state: BtwSidecarState | null | undefined,
-): BtwSidecarState {
-	const base = createBaseSidecarState(ctx);
-	if (!state || typeof state !== "object") {
-		return base;
-	}
-
-	return {
-		...base,
-		...state,
-		version: BTW_SIDECAR_VERSION,
-		mainSessionId: base.mainSessionId,
-		mainSessionFile: base.mainSessionFile,
-	};
-}
-
 function forceRewriteSidecar(sidecar: SessionManager): void {
 	const internal = sidecar as SessionManager & { _rewriteFile?: () => void };
 	internal._rewriteFile?.();
@@ -307,7 +256,10 @@ function readSidecarState(
 		}
 		latestState = entry.data as BtwSidecarState | null;
 	}
-	return normalizeSidecarState(ctx, latestState);
+	return normalizeSidecarState(
+		createBaseSidecarState(ctx.sessionManager.getSessionId(), getMainSessionFile(ctx)),
+		latestState,
+	);
 }
 
 function appendSidecarEntry(sidecar: BtwSidecarRuntime, customType: string, data?: unknown): void {
@@ -320,67 +272,11 @@ function persistSidecarState(
 	sidecar: BtwSidecarRuntime,
 	state: BtwSidecarState,
 ): void {
-	sidecar.state = normalizeSidecarState(ctx, state);
-	appendSidecarEntry(sidecar, BTW_SIDECAR_STATE_TYPE, sidecar.state);
-}
-
-function isValidThreadEntry(details: BtwDetails | undefined): details is BtwDetails {
-	return !!details?.question && !!details.answer;
-}
-
-function isValidImportEntry(details: BtwImportDetails | undefined): details is BtwImportDetails {
-	return !!details?.messages && Array.isArray(details.messages) && typeof details.timestamp === "number";
-}
-
-function restorePersistedState(entries: ReturnType<SessionManager["getEntries"]>): BtwRestoredState {
-	let lastResetIndex = -1;
-	let hasLegacyEntries = false;
-	let state: BtwSidecarState | null = null;
-
-	for (let i = 0; i < entries.length; i++) {
-		const entry = entries[i];
-		if (entry.type !== "custom") {
-			continue;
-		}
-		if (entry.customType === BTW_RESET_TYPE) {
-			hasLegacyEntries = true;
-			lastResetIndex = i;
-		}
-		if (entry.customType === BTW_ENTRY_TYPE || entry.customType === BTW_IMPORT_TYPE) {
-			hasLegacyEntries = true;
-		}
-		if (entry.customType === BTW_SIDECAR_STATE_TYPE) {
-			state = entry.data as BtwSidecarState | null;
-		}
-	}
-
-	const thread: BtwDetails[] = [];
-	let importedContext: BtwImportDetails | null = null;
-
-	for (const entry of entries.slice(lastResetIndex + 1)) {
-		if (entry.type !== "custom") {
-			continue;
-		}
-		if (entry.customType === BTW_ENTRY_TYPE) {
-			const details = entry.data as BtwDetails | undefined;
-			if (isValidThreadEntry(details)) {
-				thread.push(details);
-			}
-		}
-		if (entry.customType === BTW_IMPORT_TYPE) {
-			const details = entry.data as BtwImportDetails | undefined;
-			if (isValidImportEntry(details)) {
-				importedContext = details;
-			}
-		}
-	}
-
-	return {
-		thread,
-		importedContext,
+	sidecar.state = normalizeSidecarState(
+		createBaseSidecarState(ctx.sessionManager.getSessionId(), getMainSessionFile(ctx)),
 		state,
-		hasLegacyEntries,
-	};
+	);
+	appendSidecarEntry(sidecar, BTW_SIDECAR_STATE_TYPE, sidecar.state);
 }
 
 
@@ -391,10 +287,9 @@ class BtwOverlay extends Container implements Focusable {
 	private readonly keybindings: KeybindingsManager;
 	private readonly getTranscript: (width: number, theme: ExtensionContext["ui"]["theme"]) => string[];
 	private readonly getStatus: () => string;
-	private readonly getImportActionLabel: () => string;
+	private readonly getImportHint: () => string;
 	private readonly onSubmitCallback: (value: string) => void;
 	private readonly onDismissCallback: () => void;
-	private readonly onImportContextCallback: () => void;
 	private _focused = false;
 
 	get focused(): boolean {
@@ -412,10 +307,9 @@ class BtwOverlay extends Container implements Focusable {
 		keybindings: KeybindingsManager,
 		getTranscript: (width: number, theme: ExtensionContext["ui"]["theme"]) => string[],
 		getStatus: () => string,
-		getImportActionLabel: () => string,
+		getImportHint: () => string,
 		onSubmit: (value: string) => void,
 		onDismiss: () => void,
-		onImportContext: () => void,
 	) {
 		super();
 		this.tui = tui;
@@ -423,10 +317,9 @@ class BtwOverlay extends Container implements Focusable {
 		this.keybindings = keybindings;
 		this.getTranscript = getTranscript;
 		this.getStatus = getStatus;
-		this.getImportActionLabel = getImportActionLabel;
+		this.getImportHint = getImportHint;
 		this.onSubmitCallback = onSubmit;
 		this.onDismissCallback = onDismiss;
-		this.onImportContextCallback = onImportContext;
 
 		const editorTheme: EditorTheme = {
 			borderColor: (s) => theme.fg("borderMuted", s),
@@ -447,11 +340,6 @@ class BtwOverlay extends Container implements Focusable {
 	handleInput(data: string): void {
 		if (this.keybindings.matches(data, "tui.select.cancel")) {
 			this.onDismissCallback();
-			return;
-		}
-
-		if (matchesKey(data, "alt+i")) {
-			this.onImportContextCallback();
 			return;
 		}
 
@@ -498,12 +386,12 @@ class BtwOverlay extends Container implements Focusable {
 		const transcriptPadding = Math.max(0, transcriptHeight - visibleTranscript.length);
 
 		const status = this.getStatus();
-		const importActionLabel = this.getImportActionLabel();
+		const importHint = this.getImportHint();
 
 		const lines = [
 			this.borderLine(innerWidth, "top"),
 			this.frameLine(this.theme.fg("accent", this.theme.bold(" BTW side chat ")), innerWidth),
-			this.frameLine(this.theme.fg("dim", `Isolated side conversation. Alt+I ${importActionLabel.toLowerCase()}.`), innerWidth),
+			this.frameLine(this.theme.fg("dim", `Isolated side conversation. ${importHint}`), innerWidth),
 			this.theme.fg("borderMuted", `├${"─".repeat(innerWidth)}┤`),
 		];
 
@@ -521,7 +409,7 @@ class BtwOverlay extends Container implements Focusable {
 		}
 		lines.push(
 			this.frameLine(
-				this.theme.fg("dim", `Enter submit · Shift+Enter newline · Alt+I ${importActionLabel.toLowerCase()} · Esc close`),
+				this.theme.fg("dim", "Enter submit · Shift+Enter newline · /import import/refresh · Esc close"),
 				innerWidth,
 			),
 		);
@@ -559,19 +447,7 @@ export default function (pi: ExtensionAPI) {
 		return model ? `${model.provider}/${model.id}` : "none";
 	}
 
-	function getImportedContextSummary(details: BtwImportDetails | null): BtwSidecarState["importedContext"] {
-		if (!details) {
-			return undefined;
-		}
-
-		return {
-			timestamp: details.timestamp,
-			messageCount: details.messageCount,
-			source: details.source,
-		};
-	}
-
-	function applyRestoredState(restored: BtwRestoredState, state: BtwSidecarState | null): void {
+	function applyRestoredState(restored: BtwRestoredState<BtwDetails, BtwImportDetails>, state: BtwSidecarState | null): void {
 		thread = restored.thread;
 		importedContextMessages = restored.importedContext?.messages ?? null;
 		importedContextTimestamp = restored.importedContext?.timestamp ?? null;
@@ -589,7 +465,7 @@ export default function (pi: ExtensionAPI) {
 	): BtwSidecarRuntime | null {
 		const createIfMissing = options.createIfMissing ?? true;
 		const sessionKey = getCurrentSessionKey(ctx);
-		const location = getBtwSidecarLocation(ctx);
+		const location = getBtwSidecarLocation(ctx.sessionManager.getSessionDir(), ctx.sessionManager.getSessionId());
 		const sidecarExists = existsSync(location.file);
 
 		if (!createIfMissing && !sidecarExists) {
@@ -626,8 +502,13 @@ export default function (pi: ExtensionAPI) {
 		return activeSidecar;
 	}
 
-	function migrateLegacyInlineState(ctx: ExtensionContext): BtwRestoredState {
-		const legacy = restorePersistedState(ctx.sessionManager.getBranch());
+	function migrateLegacyInlineState(ctx: ExtensionContext): BtwRestoredState<BtwDetails, BtwImportDetails> {
+		const legacy = restorePersistedState<BtwDetails, BtwImportDetails>(ctx.sessionManager.getBranch(), {
+			entryType: BTW_ENTRY_TYPE,
+			resetType: BTW_RESET_TYPE,
+			importType: BTW_IMPORT_TYPE,
+			stateType: BTW_SIDECAR_STATE_TYPE,
+		});
 		if (!legacy.hasLegacyEntries) {
 			return legacy;
 		}
@@ -698,21 +579,8 @@ export default function (pi: ExtensionAPI) {
 		}
 	}
 
-	function getImportActionLabel(): string {
-		return importedContextMessages !== null ? "Refresh context" : "Import context";
-	}
-
-	function getImportSourceLabel(source: BtwImportSource | null): string {
-		switch (source) {
-			case "launch":
-				return "launch snapshot";
-			case "refresh":
-				return "refreshed snapshot";
-			case "legacy":
-				return "restored snapshot";
-			default:
-				return "imported snapshot";
-		}
+	function getImportHint(): string {
+		return getImportOverlayHint(importedContextMessages !== null);
 	}
 
 	function filterMessagesForBtw(messages: ReturnType<typeof buildSessionContext>["messages"]): Message[] {
@@ -1012,8 +880,11 @@ export default function (pi: ExtensionAPI) {
 
 	async function performImport(ctx: ExtensionContext | ExtensionCommandContext): Promise<boolean> {
 		try {
-			const source: BtwImportSource = importedContextMessages !== null ? "refresh" : "launch";
-			const targetLeafId = source === "launch" ? (launchAnchor?.leafId ?? ctx.sessionManager.getLeafId()) : ctx.sessionManager.getLeafId();
+			const { source, leafId: targetLeafId } = resolveImportTarget(
+				launchAnchor,
+				ctx.sessionManager.getLeafId(),
+				importedContextMessages !== null,
+			);
 			const sessionCtx = buildSessionContext(ctx.sessionManager.getEntries(), targetLeafId);
 			const filtered = filterMessagesForBtw(sessionCtx.messages);
 
@@ -1036,16 +907,16 @@ export default function (pi: ExtensionAPI) {
 				source,
 			};
 
-			importedContextMessages = importedMessages;
-			importedContextTimestamp = timestamp;
-			importedContextMessageCount = filtered.length;
-			importedContextSource = source;
-
 			appendSidecarEntry(sidecar, BTW_IMPORT_TYPE, details);
 			persistSidecarState(ctx, sidecar, {
 				...sidecar.state,
 				importedContext: getImportedContextSummary(details),
 			});
+
+			importedContextMessages = importedMessages;
+			importedContextTimestamp = timestamp;
+			importedContextMessageCount = filtered.length;
+			importedContextSource = source;
 
 			await disposeSideSession();
 			syncOverlay();
@@ -1154,8 +1025,19 @@ export default function (pi: ExtensionAPI) {
 
 		const sidecar = ensureSidecarRuntime(ctx, { createIfMissing: false });
 		if (sidecar) {
-			const restored = restorePersistedState(sidecar.sessionManager.getEntries());
-			applyRestoredState(restored, normalizeSidecarState(ctx, restored.state ?? sidecar.state));
+			const restored = restorePersistedState<BtwDetails, BtwImportDetails>(sidecar.sessionManager.getEntries(), {
+				entryType: BTW_ENTRY_TYPE,
+				resetType: BTW_RESET_TYPE,
+				importType: BTW_IMPORT_TYPE,
+				stateType: BTW_SIDECAR_STATE_TYPE,
+			});
+			applyRestoredState(
+				restored,
+				normalizeSidecarState(
+					createBaseSidecarState(ctx.sessionManager.getSessionId(), getMainSessionFile(ctx)),
+					restored.state ?? sidecar.state,
+				),
+			);
 		} else {
 			const restored = migrateLegacyInlineState(ctx);
 			applyRestoredState(restored, restored.state);
@@ -1294,15 +1176,12 @@ export default function (pi: ExtensionAPI) {
 						keybindings,
 						(width, t) => getTranscriptLines(width, t),
 						() => overlayStatus,
-						() => getImportActionLabel(),
+						() => getImportHint(),
 						(value) => {
 							void submitFromOverlay(ctx, value);
 						},
 						() => {
 							void closeOverlayFlow(ctx);
-						},
-						() => {
-							void importContextFromOverlay(ctx);
 						},
 					);
 
@@ -1543,6 +1422,15 @@ export default function (pi: ExtensionAPI) {
 		}
 
 		setOverlayDraft("");
+		if (isImportOverlayCommand(question)) {
+			await importContextFromOverlay(ctx);
+			return;
+		}
+		if (isPartialImportOverlayCommand(question)) {
+			setOverlayDraft(question);
+			setOverlayStatus("Type /import alone to import or refresh context.");
+			return;
+		}
 		if (!("waitForIdle" in ctx)) {
 			setOverlayStatus("BTW submit requires command context. Re-open with /btw.");
 			return;
@@ -1591,12 +1479,19 @@ export default function (pi: ExtensionAPI) {
 	});
 
 	pi.on("session_start", async (_event, ctx) => {
-		await restoreThread(ctx);
+		try {
+			await restoreThread(ctx);
+		} catch (error) {
+			console.error("[btw] restoreThread failed on session_start:", error);
+		}
 	});
 
-
 	pi.on("session_tree", async (_event, ctx) => {
-		await restoreThread(ctx);
+		try {
+			await restoreThread(ctx);
+		} catch (error) {
+			console.error("[btw] restoreThread failed on session_tree:", error);
+		}
 	});
 
 	pi.on("session_shutdown", async () => {
