@@ -1,8 +1,8 @@
 ## 1. Hidden sidecar persistence
 
-- [ ] 1.1 Add BTW sidecar path and metadata helpers that map a main session to a hidden sidecar under the project session directory.
-- [ ] 1.2 Move BTW thread/reset persistence and restore logic from main-session inline entries to the sidecar session file.
-- [ ] 1.3 Add best-effort migration so legacy inline BTW history is recovered into a new sidecar when no sidecar exists yet.
+- [x] 1.1 Add BTW sidecar path and metadata helpers that map a main session to a hidden sidecar under the project session directory.
+- [x] 1.2 Move BTW thread/reset persistence and restore logic from main-session inline entries to the sidecar session file.
+- [x] 1.3 Add best-effort migration so legacy inline BTW history is recovered into a new sidecar when no sidecar exists yet.
 
 ## 2. BTW lifecycle and import semantics
 

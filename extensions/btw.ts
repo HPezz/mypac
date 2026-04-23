@@ -1,6 +1,8 @@
 /**
  * Original source: https://github.com/mitsuhiko/agent-stuff/blob/main/extensions/btw.ts
  */
+import { existsSync } from "node:fs";
+import path from "node:path";
 import {
 	createAgentSession,
 	createExtensionRuntime,
@@ -29,6 +31,9 @@ import {
 
 const BTW_ENTRY_TYPE = "btw-thread-entry";
 const BTW_RESET_TYPE = "btw-thread-reset";
+const BTW_IMPORT_TYPE = "btw-import-context";
+const BTW_SIDECAR_STATE_TYPE = "btw-sidecar-state";
+const BTW_SIDECAR_VERSION = 1;
 const TRUNCATED_TOOL_CALL_SUFFIX = "...";
 
 const BTW_SYSTEM_PROMPT = [
@@ -59,6 +64,45 @@ type BtwResetDetails = {
 	timestamp: number;
 };
 
+type BtwImportSource = "legacy" | "launch" | "refresh";
+
+type BtwImportDetails = {
+	messages: Message[];
+	timestamp: number;
+	messageCount: number;
+	source?: BtwImportSource;
+};
+
+type BtwLaunchAnchor = {
+	leafId: string | null;
+	timestamp: number;
+};
+
+type BtwSidecarState = {
+	version: number;
+	mainSessionId: string;
+	mainSessionFile?: string;
+	anchor?: BtwLaunchAnchor;
+	importedContext?: {
+		timestamp: number;
+		messageCount: number;
+		source?: BtwImportSource;
+	};
+	migratedFromInlineAt?: number;
+};
+
+type BtwRestoredState = {
+	thread: BtwDetails[];
+	importedContext: BtwImportDetails | null;
+	state: BtwSidecarState | null;
+	hasLegacyEntries: boolean;
+};
+
+type BtwSidecarLocation = {
+	dir: string;
+	file: string;
+};
+
 type OverlayRuntime = {
 	handle?: OverlayHandle;
 	refresh?: () => void;
@@ -72,6 +116,13 @@ type SideSessionRuntime = {
 	session: AgentSession;
 	modelKey: string;
 	unsubscribe: () => void;
+};
+
+type BtwSidecarRuntime = {
+	sessionManager: SessionManager;
+	location: BtwSidecarLocation;
+	state: BtwSidecarState;
+	sessionKey: string;
 };
 
 type ToolCallInfo = {
@@ -143,8 +194,12 @@ function getLastAssistantMessage(session: AgentSession): AssistantMessage | null
 	return null;
 }
 
-function buildSeedMessages(thread: BtwDetails[]): Message[] {
+function buildSeedMessages(thread: BtwDetails[], importedContext: Message[] | null): Message[] {
 	const seed: Message[] = [];
+
+	if (importedContext) {
+		seed.push(...importedContext);
+	}
 
 	for (const item of thread) {
 		seed.push(
@@ -188,6 +243,141 @@ function notify(ctx: ExtensionContext | ExtensionCommandContext, message: string
 	if (ctx.hasUI) {
 		ctx.ui.notify(message, level);
 	}
+}
+
+function getMainSessionFile(ctx: ExtensionContext | ExtensionCommandContext): string | undefined {
+	const file = ctx.sessionManager.getSessionFile();
+	return file ? path.resolve(file) : undefined;
+}
+
+function getCurrentSessionKey(ctx: ExtensionContext | ExtensionCommandContext): string {
+	return `${ctx.sessionManager.getSessionId()}:${getMainSessionFile(ctx) ?? ""}`;
+}
+
+function getBtwSidecarLocation(ctx: ExtensionContext | ExtensionCommandContext): BtwSidecarLocation {
+	const sidecarDir = path.join(ctx.sessionManager.getSessionDir(), ".btw-sidecars", ctx.sessionManager.getSessionId());
+	return {
+		dir: sidecarDir,
+		file: path.join(sidecarDir, "default.jsonl"),
+	};
+}
+
+function createBaseSidecarState(ctx: ExtensionContext | ExtensionCommandContext): BtwSidecarState {
+	return {
+		version: BTW_SIDECAR_VERSION,
+		mainSessionId: ctx.sessionManager.getSessionId(),
+		mainSessionFile: getMainSessionFile(ctx),
+	};
+}
+
+function normalizeSidecarState(
+	ctx: ExtensionContext | ExtensionCommandContext,
+	state: BtwSidecarState | null | undefined,
+): BtwSidecarState {
+	const base = createBaseSidecarState(ctx);
+	if (!state || typeof state !== "object") {
+		return base;
+	}
+
+	return {
+		...base,
+		...state,
+		version: BTW_SIDECAR_VERSION,
+		mainSessionId: base.mainSessionId,
+		mainSessionFile: base.mainSessionFile,
+	};
+}
+
+function forceRewriteSidecar(sidecar: SessionManager): void {
+	const internal = sidecar as SessionManager & { _rewriteFile?: () => void };
+	internal._rewriteFile?.();
+}
+
+function readSidecarState(
+	ctx: ExtensionContext | ExtensionCommandContext,
+	sidecar: SessionManager,
+): BtwSidecarState {
+	let latestState: BtwSidecarState | null = null;
+	for (const entry of sidecar.getEntries()) {
+		if (entry.type !== "custom" || entry.customType !== BTW_SIDECAR_STATE_TYPE) {
+			continue;
+		}
+		latestState = entry.data as BtwSidecarState | null;
+	}
+	return normalizeSidecarState(ctx, latestState);
+}
+
+function appendSidecarEntry(sidecar: BtwSidecarRuntime, customType: string, data?: unknown): void {
+	sidecar.sessionManager.appendCustomEntry(customType, data);
+	forceRewriteSidecar(sidecar.sessionManager);
+}
+
+function persistSidecarState(
+	ctx: ExtensionContext | ExtensionCommandContext,
+	sidecar: BtwSidecarRuntime,
+	state: BtwSidecarState,
+): void {
+	sidecar.state = normalizeSidecarState(ctx, state);
+	appendSidecarEntry(sidecar, BTW_SIDECAR_STATE_TYPE, sidecar.state);
+}
+
+function isValidThreadEntry(details: BtwDetails | undefined): details is BtwDetails {
+	return !!details?.question && !!details.answer;
+}
+
+function isValidImportEntry(details: BtwImportDetails | undefined): details is BtwImportDetails {
+	return !!details?.messages && Array.isArray(details.messages) && typeof details.timestamp === "number";
+}
+
+function restorePersistedState(entries: ReturnType<SessionManager["getEntries"]>): BtwRestoredState {
+	let lastResetIndex = -1;
+	let hasLegacyEntries = false;
+	let state: BtwSidecarState | null = null;
+
+	for (let i = 0; i < entries.length; i++) {
+		const entry = entries[i];
+		if (entry.type !== "custom") {
+			continue;
+		}
+		if (entry.customType === BTW_RESET_TYPE) {
+			hasLegacyEntries = true;
+			lastResetIndex = i;
+		}
+		if (entry.customType === BTW_ENTRY_TYPE || entry.customType === BTW_IMPORT_TYPE) {
+			hasLegacyEntries = true;
+		}
+		if (entry.customType === BTW_SIDECAR_STATE_TYPE) {
+			state = entry.data as BtwSidecarState | null;
+		}
+	}
+
+	const thread: BtwDetails[] = [];
+	let importedContext: BtwImportDetails | null = null;
+
+	for (const entry of entries.slice(lastResetIndex + 1)) {
+		if (entry.type !== "custom") {
+			continue;
+		}
+		if (entry.customType === BTW_ENTRY_TYPE) {
+			const details = entry.data as BtwDetails | undefined;
+			if (isValidThreadEntry(details)) {
+				thread.push(details);
+			}
+		}
+		if (entry.customType === BTW_IMPORT_TYPE) {
+			const details = entry.data as BtwImportDetails | undefined;
+			if (isValidImportEntry(details)) {
+				importedContext = details;
+			}
+		}
+	}
+
+	return {
+		thread,
+		importedContext,
+		state,
+		hasLegacyEntries,
+	};
 }
 
 
@@ -334,13 +524,115 @@ export default function (pi: ExtensionAPI) {
 	let overlayDraft = "";
 	let overlayRuntime: OverlayRuntime | null = null;
 	let activeSideSession: SideSessionRuntime | null = null;
+	let activeSidecar: BtwSidecarRuntime | null = null;
 	let overlayRefreshTimer: ReturnType<typeof setTimeout> | null = null;
+	let importedContextMessages: Message[] | null = null;
+	let importedContextTimestamp: number | null = null;
+	let importedContextMessageCount = 0;
 
 	const mdTheme = getMarkdownTheme();
 
 	function getModelKey(ctx: ExtensionContext): string {
 		const model = ctx.model;
 		return model ? `${model.provider}/${model.id}` : "none";
+	}
+
+	function getImportedContextSummary(details: BtwImportDetails | null): BtwSidecarState["importedContext"] {
+		if (!details) {
+			return undefined;
+		}
+
+		return {
+			timestamp: details.timestamp,
+			messageCount: details.messageCount,
+			source: details.source,
+		};
+	}
+
+	function applyRestoredState(restored: BtwRestoredState, state: BtwSidecarState | null): void {
+		thread = restored.thread;
+		importedContextMessages = restored.importedContext?.messages ?? null;
+		importedContextTimestamp = restored.importedContext?.timestamp ?? null;
+		importedContextMessageCount = restored.importedContext?.messageCount ?? 0;
+		if (activeSidecar) {
+			activeSidecar.state = state ?? activeSidecar.state;
+		}
+	}
+
+	function ensureSidecarRuntime(
+		ctx: ExtensionContext | ExtensionCommandContext,
+		options: { createIfMissing?: boolean } = {},
+	): BtwSidecarRuntime | null {
+		const createIfMissing = options.createIfMissing ?? true;
+		const sessionKey = getCurrentSessionKey(ctx);
+		const location = getBtwSidecarLocation(ctx);
+		const sidecarExists = existsSync(location.file);
+
+		if (!createIfMissing && !sidecarExists) {
+			activeSidecar = null;
+			return null;
+		}
+
+		if (activeSidecar && activeSidecar.sessionKey === sessionKey && existsSync(activeSidecar.location.file)) {
+			return activeSidecar;
+		}
+
+		const sessionManager = SessionManager.open(location.file, location.dir, ctx.cwd);
+		const header = sessionManager.getHeader();
+		const mainSessionFile = getMainSessionFile(ctx);
+		if (header && mainSessionFile && header.parentSession !== mainSessionFile) {
+			header.parentSession = mainSessionFile;
+			forceRewriteSidecar(sessionManager);
+		}
+
+		activeSidecar = {
+			sessionManager,
+			location,
+			state: readSidecarState(ctx, sessionManager),
+			sessionKey,
+		};
+
+		const hasStateEntry = sessionManager.getEntries().some((entry) => {
+			return entry.type === "custom" && entry.customType === BTW_SIDECAR_STATE_TYPE;
+		});
+		if (!hasStateEntry) {
+			persistSidecarState(ctx, activeSidecar, activeSidecar.state);
+		}
+
+		return activeSidecar;
+	}
+
+	function migrateLegacyInlineState(ctx: ExtensionContext): BtwRestoredState {
+		const legacy = restorePersistedState(ctx.sessionManager.getBranch());
+		if (!legacy.hasLegacyEntries) {
+			return legacy;
+		}
+
+		const sidecar = ensureSidecarRuntime(ctx);
+		if (!sidecar) {
+			return legacy;
+		}
+
+		for (const item of legacy.thread) {
+			appendSidecarEntry(sidecar, BTW_ENTRY_TYPE, item);
+		}
+		if (legacy.importedContext) {
+			appendSidecarEntry(sidecar, BTW_IMPORT_TYPE, {
+				...legacy.importedContext,
+				source: legacy.importedContext.source ?? "legacy",
+			});
+		}
+
+		persistSidecarState(ctx, sidecar, {
+			...sidecar.state,
+			migratedFromInlineAt: Date.now(),
+			importedContext: getImportedContextSummary(legacy.importedContext),
+		});
+
+		return {
+			...legacy,
+			state: sidecar.state,
+		};
 	}
 
 	function renderMarkdownLines(text: string, width: number): string[] {
@@ -407,11 +699,26 @@ export default function (pi: ExtensionAPI) {
 	}
 
 	function getTranscriptLinesInner(width: number, theme: ExtensionContext["ui"]["theme"]): string[] {
-		if (thread.length === 0 && !pendingQuestion && !pendingAnswer && !pendingError) {
-			return [theme.fg("dim", "No BTW messages yet. Type a question below.")];
+		const lines: string[] = [];
+		if (importedContextMessages !== null && importedContextTimestamp !== null) {
+			const time = new Date(importedContextTimestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+			const countStr = importedContextMessageCount > 0 ? ` · ${importedContextMessageCount} msgs` : "";
+			lines.push(theme.fg("dim", `↑ context from main session (${time}${countStr})`));
+			lines.push("");
 		}
 
-		const lines: string[] = [];
+		if (thread.length === 0 && !pendingQuestion && !pendingAnswer && !pendingError) {
+			lines.push(
+				theme.fg(
+					"dim",
+					importedContextMessages !== null
+						? "Main session context restored. Ask a question below."
+						: "No BTW messages yet. Type a question below.",
+				),
+			);
+			return lines;
+		}
+
 		for (const item of thread.slice(-6)) {
 			// User message
 			const userLines = renderMarkdownLines(item.question.trim(), width);
@@ -536,12 +843,22 @@ export default function (pi: ExtensionAPI) {
 		pendingError = null;
 		pendingToolCalls = [];
 		sideBusy = false;
+		importedContextMessages = null;
+		importedContextTimestamp = null;
+		importedContextMessageCount = 0;
 		setOverlayDraft("");
 		setOverlayStatus("Ready");
 		await disposeSideSession();
 		if (persist) {
+			const sidecar = ensureSidecarRuntime(ctx);
 			const details: BtwResetDetails = { timestamp: Date.now() };
-			pi.appendEntry(BTW_RESET_TYPE, details);
+			if (sidecar) {
+				appendSidecarEntry(sidecar, BTW_RESET_TYPE, details);
+				persistSidecarState(ctx, sidecar, {
+					...sidecar.state,
+					importedContext: undefined,
+				});
+			}
 		}
 		syncOverlay();
 	}
@@ -557,24 +874,17 @@ export default function (pi: ExtensionAPI) {
 		cancelledSideRequestId = null;
 		overlayStatus = "Ready";
 		overlayDraft = "";
-		const branch = ctx.sessionManager.getBranch();
-		let lastResetIndex = -1;
-		for (let i = 0; i < branch.length; i++) {
-			const entry = branch[i];
-			if (entry.type === "custom" && entry.customType === BTW_RESET_TYPE) {
-				lastResetIndex = i;
-			}
-		}
+		importedContextMessages = null;
+		importedContextTimestamp = null;
+		importedContextMessageCount = 0;
 
-		for (const entry of branch.slice(lastResetIndex + 1)) {
-			if (entry.type !== "custom" || entry.customType !== BTW_ENTRY_TYPE) {
-				continue;
-			}
-			const details = entry.data as BtwDetails | undefined;
-			if (!details?.question || !details.answer) {
-				continue;
-			}
-			thread.push(details);
+		const sidecar = ensureSidecarRuntime(ctx, { createIfMissing: false });
+		if (sidecar) {
+			const restored = restorePersistedState(sidecar.sessionManager.getEntries());
+			applyRestoredState(restored, normalizeSidecarState(ctx, restored.state ?? sidecar.state));
+		} else {
+			const restored = migrateLegacyInlineState(ctx);
+			applyRestoredState(restored, restored.state);
 		}
 
 		syncOverlay();
@@ -593,7 +903,7 @@ export default function (pi: ExtensionAPI) {
 			resourceLoader: createBtwResourceLoader(ctx),
 		});
 
-		const seedMessages = buildSeedMessages(thread);
+		const seedMessages = buildSeedMessages(thread, importedContextMessages);
 		if (seedMessages.length > 0) {
 			session.agent.state.messages = seedMessages as typeof session.agent.state.messages;
 		}
@@ -919,7 +1229,10 @@ export default function (pi: ExtensionAPI) {
 				toolCalls: pendingToolCalls.length > 0 ? [...pendingToolCalls] : undefined,
 			};
 			thread.push(details);
-			pi.appendEntry(BTW_ENTRY_TYPE, details);
+			const sidecar = ensureSidecarRuntime(ctx);
+			if (sidecar) {
+				appendSidecarEntry(sidecar, BTW_ENTRY_TYPE, details);
+			}
 
 			pendingQuestion = null;
 			pendingAnswer = "";
