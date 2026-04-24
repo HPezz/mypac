@@ -68,6 +68,39 @@ A useful working prompt is:
 
 - `/lwot [optional text|github issue|github pr|url]`
 
+## Ask Pi to do the first-time setup
+
+If you already have Pi running elsewhere and want it to onboard `mypac` for you, paste this into Pi:
+
+```text
+Please set up the `mypac` repository on this machine.
+
+Important:
+- Ask me for any missing values before acting, especially the clone location and whether you should install any missing prerequisites.
+- Do not replace existing entries in `~/.pi/agent/settings.json`; only add the `mypac` repo path to the `packages` array if it is missing.
+- If you hit an auth, permission, or missing-tool problem, stop and tell me exactly what you need from me.
+
+Tasks:
+1. Confirm where I want to clone `https://github.com/ladislas/mypac.git`, then clone it there.
+2. Read the cloned `README.md` and follow the documented setup for this repo.
+3. Ensure `~/.pi/agent/settings.json` exists and that its `packages` array includes the cloned repository path.
+4. From the repository root, run:
+   - `mise trust`
+   - `mise install`
+   - `mise run hooks`
+5. Verify the setup by:
+   - confirming the package path was added to `~/.pi/agent/settings.json`
+   - confirming the repo contains `prompts/`, `extensions/`, and `skills/`
+   - telling me to launch Pi in the repo with `mise run pi`
+   - once Pi is running from the repo, asking me to try `/hello-world`
+   - telling me whether I need to restart Pi so it reloads the updated package settings
+6. Summarize what you changed, what you verified, and any follow-up steps for me.
+
+If `mise` is not installed and I want you to install it, use Homebrew: `brew install mise`.
+```
+
+This is meant to be copy-pasted as-is so Pi can handle the repository-specific setup instead of making you translate the README into agent instructions by hand.
+
 ## Why this exists
 
 - Build a reliable personal AI operating system
