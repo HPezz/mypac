@@ -3,6 +3,9 @@
   "keywords": [
     "pi-package"
   ],
+  "bin": {
+    "pac-setup-workflows": "./scripts/pac-setup-workflows.ts"
+  },
   "scripts": {
     "test": "node --experimental-strip-types --test",
     "typecheck": "tsc"
