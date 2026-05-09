@@ -18,6 +18,7 @@ Versioned sections should match the Git tags and GitHub releases published for t
 - Added `/pac-zoom-out` as a lightweight prompt for mapping a code area without creating a full skill. ([#195](https://github.com/ladislas/mypac/issues/195))
 - Added `pac-triage`, its thin `/pac-triage` prompt, durable agent-brief guidance, GitHub-first wontfix handling, and `out of scope` scope-boundary comments. ([#196](https://github.com/ladislas/mypac/issues/196))
 - Added `/pac-setup-workflows` to check and explicitly apply canonical `pac:*` GitHub workflow labels, including legacy label migration planning. ([#199](https://github.com/ladislas/mypac/issues/199))
+- Added a pac label-health GitHub Actions workflow that maintains one managed warning comment for conflicting or drifted issue workflow labels. ([#203](https://github.com/ladislas/mypac/issues/203))
 
 ### Changed
 
