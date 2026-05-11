@@ -457,6 +457,6 @@ export const messages = [
   "Cherry-picking the commits...",
 ];
 
-export function pickRandom(): string {
-  return messages[Math.floor(Math.random() * messages.length)];
+export function pickRandom(random = Math.random): string {
+  return messages[Math.floor(random() * messages.length)];
 }
