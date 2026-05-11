@@ -64,6 +64,9 @@ Implement tasks from an OpenSpec change.
 
    For each pending task or small coherent batch of pending tasks:
 
+   - If the task changes runtime behavior, fixes a bug, or needs regression coverage, read and follow `skills/pac-tdd/SKILL.md` before implementing that slice.
+   - Do not load `pac-tdd` for docs-only, wording-only, mechanical rename, or config-only tasks unless tests are directly relevant.
+
    1. Show which task or batch is being worked on.
 
    2. Implement the scoped work directly in the main agent context.
