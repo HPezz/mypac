@@ -1,12 +1,13 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { mkdtemp, mkdir, writeFile } from "node:fs/promises";
+import { mkdtemp, mkdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { buildCommitPrompt, buildScopedFiles, parseChangedFiles, parseCommitArgs } from "./scope.ts";
 
-test("parseCommitArgs separates include, exclude, and hint tokens", async () => {
+test("parseCommitArgs separates include, exclude, and hint tokens", async (t) => {
 	const cwd = await mkdtemp(path.join(tmpdir(), "commit-scope-"));
+	t.after(() => rm(cwd, { recursive: true, force: true }));
 	await mkdir(path.join(cwd, "docs"), { recursive: true });
 	await writeFile(path.join(cwd, "docs", "note.md"), "hello", "utf8");
 
