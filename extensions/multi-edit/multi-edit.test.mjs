@@ -1,9 +1,49 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import path from "node:path";
+import multiEditExtension from "./index.ts";
 import { parsePatch, deriveUpdatedContent, seekSequence, normalizeToLF, ensureTrailingNewline } from "./patch.ts";
 import { generateDiffString } from "./diff.ts";
 import { applyClassicEdits } from "./classic.ts";
 import { createVirtualWorkspace } from "./workspace.ts";
+
+function createEditToolHarness(cwd) {
+	let editTool;
+	const pi = {
+		registerTool(definition) {
+			if (definition.name === "edit") editTool = definition;
+		},
+	};
+	multiEditExtension(pi);
+	assert.ok(editTool, "edit tool should be registered");
+	return {
+		execute: (params) => editTool.execute("tool-call-1", params, undefined, undefined, { cwd }),
+	};
+}
+
+// --- registered tool boundary ---
+
+test("registered edit tool applies multi edits and returns a combined summary", async (t) => {
+	const cwd = await mkdtemp(path.join(tmpdir(), "multi-edit-tool-"));
+	t.after(() => rm(cwd, { recursive: true, force: true }));
+	const filePath = path.join(cwd, "notes.txt");
+	await writeFile(filePath, "alpha\nbeta\ngamma\n", "utf8");
+
+	const tool = createEditToolHarness(cwd);
+	const result = await tool.execute({
+		path: "notes.txt",
+		multi: [
+			{ oldText: "alpha", newText: "ALPHA" },
+			{ oldText: "gamma", newText: "GAMMA" },
+		],
+	});
+
+	assert.match(result.content[0].text, /Applied 2 edit\(s\) successfully/);
+	assert.match(result.details.diff, /ALPHA/);
+	assert.equal(await readFile(filePath, "utf8"), "ALPHA\nbeta\nGAMMA\n");
+});
 
 // --- normalizeToLF ---
 
