@@ -2,12 +2,47 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import os from "node:os";
 import path from "node:path";
+import filesExtension from "./index.ts";
 import {
 	sanitizeReference,
 	stripLineSuffix,
 	normalizeReferencePath,
 	formatDisplayPath,
 } from "./path-utils.ts";
+
+function createFilesCommandHarness() {
+	const commands = new Map();
+	const pi = {
+		registerCommand(name, definition) {
+			commands.set(name, definition.handler);
+		},
+		registerShortcut() {},
+	};
+	filesExtension(pi);
+	return { commands };
+}
+
+// --- public command seam ---
+
+test("/files reports an interactive-mode requirement through the registered command", async () => {
+	const { commands } = createFilesCommandHarness();
+	const notifications = [];
+	const handler = commands.get("files");
+	assert.equal(typeof handler, "function");
+
+	await handler("", {
+		hasUI: false,
+		cwd: process.cwd(),
+		ui: {
+			notify(message, level) {
+				notifications.push({ message, level });
+			},
+		},
+		sessionManager: { getBranch: () => [] },
+	});
+
+	assert.deepEqual(notifications, [{ message: "Files requires interactive mode", level: "error" }]);
+});
 
 // --- sanitizeReference ---
 
