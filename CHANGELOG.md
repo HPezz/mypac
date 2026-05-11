@@ -24,6 +24,7 @@ Versioned sections should match the Git tags and GitHub releases published for t
 
 ### Changed
 
+- Taught implementation-oriented prompts and OpenSpec apply guidance to load `pac-tdd` selectively for behavior-changing work, bug fixes, and regression coverage. ([#210](https://github.com/ladislas/mypac/issues/210))
 - Taught `/ghi` issue creation to infer existing pac workflow state labels and warn users to run `/pac-setup-workflows` when expected labels are missing. ([#202](https://github.com/ladislas/mypac/issues/202))
 - Aligned label-dependent workflows on canonical `pac:*` labels and `/pac-setup-workflows` warnings instead of legacy label fallbacks. ([#199](https://github.com/ladislas/mypac/issues/199))
 - Added one-off optional custom instruction prompts to `/review-start` selector runs and `/review-end` summarize/fix flows, with Enter-to-skip and Esc-to-cancel behavior while keeping `--extra` and shared review instructions unchanged. ([#115](https://github.com/ladislas/mypac/issues/115))
