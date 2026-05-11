@@ -70,6 +70,8 @@ For deeper guidance on creating or updating prompt templates in `prompts/`, load
 
 For deeper guidance on creating, renaming, or refactoring repo-local skills in `skills/`, load `skills/pac-pi-skill/SKILL.md`.
 
+For behavior-changing implementation work, feature slices, or bug fixes where regression coverage matters, load `skills/pac-tdd/SKILL.md`.
+
 For disciplined bug diagnosis or performance-regression investigation, load `skills/pac-diagnose/SKILL.md`.
 
 For GitHub issue triage, label-state recommendations, ready-for-agent briefs, needs-info comments, wontfix decisions, or out-of-scope scope-boundary comments, load `skills/pac-triage/SKILL.md`.
