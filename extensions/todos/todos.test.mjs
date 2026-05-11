@@ -1,5 +1,9 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { mkdtemp, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import path from "node:path";
+import todosExtension from "./index.ts";
 import {
 	formatTodoId,
 	normalizeTodoId,
@@ -24,6 +28,61 @@ import {
 	serializeTodo,
 	normalizeTodoSettings,
 } from "./storage.ts";
+
+function createTodoToolHarness(cwd) {
+	let todoTool;
+	const pi = {
+		on() {},
+		registerTool(definition) {
+			if (definition.name === "todo") todoTool = definition;
+		},
+		registerCommand() {},
+		registerShortcut() {},
+	};
+	todosExtension(pi);
+	assert.ok(todoTool, "todo tool should be registered");
+
+	const ctx = {
+		cwd,
+		hasUI: false,
+		ui: {},
+		sessionManager: {
+			getSessionId: () => "session-1",
+			getSessionFile: () => "session-1.jsonl",
+		},
+	};
+
+	return {
+		execute: (params) => todoTool.execute("tool-call-1", params, undefined, undefined, ctx),
+	};
+}
+
+// ─── Public tool seam ────────────────────────────────────────────────────────
+
+test("todo tool creates and retrieves todos through the registered tool boundary", async (t) => {
+	const cwd = await mkdtemp(path.join(tmpdir(), "todos-tool-"));
+	t.after(() => rm(cwd, { recursive: true, force: true }));
+	const tool = createTodoToolHarness(cwd);
+
+	const created = await tool.execute({
+		action: "create",
+		title: "Write seam coverage",
+		tags: ["tests"],
+		body: "Exercise the public tool boundary.",
+	});
+
+	assert.equal(created.details.action, "create");
+	assert.equal(created.details.todo.title, "Write seam coverage");
+	assert.match(created.content[0].text, /TODO-[0-9a-f]{8}/);
+
+	const listed = await tool.execute({ action: "list-all" });
+	assert.equal(listed.details.action, "list-all");
+	assert.deepEqual(listed.details.todos.map((todo) => todo.title), ["Write seam coverage"]);
+
+	const fetched = await tool.execute({ action: "get", id: `TODO-${created.details.todo.id}` });
+	assert.equal(fetched.details.action, "get");
+	assert.equal(fetched.details.todo.body.trim(), "Exercise the public tool boundary.");
+});
 
 // ─── ID helpers ───────────────────────────────────────────────────────────────
 

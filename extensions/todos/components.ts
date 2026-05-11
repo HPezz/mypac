@@ -49,6 +49,7 @@ export class TodoSelectorComponent extends Container implements Focusable {
 	private headerText: Text;
 	private hintText: Text;
 	private currentSessionId?: string;
+	private onQuickAction?: (todo: TodoFrontMatter, action: "work" | "refine") => void;
 
 	private _focused = false;
 	get focused(): boolean {
@@ -68,13 +69,14 @@ export class TodoSelectorComponent extends Container implements Focusable {
 		onCancel: () => void,
 		initialSearchInput?: string,
 		currentSessionId?: string,
-		private onQuickAction?: (todo: TodoFrontMatter, action: "work" | "refine") => void,
+		onQuickAction?: (todo: TodoFrontMatter, action: "work" | "refine") => void,
 	) {
 		super();
 		this.tui = tui;
 		this.theme = theme;
 		this.keybindings = keybindings;
 		this.currentSessionId = currentSessionId;
+		this.onQuickAction = onQuickAction;
 		this.allTodos = todos;
 		this.filteredTodos = todos;
 		this.onSelectCallback = onSelect;
