@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { mkdtempSync, mkdirSync, readFileSync, existsSync } from "node:fs";
+import { mkdtempSync, mkdirSync, readFileSync, existsSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { execFileSync } from "node:child_process";
@@ -35,9 +35,12 @@ const piAgentDir = existsSync(localAgentDir)
 
 const { SessionManager } = require(path.join(piAgentDir, "dist", "index.js"));
 const extensionPath = path.resolve("extensions/btw/index.ts");
+const localPiBin = fileURLToPath(new URL("../../node_modules/.bin/pi", import.meta.url));
+const piCommand = existsSync(localPiBin) ? localPiBin : "pi";
 
-function makeWorkspace() {
+function makeWorkspace(t) {
 	const root = mkdtempSync(path.join(tmpdir(), "btw-sidechat-"));
+	t.after(() => rmSync(root, { recursive: true, force: true }));
 	const projectDir = path.join(root, "project");
 	const sessionDir = path.join(root, "sessions");
 	const agentDir = path.join(root, "agent");
@@ -74,7 +77,7 @@ function readJsonl(file) {
 
 function runBtw({ projectDir, sessionDir, agentDir }, sessionFile) {
 	execFileSync(
-		"pi",
+		piCommand,
 		[
 			"--offline",
 			"--no-extensions",
@@ -146,8 +149,8 @@ test("helper logic keeps sidechats hidden and import resolution anchored", () =>
 	assert.equal(restored.state?.mainSessionId, "abc");
 });
 
-test("/btw writes hidden sidechat metadata without touching the main session file", () => {
-	const workspace = makeWorkspace();
+test("/btw writes hidden sidechat metadata without touching the main session file", (t) => {
+	const workspace = makeWorkspace(t);
 	const mainSession = createMainSession(workspace);
 	const before = readFileSync(mainSession.file, "utf8");
 
@@ -163,8 +166,8 @@ test("/btw writes hidden sidechat metadata without touching the main session fil
 	assert.equal(readFileSync(mainSession.file, "utf8"), before);
 });
 
-test("legacy inline BTW entries are ignored on first restore", () => {
-	const workspace = makeWorkspace();
+test("legacy inline BTW entries are ignored on first restore", (t) => {
+	const workspace = makeWorkspace(t);
 	const legacyImport = {
 		messages: [{ role: "user", content: [{ type: "text", text: "snapshot" }], timestamp: 1 }],
 		timestamp: 1,
@@ -185,8 +188,8 @@ test("legacy inline BTW entries are ignored on first restore", () => {
 	assert.equal(readFileSync(mainSession.file, "utf8"), before);
 });
 
-test("sidechats are reused per main session id and isolated between sessions", () => {
-	const workspace = makeWorkspace();
+test("sidechats are reused per main session id and isolated between sessions", (t) => {
+	const workspace = makeWorkspace(t);
 	const sessionA = createMainSession(workspace);
 	const sessionB = createMainSession(workspace);
 
