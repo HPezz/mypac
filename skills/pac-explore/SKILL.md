@@ -93,17 +93,45 @@ Do not force a handoff. Exploration may end with clarity only.
 
 Help the user discover the shape of the idea before turning it into a plan.
 
+Example:
+
+```text
+User: /pac-explore realtime collaboration
+Assistant: Maps the collaboration spectrum, asks where the value is, and compares presence, cursors, comments, and full sync without picking an implementation prematurely.
+```
+
 ### Specific problem
 
 Read the relevant code or issue context, map the current state, and identify the main knots.
+
+Example:
+
+```text
+User: /pac-explore the auth flow feels tangled
+Assistant: Reads the auth modules, sketches the current flow, names the coupling points, and asks which knot is most painful.
+```
 
 ### Mid-implementation uncertainty
 
 Investigate the uncertainty without editing code. Summarize options and suggest the safest next workflow.
 
+Example:
+
+```text
+User: /pac-explore this issue got bigger than expected
+Assistant: Reviews the issue and relevant files, separates discovered scope from original scope, and recommends whether to grill, draft a PRD, split issues, or continue implementation.
+```
+
 ### Option comparison
 
 Make the tradeoffs concrete for the user's actual context rather than giving a generic answer.
+
+Example:
+
+```text
+User: /pac-explore sqlite vs postgres for this CLI
+Assistant: Checks the product constraints, compares deployment and operational costs, and recommends the simpler fit unless sync or multi-user requirements change the tradeoff.
+```
 
 ## Ending exploration
 
