@@ -23,9 +23,13 @@ Versioned sections should match the Git tags and GitHub releases published for t
 - Added a `pac-setup-workflows` shell CLI that reuses the canonical label setup core for terminal checks and explicitly confirmed applies. ([#205](https://github.com/ladislas/mypac/issues/205))
 - Added a pac label-health GitHub Actions workflow that maintains one managed warning comment for conflicting or drifted issue workflow labels. ([#203](https://github.com/ladislas/mypac/issues/203))
 
+### Removed
+
+- Removed OpenSpec prompts, skills, docs, and artifacts in favor of the GitHub-native planning workflow, and kept `/pac-explore` as a non-OpenSpec discovery mode. ([#216](https://github.com/ladislas/mypac/issues/216))
+
 ### Changed
 
-- Taught implementation-oriented prompts and OpenSpec apply guidance to load `pac-tdd` selectively for behavior-changing work, bug fixes, and regression coverage. ([#210](https://github.com/ladislas/mypac/issues/210))
+- Taught implementation-oriented prompts to load `pac-tdd` selectively for behavior-changing work, bug fixes, and regression coverage. ([#210](https://github.com/ladislas/mypac/issues/210))
 - Taught `/ghi` issue creation to infer existing pac workflow state labels and warn users to run `/pac-setup-workflows` when expected labels are missing. ([#202](https://github.com/ladislas/mypac/issues/202))
 - Aligned label-dependent workflows on canonical `pac:*` labels and `/pac-setup-workflows` warnings instead of legacy label fallbacks. ([#199](https://github.com/ladislas/mypac/issues/199))
 - Added one-off optional custom instruction prompts to `/review-start` selector runs and `/review-end` summarize/fix flows, with Enter-to-skip and Esc-to-cancel behavior while keeping `--extra` and shared review instructions unchanged. ([#115](https://github.com/ladislas/mypac/issues/115))
@@ -33,7 +37,7 @@ Versioned sections should match the Git tags and GitHub releases published for t
 - Renamed `/review` to `/review-start` and `/end-review` to `/review-end` for a consistent review command pair. ([#108](https://github.com/ladislas/mypac/issues/108))
 - Added a repo-local skill for updating `CHANGELOG.md` during normal agent-driven work and preparing release sections on request. ([#139](https://github.com/ladislas/mypac/issues/139))
 - Refined the `/pac-slidedeck` workflow so saved-deck replies include a clickable Markdown link and the shared scaffold now follows the preferred issue #85 deck styling more closely. ([#131](https://github.com/ladislas/mypac/issues/131))
-- Strengthened the repo-local authoring guidance for skills, prompts, and extensions, and aligned the non-OpenSpec prompt and commit extension follow-up changes to that guidance. ([#144](https://github.com/ladislas/mypac/issues/144))
+- Strengthened the repo-local authoring guidance for skills, prompts, and extensions, and aligned the GitHub-native prompt and commit extension follow-up changes to that guidance. ([#144](https://github.com/ladislas/mypac/issues/144))
 - Renamed `/btw` sidecar sessions to sidechats and switched BTW persistence to the new `.btw-sidechats` / `btw-sidechat-state` names, which stops reusing older BTW saved state. ([#114](https://github.com/ladislas/mypac/issues/114))
 - Improved the `save_slidedeck` tool with an optional per-slide `eyebrow` field, 6 new CSS layout classes (`.stat`, `.badge`, `.section`, `.statement`, `.quote`, `.steps`), a rewritten prompt cheat sheet with one HTML snippet per pattern, and several rendering bug fixes (badge wrapping, steps layout, footer/nav alignment, `.badge.progress` class collision, mobile viewport layout, duplicate headings in cheat-sheet examples). ([#150](https://github.com/ladislas/mypac/issues/150))
 - Hardened the `/pac-slidedeck` refinement workflow: separated creation (uses `save_slidedeck` once) from refinement (strict copy-first flow to the next `-vN` file); added runtime guardrails that block `write`, multi-file edits, and shell mutation beyond a validated single-file `cp`; allowed `edit`, `edit.multi`, and single-file `edit.patch` against the pending copied file only; and extended session state to track both current deck and pending refinement target across session reconstruction. ([#173](https://github.com/ladislas/mypac/issues/173))

@@ -24,7 +24,7 @@ _Avoid_: Skill, extension
 
 **Issue-backed workflow**:
 A way of working where GitHub issues hold exploration, scope refinement, PRDs, and important decision records.
-_Avoid_: OpenSpec-first workflow, repo-doc-first workflow
+_Avoid_: Repo-doc-first workflow, local-planning-artifact-first workflow
 
 **ADR comment**:
 A GitHub issue comment that records one important hard-to-reverse decision and why it was made.
