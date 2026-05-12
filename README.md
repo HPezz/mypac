@@ -57,10 +57,7 @@ For readability, the skill table below drops the `pac-` prefix in the display la
 | [`grill-with-docs`](skills/pac-grill-with-docs/SKILL.md) | Grill issue-backed work, then persist durable outcomes to GitHub issue comments and sparing local context |
 | [`improve-architecture`](skills/pac-improve-architecture/SKILL.md) | Review a codebase for deepening opportunities, then grill a chosen architecture candidate |
 | [`librarian`](skills/pac-librarian/SKILL.md) | Cache and refresh remote git repositories locally for future reference work |
-| [`openspec-apply-change`](skills/pac-openspec-apply-change/SKILL.md) | Implement tasks from an OpenSpec change |
-| [`openspec-archive-change`](skills/pac-openspec-archive-change/SKILL.md) | Archive a completed OpenSpec change |
 | [`openspec-explore`](skills/pac-openspec-explore/SKILL.md) | Explore ideas, investigate problems, and clarify requirements before coding |
-| [`openspec-propose`](skills/pac-openspec-propose/SKILL.md) | Generate a full OpenSpec proposal with design, specs, and tasks |
 | [`pi-extension`](skills/pac-pi-extension/SKILL.md) | Create or refactor Pi extensions safely in this repo's extension layout |
 | [`pi-prompt`](skills/pac-pi-prompt/SKILL.md) | Author or update prompt templates under `prompts/` |
 | [`pi-skill`](skills/pac-pi-skill/SKILL.md) | Create, rename, or refactor repo-local skills under `skills/` |
@@ -85,10 +82,7 @@ For readability, the skill table below drops the `pac-` prefix in the display la
 | [`/pac-to-prd`](prompts/pac-to-prd.md) | Synthesize context into a draft PRD or publishable GitHub PRD artifact |
 | [`/pac-triage`](prompts/pac-triage.md) | Triage GitHub issues through mypac's label-based issue workflow |
 | [`/pac-improve-architecture`](prompts/pac-improve-architecture.md) | Review a codebase for deepening opportunities, then grill a chosen architecture candidate |
-| [`/pac-propose`](prompts/pac-propose.md) | Create a new OpenSpec change proposal in one step |
-| [`/pac-apply`](prompts/pac-apply.md) | Implement tasks from an OpenSpec change |
 | [`/pac-explore`](prompts/pac-explore.md) | Enter exploration mode to think through a problem before implementation |
-| [`/pac-archive`](prompts/pac-archive.md) | Archive a completed OpenSpec change |
 
 ## Getting started
 
@@ -106,8 +100,7 @@ Launch Pi locally with:
 mise run pi
 ```
 
-Use OpenSpec for meaningful multi-step work.
-OpenSpec artifacts live under `openspec/`.
+Use GitHub-native workflows for planning: `/pac-explore` for discovery, `/pac-grill-with-docs` for issue-backed refinement, `/pac-to-prd` for PRD artifacts, and `/pac-to-issues` for implementation slices.
 
 ### Use this repo as a local Pi package
 

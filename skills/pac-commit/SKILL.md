@@ -110,15 +110,6 @@ When a commit could fit several categories, prefer the one with the greatest imp
 Use `💥` for breaking changes and add a short body explaining what changed and what consumers need to do.
 Do not block committing just because the `gitmoji` CLI is unavailable.
 
-## OpenSpec-specific rules
-
-When the work follows an OpenSpec change:
-
-- Prefer one atomic commit per meaningful numbered task section once that section is complete and verified.
-- Include the corresponding `tasks.md` checkbox updates in the same commit as the completed implementation slice.
-- Commit meaningful OpenSpec artifacts when they preserve rationale, review context, or implementation history.
-- When the OpenSpec work started from an explicit GitHub issue, the first commit that captures the change plan or other OpenSpec planning artifacts must include `closes #123` in its body so merging the branch autocloses the issue.
-
 ## Fixup workflow
 
 Use `git commit --fixup` when a small correction clearly belongs inside an earlier commit rather than standing as a new one. Only run `git rebase --autosquash` after the user explicitly asks for that history rewrite.
@@ -212,7 +203,7 @@ Use `git commit --fixup` when a small correction clearly belongs inside an earli
    - Verify the staged file list matches the intended scope.
    - Commit with the format `<emoji> <type>(<scope>): <summary>` or `<emoji> <type>: <summary>` when no scope is needed.
    - Add a body when needed to explain why, tradeoffs, issue references, or breaking-change migration notes.
-   - If the work is explicitly tied to a GitHub issue, add `closes #<issue>` to the appropriate commit body. For OpenSpec change-plan commits, that closing reference belongs in the first planning commit.
+   - If the work is explicitly tied to a GitHub issue, add `closes #<issue>` to the appropriate commit body.
    - If the change is a small correction to a specific recent local commit, prefer the **fixup workflow** described above instead of creating a standalone fix commit.
    - If the user asks for a fixup commit, create the fixup commit first and stop unless they also explicitly ask to autosquash immediately.
 
@@ -227,4 +218,4 @@ Use `git commit --fixup` when a small correction clearly belongs inside an earli
 - Do not guess when commit boundaries are unclear.
 - Do not guess or fabricate GitHub issue references; only use issues explicitly present in the conversation or current task context.
 - Do not push, merge, or rewrite history unless the user explicitly asks. This includes `git rebase --autosquash`: creating a fixup commit does not by itself grant permission to autosquash it.
-- Keep the repository's gitmoji, branch, and OpenSpec rules intact even when the user asks casually to “commit this”.
+- Keep the repository's gitmoji, branch, and explicit staging rules intact even when the user asks casually to “commit this”.

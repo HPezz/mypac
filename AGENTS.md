@@ -76,12 +76,9 @@ For disciplined bug diagnosis or performance-regression investigation, load `ski
 
 For GitHub issue triage, label-state recommendations, ready-for-agent briefs, needs-info comments, wontfix decisions, or out-of-scope scope-boundary comments, load `skills/pac-triage/SKILL.md`.
 
-## OpenSpec
+## Planning Workflow
 
-- Use OpenSpec in this repo for meaningful multi-step work, not for tiny obvious edits.
-- Commit meaningful OpenSpec artifacts under `openspec/` when they preserve rationale and review context.
-- Keep archived OpenSpec change trails only when they remain safe and useful as repository context; remove archived changes whose main content is deprecated or unsupported behavior.
-- For OpenSpec changes, prefer one atomic commit per meaningful numbered task section once that section is complete and verified.
-- For OpenSpec changes, include the corresponding `tasks.md` checkbox updates in the same commit as the completed section.
-- For non-OpenSpec work, follow the same atomic-commit rule using coherent manual task groups.
-- Keep the human in the loop: proposal, design, specs, and tasks should guide implementation rather than replace review and manual judgment.
+- Use GitHub-native planning workflows for meaningful multi-step work.
+- Prefer issue-backed PRD comments, ADR comments, and implementation issues over repo-local planning artifacts.
+- For non-trivial work, keep the human in the loop: exploration, PRDs, issue breakdowns, and decisions should guide implementation rather than replace review and manual judgment.
+- Use atomic commits for coherent manual task groups or work slices once they are complete and verified.

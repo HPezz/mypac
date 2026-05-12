@@ -47,7 +47,7 @@ Use the optional argument after `/pac-lwot` as the thing we should work from. It
 5. **Choose the right path**
    - For very small, clear, implementation-ready work, proceed directly.
    - For anything that may still be under discussion, present the plan and ask whether to proceed.
-   - For meaningful multi-step work, propose using OpenSpec (`/pac-propose` then `/pac-apply`) before implementation.
+   - For meaningful multi-step work that is not implementation-ready, suggest the GitHub-native planning path: `/pac-explore` for discovery, `/pac-grill-with-docs` for issue-backed refinement, `/pac-to-prd` for PRD synthesis, or `/pac-to-issues` for implementation slices.
    - If the input is exploratory rather than actionable, suggest `/pac-explore`.
 
 6. **Do the work**
