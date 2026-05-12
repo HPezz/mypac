@@ -57,7 +57,7 @@ For readability, the skill table below drops the `pac-` prefix in the display la
 | [`grill-with-docs`](skills/pac-grill-with-docs/SKILL.md) | Grill issue-backed work, then persist durable outcomes to GitHub issue comments and sparing local context |
 | [`improve-architecture`](skills/pac-improve-architecture/SKILL.md) | Review a codebase for deepening opportunities, then grill a chosen architecture candidate |
 | [`librarian`](skills/pac-librarian/SKILL.md) | Cache and refresh remote git repositories locally for future reference work |
-| [`openspec-explore`](skills/pac-openspec-explore/SKILL.md) | Explore ideas, investigate problems, and clarify requirements before coding |
+| [`explore`](skills/pac-explore/SKILL.md) | Explore ideas, investigate problems, and compare options without implementing |
 | [`pi-extension`](skills/pac-pi-extension/SKILL.md) | Create or refactor Pi extensions safely in this repo's extension layout |
 | [`pi-prompt`](skills/pac-pi-prompt/SKILL.md) | Author or update prompt templates under `prompts/` |
 | [`pi-skill`](skills/pac-pi-skill/SKILL.md) | Create, rename, or refactor repo-local skills under `skills/` |

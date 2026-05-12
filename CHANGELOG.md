@@ -23,6 +23,10 @@ Versioned sections should match the Git tags and GitHub releases published for t
 - Added a `pac-setup-workflows` shell CLI that reuses the canonical label setup core for terminal checks and explicitly confirmed applies. ([#205](https://github.com/ladislas/mypac/issues/205))
 - Added a pac label-health GitHub Actions workflow that maintains one managed warning comment for conflicting or drifted issue workflow labels. ([#203](https://github.com/ladislas/mypac/issues/203))
 
+### Removed
+
+- Removed OpenSpec prompts, skills, docs, and artifacts in favor of the GitHub-native planning workflow, and kept `/pac-explore` as a non-OpenSpec discovery mode. ([#216](https://github.com/ladislas/mypac/issues/216))
+
 ### Changed
 
 - Taught implementation-oriented prompts to load `pac-tdd` selectively for behavior-changing work, bug fixes, and regression coverage. ([#210](https://github.com/ladislas/mypac/issues/210))
