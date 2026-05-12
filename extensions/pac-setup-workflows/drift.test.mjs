@@ -10,6 +10,13 @@ test("normalizeColor strips leading hash and uppercases", () => {
 	assert.equal(normalizeColor("#bfDadc"), "BFDADC");
 });
 
+test("required pac labels include upstream checkpoint artifacts", () => {
+	const checkpoint = required("pac:upstream-checkpoint");
+	assert.ok(checkpoint);
+	assert.equal(checkpoint.color, "C2E0C6");
+	assert.equal(checkpoint.description, "pac artifact: upstream inspiration review checkpoint");
+});
+
 test("analyzeLabels reports all required pac labels as missing when none exist", () => {
 	const result = analyzeLabels([label("bug"), label("enhancement")]);
 	assert.equal(result.missing.length, REQUIRED_PAC_LABELS.length);

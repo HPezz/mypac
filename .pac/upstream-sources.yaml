@@ -1,0 +1,122 @@
+# Canonical registry for upstream/reference sources that inspired mypac.
+#
+# This file is the machine-readable checkpoint for /pac-upstream-checkpoints.
+# GitHub checkpoint issues are the durable review narrative and decision log.
+# Advance last_reviewed only after human confirmation from a checkpoint issue.
+schema_version: 1
+checkpoint_label: pac:upstream-checkpoint
+sources:
+  - id: agent-stuff-pi-extensions
+    title: Agent Stuff Pi extensions
+    kind: extension-set
+    source:
+      repo: https://github.com/mitsuhiko/agent-stuff
+      ref: main
+      paths:
+        - extensions/answer.ts
+        - extensions/btw.ts
+        - extensions/files.ts
+        - extensions/multi-edit.ts
+        - extensions/review.ts
+        - extensions/todos.ts
+        - extensions/uv.ts
+        - extensions/whimsical.ts
+    local:
+      paths:
+        - extensions/answer/
+        - extensions/btw/
+        - extensions/files/
+        - extensions/multi-edit/
+        - extensions/review/
+        - extensions/todos/
+        - extensions/uv/
+        - extensions/whimsical/
+    attribution:
+      upstream: mitsuhiko/agent-stuff
+      license: Review upstream repository before copying new code.
+      notes: Existing local files include inline original-source comments; README gives broad credit.
+    known_divergence:
+      - Local extensions may be split into helper modules and tests to satisfy mypac extension layout rules.
+    last_reviewed:
+      commit: null
+      checkpoint_issue: null
+      reviewed_at: null
+      notes: Initial registry entry; no checkpoint review has advanced this baseline yet.
+
+  - id: agent-stuff-pi-skills
+    title: Agent Stuff Pi skills
+    kind: skill-set
+    source:
+      repo: https://github.com/mitsuhiko/agent-stuff
+      ref: main
+      paths:
+        - skills/github/SKILL.md
+        - skills/librarian/SKILL.md
+        - skills/librarian/checkout.sh
+        - skills/uv/SKILL.md
+        - skills/uv/build.md
+        - skills/uv/scripts.md
+    local:
+      paths:
+        - skills/pac-github/
+        - skills/pac-librarian/
+        - skills/pac-uv/
+    attribution:
+      upstream: mitsuhiko/agent-stuff
+      license: Review upstream repository before copying new code.
+      notes: Local skill names use the pac- prefix and adapt behavior to this repository.
+    known_divergence:
+      - mypac adds repository-specific conventions and safety checks.
+    last_reviewed:
+      commit: null
+      checkpoint_issue: null
+      reviewed_at: null
+      notes: Initial registry entry; no checkpoint review has advanced this baseline yet.
+
+  - id: mattpocock-skills-authoring
+    title: Matt Pocock skill authoring patterns
+    kind: workflow-pattern
+    source:
+      repo: https://github.com/mattpocock/skills
+      ref: main
+      paths:
+        - skills/productivity/write-a-skill/
+        - to-prd/
+    local:
+      paths:
+        - skills/pac-pi-skill/SKILL.md
+        - skills/pac-grill-with-docs/PRD-FORMAT.md
+    attribution:
+      upstream: mattpocock/skills
+      license: Review upstream repository before copying new text or structure.
+      notes: Local guidance is adapted to Pi and mypac naming conventions.
+    known_divergence:
+      - mypac skills require pac- prefixes and repository-specific frontmatter guidance.
+    last_reviewed:
+      commit: null
+      checkpoint_issue: null
+      reviewed_at: null
+      notes: Initial registry entry; no checkpoint review has advanced this baseline yet.
+
+  - id: pi-mono-release-notes
+    title: Pi Mono release note conventions
+    kind: documentation-pattern
+    source:
+      repo: https://github.com/badlogic/pi-mono
+      ref: main
+      paths:
+        - packages/coding-agent/CHANGELOG.md
+    local:
+      paths:
+        - CHANGELOG.md
+    attribution:
+      upstream: badlogic/pi-mono
+      license: Review upstream repository before copying new text or structure.
+      notes: CHANGELOG.md also credits Keep a Changelog.
+    known_divergence:
+      - mypac keeps an Unreleased section and groups changes for this repository's workflow.
+    last_reviewed:
+      commit: null
+      checkpoint_issue: null
+      reviewed_at: null
+      notes: Initial registry entry; no checkpoint review has advanced this baseline yet.
