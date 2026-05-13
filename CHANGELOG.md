@@ -30,6 +30,7 @@ Versioned sections should match the Git tags and GitHub releases published for t
 
 ### Changed
 
+- Updated upstream checkpoint registry/workflow guidance around local-first, multi-source artifacts, including whole-upstream watch sources, a dedicated review-extension source model, and repaired Matt Pocock paths. ([#220](https://github.com/ladislas/mypac/issues/220))
 - Taught implementation-oriented prompts to load `pac-tdd` selectively for behavior-changing work, bug fixes, and regression coverage. ([#210](https://github.com/ladislas/mypac/issues/210))
 - Taught `/ghi` issue creation to infer existing pac workflow state labels and warn users to run `/pac-setup-workflows` when expected labels are missing. ([#202](https://github.com/ladislas/mypac/issues/202))
 - Aligned label-dependent workflows on canonical `pac:*` labels and `/pac-setup-workflows` warnings instead of legacy label fallbacks. ([#199](https://github.com/ladislas/mypac/issues/199))
