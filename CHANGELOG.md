@@ -10,7 +10,7 @@ Versioned sections should match the Git tags and GitHub releases published for t
 
 ### Added
 
-- Added `.pac/upstream-sources.yaml`, `pac-upstream-checkpoints`, and `/pac-upstream-checkpoints` for reviewing borrowed upstream sources and creating checkpoint issues. ([#192](https://github.com/ladislas/mypac/issues/192))
+- Added `.pac/upstream-sources.yaml`, `pac-upstream-checkpoints`, and `/pac-upstream-checkpoints` for reviewing borrowed upstream sources, tracking local artifacts, and creating checkpoint issues. ([#192](https://github.com/ladislas/mypac/issues/192))
 - Added `pac-tdd` as a standalone pragmatic TDD skill with lightweight notes for tests, mocking, refactoring, deep modules, and interface design. ([#155](https://github.com/ladislas/mypac/issues/155))
 - Added this changelog to track notable repository changes and future GitHub releases. ([#139](https://github.com/ladislas/mypac/issues/139))
 - Added a `/pac-slidedeck` extension command and `save_slidedeck` tool that generate presentation-style HTML decks under `~/.pi/agent/slidedecks/` instead of the repo workspace. ([#131](https://github.com/ladislas/mypac/issues/131))
@@ -30,7 +30,6 @@ Versioned sections should match the Git tags and GitHub releases published for t
 
 ### Changed
 
-- Updated upstream checkpoint registry/workflow guidance around local-first, multi-source artifacts, including whole-upstream watch sources, a dedicated review-extension source model, and repaired Matt Pocock paths. ([#220](https://github.com/ladislas/mypac/issues/220))
 - Taught implementation-oriented prompts to load `pac-tdd` selectively for behavior-changing work, bug fixes, and regression coverage. ([#210](https://github.com/ladislas/mypac/issues/210))
 - Taught `/ghi` issue creation to infer existing pac workflow state labels and warn users to run `/pac-setup-workflows` when expected labels are missing. ([#202](https://github.com/ladislas/mypac/issues/202))
 - Aligned label-dependent workflows on canonical `pac:*` labels and `/pac-setup-workflows` warnings instead of legacy label fallbacks. ([#199](https://github.com/ladislas/mypac/issues/199))
