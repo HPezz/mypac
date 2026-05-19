@@ -1,6 +1,17 @@
 #!/bin/bash
 # Original source: https://github.com/mitsuhiko/agent-stuff/blob/main/intercepted-commands/python
 
+# Check uv is available before anything else
+if ! command -v uv >/dev/null 2>&1; then
+    echo "Error: uv is required by Pi's Python capture extension, but uv was not found on PATH." >&2
+    echo "" >&2
+    echo "  Install uv with your preferred tool, for example: mise install uv or brew install uv" >&2
+    echo "  To use system python3 directly, run 'pi config' and disable only the uv extension." >&2
+    echo "  To disable all extensions for one run, start Pi with '--no-extensions'." >&2
+    echo "" >&2
+    exit 127
+fi
+
 # Check for disallowed module invocations
 for arg in "$@"; do
     case "$arg" in
