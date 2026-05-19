@@ -1,6 +1,24 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { spawnSync } from "node:child_process";
+import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 import { getBlockedCommandMessage } from "./helpers.ts";
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const interceptedCommandsPath = resolve(__dirname, "../..", "intercepted-commands");
+
+function pathWithoutUv() {
+	const uvPaths = spawnSync("bash", ["-lc", "type -aP uv 2>/dev/null || true"], {
+		encoding: "utf8",
+	}).stdout.trim().split("\n").filter(Boolean);
+	const uvDirs = new Set(uvPaths.map((path) => dirname(path)));
+
+	return (process.env.PATH ?? "")
+		.split(":")
+		.filter((path) => path && path !== interceptedCommandsPath && !uvDirs.has(path))
+		.join(":");
+}
 
 // --- Allowed commands ---
 
@@ -84,4 +102,30 @@ test("blocks python -m py_compile", () => {
 test("blocks pip in multiline command", () => {
 	const msg = getBlockedCommandMessage("echo start\npip install foo\necho done");
 	assert.ok(msg?.includes("pip is disabled"));
+});
+
+// --- unavailable uv runtime ---
+
+test("python shim explains how to install uv when uv is unavailable", () => {
+	const simulatedPath = pathWithoutUv();
+	const systemPython = spawnSync("bash", ["-lc", "command -v python3 || command -v python || true"], {
+		env: { ...process.env, PATH: simulatedPath },
+		encoding: "utf8",
+	}).stdout.trim();
+
+	if (!systemPython) {
+		return;
+	}
+
+	const result = spawnSync(resolve(interceptedCommandsPath, "python3"), ["--version"], {
+		env: { ...process.env, PATH: `${interceptedCommandsPath}:${simulatedPath}` },
+		encoding: "utf8",
+	});
+
+	assert.notEqual(result.status, 0);
+	assert.ok(result.stderr.includes("uv is required"), result.stderr);
+	assert.ok(result.stderr.includes("mise install uv or brew install uv"), result.stderr);
+	assert.ok(result.stderr.includes("run 'pi config' and disable only the uv extension"), result.stderr);
+	assert.ok(result.stderr.includes("disable all extensions for one run"), result.stderr);
+	assert.ok(result.stderr.includes("--no-extensions"), result.stderr);
 });
