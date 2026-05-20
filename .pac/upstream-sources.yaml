@@ -27,10 +27,10 @@ local_artifacts:
           license: Review upstream repository before copying new code.
           notes: Local extension may be split into helper modules and tests to satisfy mypac extension layout rules.
         last_reviewed:
-          upstream_commit: null
-          checkpoint_issue: null
-          reviewed_at: null
-          notes: Initial local-artifact entry; no checkpoint review has advanced this baseline yet.
+          upstream_commit: ab79f98104bcd3c6a7c5491e609f6d6700a7414d
+          checkpoint_issue: https://github.com/ladislas/mypac/issues/227
+          reviewed_at: 2026-05-20T06:57:03Z
+          notes: "Baseline accepted from upstream checkpoint #227."
     attribution:
       upstream: mitsuhiko/agent-stuff
       license: Review upstream repository before copying new code.
@@ -58,10 +58,10 @@ local_artifacts:
           license: Review upstream repository before copying new code.
           notes: Local extension may be split into helper modules and tests to satisfy mypac extension layout rules.
         last_reviewed:
-          upstream_commit: null
-          checkpoint_issue: null
-          reviewed_at: null
-          notes: Initial local-artifact entry; no checkpoint review has advanced this baseline yet.
+          upstream_commit: ab79f98104bcd3c6a7c5491e609f6d6700a7414d
+          checkpoint_issue: https://github.com/ladislas/mypac/issues/227
+          reviewed_at: 2026-05-20T06:57:03Z
+          notes: "Baseline accepted from upstream checkpoint #227."
     attribution:
       upstream: mitsuhiko/agent-stuff
       license: Review upstream repository before copying new code.
@@ -89,10 +89,10 @@ local_artifacts:
           license: Review upstream repository before copying new code.
           notes: Local extension may be split into helper modules and tests to satisfy mypac extension layout rules.
         last_reviewed:
-          upstream_commit: null
-          checkpoint_issue: null
-          reviewed_at: null
-          notes: Initial local-artifact entry; no checkpoint review has advanced this baseline yet.
+          upstream_commit: ab79f98104bcd3c6a7c5491e609f6d6700a7414d
+          checkpoint_issue: https://github.com/ladislas/mypac/issues/227
+          reviewed_at: 2026-05-20T06:57:03Z
+          notes: "Baseline accepted from upstream checkpoint #227."
     attribution:
       upstream: mitsuhiko/agent-stuff
       license: Review upstream repository before copying new code.
@@ -120,10 +120,10 @@ local_artifacts:
           license: Review upstream repository before copying new code.
           notes: Local extension may be split into helper modules and tests to satisfy mypac extension layout rules.
         last_reviewed:
-          upstream_commit: null
-          checkpoint_issue: null
-          reviewed_at: null
-          notes: Initial local-artifact entry; no checkpoint review has advanced this baseline yet.
+          upstream_commit: ab79f98104bcd3c6a7c5491e609f6d6700a7414d
+          checkpoint_issue: https://github.com/ladislas/mypac/issues/227
+          reviewed_at: 2026-05-20T06:57:03Z
+          notes: "Baseline accepted from upstream checkpoint #227."
     attribution:
       upstream: mitsuhiko/agent-stuff
       license: Review upstream repository before copying new code.
@@ -151,10 +151,10 @@ local_artifacts:
           license: Review upstream repository before copying new code.
           notes: Local extension may be split into helper modules and tests to satisfy mypac extension layout rules.
         last_reviewed:
-          upstream_commit: null
-          checkpoint_issue: null
-          reviewed_at: null
-          notes: Initial local-artifact entry; no checkpoint review has advanced this baseline yet.
+          upstream_commit: ab79f98104bcd3c6a7c5491e609f6d6700a7414d
+          checkpoint_issue: https://github.com/ladislas/mypac/issues/227
+          reviewed_at: 2026-05-20T06:57:03Z
+          notes: "Baseline accepted from upstream checkpoint #227."
     attribution:
       upstream: mitsuhiko/agent-stuff
       license: Review upstream repository before copying new code.
@@ -182,10 +182,10 @@ local_artifacts:
           license: Review upstream repository before copying new code.
           notes: Local extension may be split into helper modules and tests to satisfy mypac extension layout rules.
         last_reviewed:
-          upstream_commit: null
-          checkpoint_issue: null
-          reviewed_at: null
-          notes: Initial local-artifact entry; no checkpoint review has advanced this baseline yet.
+          upstream_commit: ab79f98104bcd3c6a7c5491e609f6d6700a7414d
+          checkpoint_issue: https://github.com/ladislas/mypac/issues/227
+          reviewed_at: 2026-05-20T06:57:03Z
+          notes: "Baseline accepted from upstream checkpoint #227."
     attribution:
       upstream: mitsuhiko/agent-stuff
       license: Review upstream repository before copying new code.
@@ -213,10 +213,10 @@ local_artifacts:
           license: Review upstream repository before copying new code.
           notes: Local extension may be split into helper modules and tests to satisfy mypac extension layout rules.
         last_reviewed:
-          upstream_commit: null
-          checkpoint_issue: null
-          reviewed_at: null
-          notes: Initial local-artifact entry; no checkpoint review has advanced this baseline yet.
+          upstream_commit: ab79f98104bcd3c6a7c5491e609f6d6700a7414d
+          checkpoint_issue: https://github.com/ladislas/mypac/issues/227
+          reviewed_at: 2026-05-20T06:57:03Z
+          notes: "Baseline accepted from upstream checkpoint #227."
     attribution:
       upstream: mitsuhiko/agent-stuff
       license: Review upstream repository before copying new code.
@@ -244,10 +244,10 @@ local_artifacts:
           license: Review upstream repository before copying new code.
           notes: Original provenance for the review extension idea and earlier local fork.
         last_reviewed:
-          upstream_commit: null
-          checkpoint_issue: null
-          reviewed_at: null
-          notes: Initial local-artifact entry; no checkpoint review has advanced this baseline yet.
+          upstream_commit: ab79f98104bcd3c6a7c5491e609f6d6700a7414d
+          checkpoint_issue: https://github.com/ladislas/mypac/issues/227
+          reviewed_at: 2026-05-20T06:57:03Z
+          notes: "Baseline accepted from upstream checkpoint #227."
       - id: pi-review-current-reference-extension
         role: current_reference
         status: active
@@ -261,10 +261,10 @@ local_artifacts:
           license: Review upstream repository before copying new code.
           notes: "Per #117, this is the newer reference source for concrete prompt, rubric, bugfix, and robustness changes."
         last_reviewed:
-          upstream_commit: null
-          checkpoint_issue: null
-          reviewed_at: null
-          notes: Initial local-artifact entry; no checkpoint review has advanced this baseline yet.
+          upstream_commit: ed6db501d09a3a72ac5ab8ca604effa0ddcb65d5
+          checkpoint_issue: https://github.com/ladislas/mypac/issues/227
+          reviewed_at: 2026-05-20T06:57:03Z
+          notes: "Baseline accepted from upstream checkpoint #227."
     attribution:
       upstream: mitsuhiko/agent-stuff and earendil-works/pi-review
       license: Review each upstream repository before copying new code or text.
@@ -295,10 +295,10 @@ local_artifacts:
           license: Review upstream repository before copying new text or structure.
           notes: Original provenance for review workflow language.
         last_reviewed:
-          upstream_commit: null
-          checkpoint_issue: null
-          reviewed_at: null
-          notes: Initial local-artifact entry; no checkpoint review has advanced this baseline yet.
+          upstream_commit: ab79f98104bcd3c6a7c5491e609f6d6700a7414d
+          checkpoint_issue: https://github.com/ladislas/mypac/issues/227
+          reviewed_at: 2026-05-20T06:57:03Z
+          notes: "Baseline accepted from upstream checkpoint #227."
       - id: pi-review-workflow-reference
         role: current_reference
         status: active
@@ -312,10 +312,10 @@ local_artifacts:
           license: Review upstream repository before copying new text or structure.
           notes: "Per #117, this is the newer reference source for concrete prompt, rubric, bugfix, and robustness changes."
         last_reviewed:
-          upstream_commit: null
-          checkpoint_issue: null
-          reviewed_at: null
-          notes: Initial local-artifact entry; no checkpoint review has advanced this baseline yet.
+          upstream_commit: ed6db501d09a3a72ac5ab8ca604effa0ddcb65d5
+          checkpoint_issue: https://github.com/ladislas/mypac/issues/227
+          reviewed_at: 2026-05-20T06:57:03Z
+          notes: "Baseline accepted from upstream checkpoint #227."
     attribution:
       upstream: mitsuhiko/agent-stuff and earendil-works/pi-review
       license: Review each upstream repository before copying code or text.
@@ -346,10 +346,10 @@ local_artifacts:
           license: Review upstream repository before copying new text or structure.
           notes: Local skill name uses the pac- prefix and adapts behavior to this repository.
         last_reviewed:
-          upstream_commit: null
-          checkpoint_issue: null
-          reviewed_at: null
-          notes: Initial local-artifact entry; no checkpoint review has advanced this baseline yet.
+          upstream_commit: ab79f98104bcd3c6a7c5491e609f6d6700a7414d
+          checkpoint_issue: https://github.com/ladislas/mypac/issues/227
+          reviewed_at: 2026-05-20T06:57:03Z
+          notes: "Baseline accepted from upstream checkpoint #227."
     attribution:
       upstream: mitsuhiko/agent-stuff
       license: Review upstream repository before copying new text or structure.
@@ -378,10 +378,10 @@ local_artifacts:
           license: Review upstream repository before copying new code, text, or structure.
           notes: Local skill name uses the pac- prefix and adapts behavior to this repository.
         last_reviewed:
-          upstream_commit: null
-          checkpoint_issue: null
-          reviewed_at: null
-          notes: Initial local-artifact entry; no checkpoint review has advanced this baseline yet.
+          upstream_commit: ab79f98104bcd3c6a7c5491e609f6d6700a7414d
+          checkpoint_issue: https://github.com/ladislas/mypac/issues/227
+          reviewed_at: 2026-05-20T06:57:03Z
+          notes: "Baseline accepted from upstream checkpoint #227."
     attribution:
       upstream: mitsuhiko/agent-stuff
       license: Review upstream repository before copying new code, text, or structure.
@@ -411,10 +411,10 @@ local_artifacts:
           license: Review upstream repository before copying new text or structure.
           notes: Local skill name uses the pac- prefix and adapts behavior to this repository.
         last_reviewed:
-          upstream_commit: null
-          checkpoint_issue: null
-          reviewed_at: null
-          notes: Initial local-artifact entry; no checkpoint review has advanced this baseline yet.
+          upstream_commit: ab79f98104bcd3c6a7c5491e609f6d6700a7414d
+          checkpoint_issue: https://github.com/ladislas/mypac/issues/227
+          reviewed_at: 2026-05-20T06:57:03Z
+          notes: "Baseline accepted from upstream checkpoint #227."
     attribution:
       upstream: mitsuhiko/agent-stuff
       license: Review upstream repository before copying new text or structure.
@@ -442,10 +442,10 @@ local_artifacts:
           license: Review upstream repository before copying new text or structure.
           notes: Local guidance is adapted to Pi and mypac naming conventions.
         last_reviewed:
-          upstream_commit: null
-          checkpoint_issue: null
-          reviewed_at: null
-          notes: Initial local-artifact entry; no checkpoint review has advanced this baseline yet. Path repair only; baseline intentionally not advanced.
+          upstream_commit: d54c497aa94400a496d3f2c38be10fa5f284c5a9
+          checkpoint_issue: https://github.com/ladislas/mypac/issues/227
+          reviewed_at: 2026-05-20T06:57:03Z
+          notes: "Baseline accepted from upstream checkpoint #227."
     attribution:
       upstream: mattpocock/skills
       license: Review upstream repository before copying new text or structure.
@@ -475,10 +475,10 @@ local_artifacts:
           license: Review upstream repository before copying new text or structure.
           notes: Historical upstream path was reorganized; use this current path for PRD-pattern checks.
         last_reviewed:
-          upstream_commit: null
-          checkpoint_issue: null
-          reviewed_at: null
-          notes: Initial local-artifact entry; no checkpoint review has advanced this baseline yet. Path repair only; baseline intentionally not advanced.
+          upstream_commit: d54c497aa94400a496d3f2c38be10fa5f284c5a9
+          checkpoint_issue: https://github.com/ladislas/mypac/issues/227
+          reviewed_at: 2026-05-20T06:57:03Z
+          notes: "Baseline accepted from upstream checkpoint #227."
     attribution:
       upstream: mattpocock/skills
       license: Review upstream repository before copying new text or structure.
@@ -508,10 +508,10 @@ local_artifacts:
           license: Review upstream repository before copying new text or structure.
           notes: Local PRD comment format draws on upstream PRD authoring patterns.
         last_reviewed:
-          upstream_commit: null
-          checkpoint_issue: null
-          reviewed_at: null
-          notes: Initial local-artifact entry; no checkpoint review has advanced this baseline yet. Path repair only; baseline intentionally not advanced.
+          upstream_commit: d54c497aa94400a496d3f2c38be10fa5f284c5a9
+          checkpoint_issue: https://github.com/ladislas/mypac/issues/227
+          reviewed_at: 2026-05-20T06:57:03Z
+          notes: "Baseline accepted from upstream checkpoint #227."
     attribution:
       upstream: mattpocock/skills
       license: Review upstream repository before copying new text or structure.
@@ -531,11 +531,10 @@ watch_sources:
       - extensions/
     purpose: Watch for newly added, moved, or removed upstream extensions that may deserve local artifact entries or explicit non-coverage.
     last_reviewed:
-      upstream_commit: null
-      checkpoint_issue: null
-      reviewed_at: null
-      notes: Inventory watch only; do not force local adoption.
-
+      upstream_commit: ab79f98104bcd3c6a7c5491e609f6d6700a7414d
+      checkpoint_issue: https://github.com/ladislas/mypac/issues/227
+      reviewed_at: 2026-05-20T06:57:03Z
+      notes: "Baseline accepted from upstream checkpoint #227; inventory watch only, do not force local adoption."
   - id: agent-stuff-skills-watch
     title: Agent Stuff skill inventory
     sync_policy: inventory_watch
@@ -545,11 +544,10 @@ watch_sources:
       - skills/
     purpose: Watch for newly added, moved, or removed upstream skills that may deserve local artifact entries or explicit non-coverage.
     last_reviewed:
-      upstream_commit: null
-      checkpoint_issue: null
-      reviewed_at: null
-      notes: Inventory watch only; do not force local adoption.
-
+      upstream_commit: ab79f98104bcd3c6a7c5491e609f6d6700a7414d
+      checkpoint_issue: https://github.com/ladislas/mypac/issues/227
+      reviewed_at: 2026-05-20T06:57:03Z
+      notes: "Baseline accepted from upstream checkpoint #227; inventory watch only, do not force local adoption."
   - id: mattpocock-skills-watch
     title: Matt Pocock skill inventory
     sync_policy: inventory_watch
@@ -559,7 +557,7 @@ watch_sources:
       - skills/
     purpose: "Watch for newly added, moved, or removed skills after the upstream reorganization; use #135 context before opening any new review thread."
     last_reviewed:
-      upstream_commit: null
-      checkpoint_issue: null
-      reviewed_at: null
-      notes: Inventory watch only; do not reopen every already-decided adaptation.
+      upstream_commit: d54c497aa94400a496d3f2c38be10fa5f284c5a9
+      checkpoint_issue: https://github.com/ladislas/mypac/issues/227
+      reviewed_at: 2026-05-20T06:57:03Z
+      notes: "Baseline accepted from upstream checkpoint #227; inventory watch only, do not reopen every already-decided adaptation."
