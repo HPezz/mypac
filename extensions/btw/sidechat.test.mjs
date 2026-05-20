@@ -22,14 +22,14 @@ const require = createRequire(import.meta.url);
 // Resolve pi-coding-agent: prefer local node_modules (devDependencies) so
 // `npm test` works without a global pi install; fall back to the global pi
 // prefix structure for environments where `npm install` has not been run.
-const localAgentDir = fileURLToPath(new URL("../../node_modules/@mariozechner/pi-coding-agent", import.meta.url));
+const localAgentDir = fileURLToPath(new URL("../../node_modules/@earendil-works/pi-coding-agent", import.meta.url));
 const piAgentDir = existsSync(localAgentDir)
 	? localAgentDir
 	: path.join(
 			path.resolve(path.dirname(execFileSync("which", ["pi"], { encoding: "utf8" }).trim()), ".."),
 			"lib",
 			"node_modules",
-			"@mariozechner",
+			"@earendil-works",
 			"pi-coding-agent",
 		);
 

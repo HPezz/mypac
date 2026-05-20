@@ -5,7 +5,7 @@ import {
 	type ExtensionCommandContext,
 	type ExtensionContext,
 	type Skill,
-} from "@mariozechner/pi-coding-agent";
+} from "@earendil-works/pi-coding-agent";
 import { existsSync } from "node:fs";
 import fs from "node:fs/promises";
 import os from "node:os";

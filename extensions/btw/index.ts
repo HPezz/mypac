@@ -16,8 +16,8 @@ import {
 	type ExtensionCommandContext,
 	type ExtensionContext,
 	type ResourceLoader,
-} from "@mariozechner/pi-coding-agent";
-import { type AssistantMessage, type Message, type ThinkingLevel as AiThinkingLevel } from "@mariozechner/pi-ai";
+} from "@earendil-works/pi-coding-agent";
+import { type AssistantMessage, type Message, type ThinkingLevel as AiThinkingLevel } from "@earendil-works/pi-ai";
 import {
 	Container,
 	Editor,
@@ -31,7 +31,7 @@ import {
 	type KeybindingsManager,
 	type OverlayHandle,
 	type TUI,
-} from "@mariozechner/pi-tui";
+} from "@earendil-works/pi-tui";
 import {
 	BTW_IMPORT_TYPE,
 	BTW_SIDECHAT_STATE_TYPE,

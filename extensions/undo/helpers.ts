@@ -1,4 +1,4 @@
-import type { UserMessage } from "@mariozechner/pi-ai";
+import type { UserMessage } from "@earendil-works/pi-ai";
 
 export function parseUndoContent(content: UserMessage["content"]): { text: string; hasNonTextContent: boolean } {
 	if (typeof content === "string") {

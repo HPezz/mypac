@@ -1,4 +1,4 @@
-import type { ExtensionAPI, ExtensionCommandContext } from "@mariozechner/pi-coding-agent";
+import type { ExtensionAPI, ExtensionCommandContext } from "@earendil-works/pi-coding-agent";
 import { analyzeLabels, buildApplyPlan, countPlannedChanges, hasCleanRequiredLabels } from "./drift.ts";
 import { createLabel, fetchLabels, parseCommand, renameLabel, resolveRepo, updateLabel } from "./github.ts";
 import { renderApplyPlan, renderApplyResults, renderCheckResult, renderHelp } from "./render.ts";

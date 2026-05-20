@@ -2,7 +2,7 @@
  * TUI components for the todos extension.
  */
 import path from "node:path";
-import { DynamicBorder, copyToClipboard, getMarkdownTheme, type Theme } from "@mariozechner/pi-coding-agent";
+import { DynamicBorder, copyToClipboard, getMarkdownTheme, type Theme } from "@earendil-works/pi-coding-agent";
 import {
 	Container,
 	type Focusable,
@@ -18,7 +18,7 @@ import {
 	truncateToWidth,
 	visibleWidth,
 	type Keybinding,
-} from "@mariozechner/pi-tui";
+} from "@earendil-works/pi-tui";
 import type { TodoFrontMatter, TodoMenuAction, TodoOverlayAction, TodoRecord } from "./types.ts";
 import {
 	filterTodos,

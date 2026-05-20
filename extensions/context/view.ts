@@ -1,5 +1,5 @@
-import { DynamicBorder } from "@mariozechner/pi-coding-agent";
-import { Container, Key, Text, matchesKey, type Component, type TUI } from "@mariozechner/pi-tui";
+import { DynamicBorder } from "@earendil-works/pi-coding-agent";
+import { Container, Key, Text, matchesKey, type Component, type TUI } from "@earendil-works/pi-tui";
 import type { ContextViewData } from "./data.ts";
 import { buildViewLines, type ThemeLike } from "./render.ts";
 

@@ -22,8 +22,8 @@ jobs:
 
       - name: Install pi
         run: |
-          PI_VERSION="$(node -p 'require("./package.json").devDependencies["@mariozechner/pi-coding-agent"]')"
-          npm install -g "@mariozechner/pi-coding-agent@$PI_VERSION"
+          PI_VERSION="$(node -p 'require("./package.json").devDependencies["@earendil-works/pi-coding-agent"]')"
+          npm install -g "@earendil-works/pi-coding-agent@$PI_VERSION"
 
       - name: Run bootstrap script
         run: ./scripts/install.sh
