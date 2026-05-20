@@ -19,6 +19,10 @@ Example: `✨ feat(auth): Add user authentication system`
 
 ## Git Workflow
 
+### Force Pushes
+
+Agents/clankers must never force push to this repository. Force pushing rewrites shared history and is a user-only action, even when a repo command or workflow would normally perform a force push. If a workflow requires a force push, stop and ask the user to run that step manually.
+
 ### Branch Naming
 
 Branches follow the pattern: `<firstname>/<type>/<topic-more_info>`
@@ -33,9 +37,10 @@ Always create a branch — keep `main` clean.
 **With a PR** (default for most work):
 
 1. Open a PR for the branch on GitHub
-2. From the feature branch, run `git mmnoff`
+2. From the feature branch, the user may run `git mmnoff`
    - Rebases on the default branch, force-pushes, then merges with `--no-ff`
    - Requires an open PR (command will fail otherwise)
+   - Because this workflow force-pushes, agents/clankers must not run it
 
 **Without a PR** (small/quick branches):
 

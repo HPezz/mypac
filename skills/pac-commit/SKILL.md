@@ -71,6 +71,7 @@ Use this skill whenever the user asks to create commits directly in normal conve
 - If it is unclear whether a file belongs in the commit, ask the user before staging or committing it.
 - Never use `--no-verify`. If a hook fails, report the failure clearly and do not bypass it.
 - Only commit. Do not push unless the user explicitly asks.
+- Never force push. Force pushing is a user-only action, even when the user asks for git workflow help; stop and ask the user to run any required force-push step manually.
 - Do not commit directly on `main`. This repository keeps `main` clean and expects work on a branch named `<firstname>/<type>/<topic-more_info>`.
 
 ## Common gitmoji shortlist
@@ -218,4 +219,5 @@ Use `git commit --fixup` when a small correction clearly belongs inside an earli
 - Do not guess when commit boundaries are unclear.
 - Do not guess or fabricate GitHub issue references; only use issues explicitly present in the conversation or current task context.
 - Do not push, merge, or rewrite history unless the user explicitly asks. This includes `git rebase --autosquash`: creating a fixup commit does not by itself grant permission to autosquash it.
+- Never force push or run commands that force push on the user's behalf. If publishing rewritten history requires a force push, ask the user to perform that push manually.
 - Keep the repository's gitmoji, branch, and explicit staging rules intact even when the user asks casually to “commit this”.
