@@ -10,6 +10,7 @@ Versioned sections should match the Git tags and GitHub releases published for t
 
 ### Added
 
+- Added a `notify` Pi extension that sends terminal notifications with the latest assistant response summary when Pi is ready for input, using terminal-specific OSC sequences with OSC 777 as the fallback. ([#236](https://github.com/ladislas/mypac/issues/236))
 - Added `.pac/upstream-sources.yaml`, `pac-upstream-checkpoints`, and `/pac-upstream-checkpoints` for reviewing borrowed upstream sources, tracking local artifacts, and creating checkpoint issues. ([#192](https://github.com/ladislas/mypac/issues/192))
 - Added `pac-tdd` as a standalone pragmatic TDD skill with lightweight notes for tests, mocking, refactoring, deep modules, and interface design. ([#155](https://github.com/ladislas/mypac/issues/155))
 - Added this changelog to track notable repository changes and future GitHub releases. ([#139](https://github.com/ladislas/mypac/issues/139))
