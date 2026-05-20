@@ -357,6 +357,43 @@ local_artifacts:
       - "Per #118 and PR #190, do not chase wholesale feature parity with upstream review implementations."
       - Missing upstream loop-fixing, custom-persistence, broad local-changes review, or other removed complexity is intentional unless a concrete prompt, rubric, bugfix, or robustness change is identified.
 
+  - id: pi-skill-commit
+    title: Commit skill
+    kind: skill
+    local:
+      paths:
+        - skills/pac-commit/
+    upstream_refs:
+      - id: agent-stuff-commit-skill
+        role: original_provenance
+        status: historical
+        sync_policy: provenance_only
+        repo: https://github.com/mitsuhiko/agent-stuff
+        ref: main
+        paths:
+          - skills/commit/SKILL.md
+        attribution:
+          upstream: mitsuhiko/agent-stuff/skills/commit/SKILL.md
+          license: Review upstream repository before copying new text or structure.
+          notes: "Likely provenance or inspiration for local commit workflow language; local workflow is intentionally repo-specific."
+        last_reviewed:
+          upstream_commit: 8bcbea2c3b46761f8d9773a8bc7475225e51fc25
+          checkpoint_issue: https://github.com/ladislas/mypac/issues/238
+          reviewed_at: 2026-05-20T16:15:13Z
+          notes: "Registered from #238 after comparing upstream's minimal Conventional Commits guidance with local pac-commit's gitmoji, branch-safety, and atomic-commit workflow."
+    attribution:
+      upstream: mitsuhiko/agent-stuff
+      license: Review upstream repository before copying new text or structure.
+      notes: Local skill may have been inspired by Agent Stuff commit guidance, but now encodes mypac-specific commit policy.
+    known_divergence:
+      - Local commit subjects require gitmoji plus Conventional Commit type, while upstream uses plain Conventional Commits.
+      - Local workflow forbids committing directly on main and requires repository branch naming conventions.
+      - Local workflow requires explicit staging, atomic commit grouping, issue-closing body handling, hook safety, and no force-push behavior.
+      - Local workflow includes fixup/autosquash guidance that upstream does not cover.
+    do_not_chase:
+      - "Per #230 and #238, do not replace the local gitmoji-based commit workflow with upstream's smaller generic commit skill."
+      - "Treat future upstream changes as provenance context only unless a concrete, repo-safe improvement is separately justified."
+
   - id: pi-skill-github
     title: GitHub skill
     kind: skill
