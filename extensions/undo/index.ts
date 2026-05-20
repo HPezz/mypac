@@ -9,8 +9,8 @@
  * Usage: /undo
  */
 
-import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
-import type { UserMessage } from "@mariozechner/pi-ai";
+import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
+import type { UserMessage } from "@earendil-works/pi-ai";
 import { parseUndoContent } from "./helpers.ts";
 
 export default function (pi: ExtensionAPI) {

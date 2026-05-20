@@ -3,9 +3,9 @@
  * No I/O or side effects; safe to import in tests.
  */
 import path from "node:path";
-import type { Theme } from "@mariozechner/pi-coding-agent";
-import { keyHint } from "@mariozechner/pi-coding-agent";
-import { fuzzyMatch } from "@mariozechner/pi-tui";
+import type { Theme } from "@earendil-works/pi-coding-agent";
+import { keyHint } from "@earendil-works/pi-coding-agent";
+import { fuzzyMatch } from "@earendil-works/pi-tui";
 import {
 	TODO_ID_PREFIX,
 	TODO_ID_PATTERN,

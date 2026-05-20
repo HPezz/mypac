@@ -8,7 +8,7 @@ import {
 	type TUI,
 	visibleWidth,
 	wrapTextWithAnsi,
-} from "@mariozechner/pi-tui";
+} from "@earendil-works/pi-tui";
 import type { ExtractedQuestion } from "./extraction.ts";
 
 /**

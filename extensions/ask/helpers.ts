@@ -3,7 +3,7 @@
  * Extracted for testability.
  */
 
-import type { AgentMessage } from "@mariozechner/pi-agent-core";
+import type { AgentMessage } from "@earendil-works/pi-agent-core";
 
 export const ASK_MODE_TOOLS = ["read"];
 export const ASK_MODE_CONTEXT_TYPE = "ask-mode-context";

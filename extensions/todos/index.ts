@@ -17,8 +17,8 @@
  */
 import path from "node:path";
 import { existsSync } from "node:fs";
-import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
-import { Text, TUI } from "@mariozechner/pi-tui";
+import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
+import { Text, TUI } from "@earendil-works/pi-tui";
 import type { TodoAction, TodoRecord, TodoToolDetails } from "./types.ts";
 import { TodoParams } from "./types.ts";
 import {

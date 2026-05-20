@@ -8,7 +8,7 @@
  * - /ask to toggle ask mode on/off
  */
 
-import type { ExtensionAPI, ExtensionContext } from "@mariozechner/pi-coding-agent";
+import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
 import {
 	ASK_PROMPT,
 	ASK_MODE_CONTEXT_TYPE,

@@ -89,7 +89,7 @@ Do not split files just for ceremony. The goal is to keep changes local and easy
 
 Patterns in Pi evolve. Before locking in imports or API usage:
 
-1. Check the docs and examples that ship with the installed `@mariozechner/pi-coding-agent` version in this repo first (for example under `node_modules/@mariozechner/pi-coding-agent/docs/` and `.../examples/`).
+1. Check the docs and examples that ship with the installed `@earendil-works/pi-coding-agent` version in this repo first (for example under `node_modules/@earendil-works/pi-coding-agent/docs/` and `.../examples/`).
 2. Verify which packages and imports are canonical for that installed version — do not rely on memory.
 3. Treat upstream `pi-mono` as an optional cross-check only when you are intentionally preparing for, or evaluating, a version bump.
 4. Use the `pac-librarian` skill to cache a local copy of upstream `pi-mono` only for that upgrade-oriented comparison.
