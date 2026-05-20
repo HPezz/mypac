@@ -157,7 +157,7 @@ export function buildPlainText(data: ContextViewData): string {
 	if (data.systemBreakdown) {
 		lines.push(`  - Pi base + other system instructions: ~${data.systemBreakdown.piInstructionsTokens.toLocaleString()} tok`);
 		if (data.systemBreakdown.sharedInstructions) {
-			lines.push(`  - from shared root instructions: ${formatPathTokens(data.systemBreakdown.sharedInstructions)}`);
+			lines.push(`  - from shared append-system instructions: ${formatPathTokens(data.systemBreakdown.sharedInstructions)}`);
 		}
 		if (data.agentFiles.length > 0) lines.push(`  - from agent files: ${formatPathTokenList(data.agentFiles)}`);
 		if (data.systemBreakdown.packageSkillsIndexTokens > 0) {
@@ -251,7 +251,7 @@ export function buildViewLines(theme: ThemeLike, data: ContextViewData, width: n
 	if (data.systemBreakdown) {
 		lines.push(muted("  - Pi base + other system instructions: ") + text(`~${data.systemBreakdown.piInstructionsTokens.toLocaleString()} tok`));
 		if (data.systemBreakdown.sharedInstructions) {
-			lines.push(muted("  - from shared root instructions: ") + text(formatPathTokens(data.systemBreakdown.sharedInstructions)));
+			lines.push(muted("  - from shared append-system instructions: ") + text(formatPathTokens(data.systemBreakdown.sharedInstructions)));
 		}
 		if (data.agentFiles.length > 0) lines.push(muted("  - from agent files: ") + text(formatPathTokenList(data.agentFiles)));
 		if (data.systemBreakdown.packageSkillsIndexTokens > 0) {

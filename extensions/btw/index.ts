@@ -123,7 +123,7 @@ type ToolCallInfo = {
 
 function stripDynamicSystemPromptFooter(systemPrompt: string): string {
 	return systemPrompt
-		.replace(/\nCurrent date and time:[^\n]*(?:\nCurrent working directory:[^\n]*)?$/u, "")
+		.replace(/\nCurrent date:[^\n]*(?:\nCurrent working directory:[^\n]*)?$/u, "")
 		.replace(/\nCurrent working directory:[^\n]*$/u, "")
 		.trim();
 }

@@ -1,6 +1,6 @@
-# AGENTS.md
+# Shared Append-System Instructions
 
-Behavioral guidelines to reduce common LLM coding mistakes. Merge with project-specific instructions as needed.
+Behavioral guidelines to reduce common LLM coding mistakes. These shared system-level instructions are inserted before project context when possible, otherwise appended.
 
 **Tradeoff:** These guidelines bias toward caution over speed. For trivial tasks, use judgment.
 

@@ -37,7 +37,7 @@ For readability, the skill table below drops the `pac-` prefix in the display la
 | [`multi-edit`](extensions/multi-edit/) | `edit` tool override | Extends Pi's `edit` tool with batch edits and Codex-style patch support |
 | [`review`](extensions/review/) | `/review-start`, `/review-end` | Reviews uncommitted changes, commits, branches, PRs, or folders from inside Pi |
 | [`session-names`](extensions/session-names/) | background behavior | Names `/pac-lwot` sessions from the work context you provide |
-| [`shared-agents`](extensions/shared-agents/) | background behavior | Injects shared `AGENTS.md` guidance into the session system prompt |
+| [`shared-append-system`](extensions/shared-append-system/) | background behavior | Injects shared append-system instructions into the session system prompt |
 | [`slidedeck`](extensions/slidedeck/) | `/pac-slidedeck` | Generates a self-contained HTML slidedeck and saves it under `~/.pi/agent/slidedecks/` instead of the repo workspace |
 | [`todos`](extensions/todos/) | `todo` tool, `/todos` | Adds a file-based todo system under `.pi/todos` with claiming, status, and notes |
 | [`undo`](extensions/undo/) | `/undo` | Rewinds to the previous user message and restores it to the editor |

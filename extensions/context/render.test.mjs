@@ -33,7 +33,7 @@ const viewData = {
 	systemBreakdown: {
 		totalTokens: 250,
 		piInstructionsTokens: 60,
-		sharedInstructions: { path: "./shared/AGENTS.md", tokens: 40 },
+		sharedInstructions: { path: "./shared/SHARED_APPEND_SYSTEM.md", tokens: 40 },
 		packageSkillsIndexTokens: 10,
 		globalSkillsIndexTokens: 0,
 		projectSkillsIndexTokens: 20,
@@ -104,7 +104,7 @@ test("renders plain text context summary from extracted helpers", () => {
 			"Breakdown:",
 			"- System total: ~250 tok",
 			"  - Pi base + other system instructions: ~60 tok",
-			"  - from shared root instructions: ./shared/AGENTS.md (~40 tok)",
+			"  - from shared append-system instructions: ./shared/SHARED_APPEND_SYSTEM.md (~40 tok)",
 			"  - from agent files: ./AGENTS.md (~120 tok)",
 			"  - from package skills index: ~10 tok",
 			"  - from project skills index: ~20 tok",
@@ -133,7 +133,10 @@ test("renders loaded skills and system breakdown distinctly in the TUI view help
 	assert.equal(find("Breakdown:"), "<muted>Breakdown:</muted>");
 	assert.equal(find("System total:"), "<muted>- System total: </muted><text>~250 tok</text>");
 	assert.equal(find("Pi base"), "<muted>  - Pi base + other system instructions: </muted><text>~60 tok</text>");
-	assert.equal(find("shared root"), "<muted>  - from shared root instructions: </muted><text>./shared/AGENTS.md (~40 tok)</text>");
+	assert.equal(
+		find("shared append-system"),
+		"<muted>  - from shared append-system instructions: </muted><text>./shared/SHARED_APPEND_SYSTEM.md (~40 tok)</text>",
+	);
 	assert.equal(find("agent files:"), "<muted>  - from agent files: </muted><text>./AGENTS.md (~120 tok)</text>");
 	assert.equal(find("package skills"), "<muted>  - from package skills index: </muted><text>~10 tok</text>");
 	assert.equal(find("project skills"), "<muted>  - from project skills index: </muted><text>~20 tok</text>");

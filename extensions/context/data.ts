@@ -10,7 +10,12 @@ import { existsSync } from "node:fs";
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import { formatSharedAgentsSystemPrompt, loadSharedAgents, sharedAgentsPath } from "../shared-agents/prompt.ts";
+import {
+	formatSharedAppendSystemPrompt,
+	insertSharedAppendSystemPrompt,
+	loadSharedAppendSystemInstructions,
+	sharedAppendSystemPath,
+} from "../shared-append-system/prompt.ts";
 
 export type SkillIndexEntry = {
 	name: string;
@@ -332,9 +337,7 @@ function estimateSkillIndexTokensByGroup(skillIndex: SkillIndexEntry[]): {
 }
 
 function ensureSharedInstructionsInPrompt(systemPrompt: string, sharedInstructionsPrompt: string): string {
-	if (!sharedInstructionsPrompt) return systemPrompt;
-	if (systemPrompt.includes(sharedInstructionsPrompt)) return systemPrompt;
-	return `${systemPrompt}\n\n${sharedInstructionsPrompt}`;
+	return insertSharedAppendSystemPrompt(systemPrompt, sharedInstructionsPrompt);
 }
 
 async function buildSystemBreakdown(
@@ -343,9 +346,9 @@ async function buildSystemBreakdown(
 	agentFiles: Array<{ path: string; content: string; tokens: number }>,
 	skillIndex: SkillIndexEntry[],
 	hasReadTool: boolean,
-	sharedAgentsContent: string,
+	sharedAppendSystemContent: string,
 ): Promise<{ breakdown: ContextSystemBreakdownData; agentFiles: ContextPathTokens[] }> {
-	const sharedInstructionsPrompt = sharedAgentsContent ? formatSharedAgentsSystemPrompt(sharedAgentsContent) : "";
+	const sharedInstructionsPrompt = sharedAppendSystemContent ? formatSharedAppendSystemPrompt(sharedAppendSystemContent) : "";
 	const effectiveSystemPrompt = ensureSharedInstructionsInPrompt(systemPrompt, sharedInstructionsPrompt);
 	const totalTokens = estimateTokens(effectiveSystemPrompt);
 	const agentFileEntries = agentFiles
@@ -361,7 +364,7 @@ async function buildSystemBreakdown(
 	const sharedInstructions =
 		sharedInstructionsPrompt && effectiveSystemPrompt.includes(sharedInstructionsPrompt)
 			? {
-					path: shortenPath(sharedAgentsPath, cwd),
+					path: shortenPath(sharedAppendSystemPath, cwd),
 					tokens: estimateTokens(sharedInstructionsPrompt),
 				}
 			: null;
@@ -430,12 +433,12 @@ export async function buildContextViewData(
 
 	const activeToolNames = pi.getActiveTools();
 	const baseSystemPrompt = effectiveSystemPrompt ?? ctx.getSystemPrompt();
-	const sharedAgentsContent = await loadSharedAgents();
-	const sharedInstructionsPrompt = sharedAgentsContent ? formatSharedAgentsSystemPrompt(sharedAgentsContent) : "";
+	const sharedAppendSystemContent = await loadSharedAppendSystemInstructions();
+	const sharedInstructionsPrompt = sharedAppendSystemContent ? formatSharedAppendSystemPrompt(sharedAppendSystemContent) : "";
 	const systemPrompt = baseSystemPrompt ? ensureSharedInstructionsInPrompt(baseSystemPrompt, sharedInstructionsPrompt) : baseSystemPrompt;
 	const systemPromptTokens = systemPrompt ? estimateTokens(systemPrompt) : 0;
 	const systemBreakdownResult = systemPrompt
-		? await buildSystemBreakdown(ctx.cwd, systemPrompt, projectContextFiles, skillIndex, activeToolNames.includes("read"), sharedAgentsContent)
+		? await buildSystemBreakdown(ctx.cwd, systemPrompt, projectContextFiles, skillIndex, activeToolNames.includes("read"), sharedAppendSystemContent)
 		: null;
 	const systemBreakdown = systemBreakdownResult?.breakdown ?? null;
 	const agentFiles = systemBreakdownResult?.agentFiles ?? [];
