@@ -394,6 +394,43 @@ local_artifacts:
       - "Per #230 and #238, do not replace the local gitmoji-based commit workflow with upstream's smaller generic commit skill."
       - "Treat future upstream changes as provenance context only unless a concrete, repo-safe improvement is separately justified."
 
+  - id: pi-skill-changelog
+    title: Changelog skill
+    kind: skill
+    local:
+      paths:
+        - skills/pac-changelog/
+    upstream_refs:
+      - id: agent-stuff-update-changelog-skill
+        role: original_provenance
+        status: historical
+        sync_policy: provenance_only
+        repo: https://github.com/mitsuhiko/agent-stuff
+        ref: main
+        paths:
+          - skills/update-changelog/SKILL.md
+        attribution:
+          upstream: mitsuhiko/agent-stuff/skills/update-changelog/SKILL.md
+          license: Review upstream repository before copying new text or structure.
+          notes: "Likely provenance or inspiration for local changelog workflow language; local workflow is intentionally repo-specific."
+        last_reviewed:
+          upstream_commit: ab79f98104bcd3c6a7c5491e609f6d6700a7414d
+          checkpoint_issue: https://github.com/ladislas/mypac/issues/239
+          reviewed_at: 2026-05-20T16:22:06Z
+          notes: "Registered from #239 after comparing upstream's generic commit-since-release changelog guidance with local pac-changelog's notable-change, Unreleased, and release-prep workflow."
+    attribution:
+      upstream: mitsuhiko/agent-stuff
+      license: Review upstream repository before copying new text or structure.
+      notes: Local skill may have been inspired by Agent Stuff changelog guidance, but now encodes mypac-specific changelog policy.
+    known_divergence:
+      - Local changelog guidance is pac-prefixed and repository-specific.
+      - Local workflow defaults to updating `## [Unreleased]` for notable user-facing, workflow-facing, or repository-operating changes.
+      - Local workflow includes explicit release-prep guardrails and does not infer release versions or dates.
+      - Upstream emphasizes reconstructing changelog entries from commits since the latest tag; local treats that as optional retrospective context.
+    do_not_chase:
+      - "Per #239, do not replace the local notable-change and release-prep workflow with upstream's smaller generic changelog skill."
+      - "Treat future upstream changes as provenance context only unless a concrete, repo-safe improvement is separately justified."
+
   - id: pi-skill-github
     title: GitHub skill
     kind: skill

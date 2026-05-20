@@ -42,9 +42,10 @@ Keep `CHANGELOG.md` current as the curated source of notable repository changes.
 
 1. Read the current `CHANGELOG.md`.
 2. Check whether the change is notable enough to record.
-3. Update or add the smallest useful bullet under `## [Unreleased]`.
-4. Avoid duplicate or overlapping bullets; merge or rewrite when needed.
-5. Keep the changelog update in the same commit as the work it describes when practical.
+3. For retrospective updates, optionally inspect commits since the latest release tag to find missing notable changes.
+4. Update or add the smallest useful bullet under `## [Unreleased]`.
+5. Avoid duplicate or overlapping bullets; merge or rewrite when needed.
+6. Keep the changelog update in the same commit as the work it describes when practical.
 
 ### Release prep
 
