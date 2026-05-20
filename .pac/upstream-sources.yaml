@@ -1,0 +1,565 @@
+# Canonical registry for local mypac artifacts with upstream/reference provenance.
+# Model contract: skills/pac-upstream-checkpoints/MODEL.md
+#
+# This file is the machine-readable checkpoint for /pac-upstream-checkpoints.
+# GitHub checkpoint issues are the durable review narrative and decision log.
+# Advance last_reviewed only after human confirmation from a checkpoint issue.
+schema_version: 4
+checkpoint_label: pac:upstream-checkpoint
+local_artifacts:
+  - id: pi-extension-answer
+    title: Answer extension
+    kind: extension
+    local:
+      paths:
+        - extensions/answer/
+    upstream_refs:
+      - id: agent-stuff-answer-extension
+        role: source_adaptation
+        status: active
+        sync_policy: targeted
+        repo: https://github.com/mitsuhiko/agent-stuff
+        ref: main
+        paths:
+          - extensions/answer.ts
+        attribution:
+          upstream: mitsuhiko/agent-stuff/extensions/answer.ts
+          license: Review upstream repository before copying new code.
+          notes: Local extension may be split into helper modules and tests to satisfy mypac extension layout rules.
+        last_reviewed:
+          upstream_commit: null
+          checkpoint_issue: null
+          reviewed_at: null
+          notes: Initial local-artifact entry; no checkpoint review has advanced this baseline yet.
+    attribution:
+      upstream: mitsuhiko/agent-stuff
+      license: Review upstream repository before copying new code.
+      notes: Local file includes original-source credit; README gives broad credit.
+    known_divergence:
+      - Local extension layout may differ from upstream single-file extension layout.
+
+  - id: pi-extension-btw
+    title: BTW extension
+    kind: extension
+    local:
+      paths:
+        - extensions/btw/
+    upstream_refs:
+      - id: agent-stuff-btw-extension
+        role: source_adaptation
+        status: active
+        sync_policy: targeted
+        repo: https://github.com/mitsuhiko/agent-stuff
+        ref: main
+        paths:
+          - extensions/btw.ts
+        attribution:
+          upstream: mitsuhiko/agent-stuff/extensions/btw.ts
+          license: Review upstream repository before copying new code.
+          notes: Local extension may be split into helper modules and tests to satisfy mypac extension layout rules.
+        last_reviewed:
+          upstream_commit: null
+          checkpoint_issue: null
+          reviewed_at: null
+          notes: Initial local-artifact entry; no checkpoint review has advanced this baseline yet.
+    attribution:
+      upstream: mitsuhiko/agent-stuff
+      license: Review upstream repository before copying new code.
+      notes: Local file includes original-source credit; README gives broad credit.
+    known_divergence:
+      - Local extension layout may differ from upstream single-file extension layout.
+
+  - id: pi-extension-files
+    title: Files extension
+    kind: extension
+    local:
+      paths:
+        - extensions/files/
+    upstream_refs:
+      - id: agent-stuff-files-extension
+        role: source_adaptation
+        status: active
+        sync_policy: targeted
+        repo: https://github.com/mitsuhiko/agent-stuff
+        ref: main
+        paths:
+          - extensions/files.ts
+        attribution:
+          upstream: mitsuhiko/agent-stuff/extensions/files.ts
+          license: Review upstream repository before copying new code.
+          notes: Local extension may be split into helper modules and tests to satisfy mypac extension layout rules.
+        last_reviewed:
+          upstream_commit: null
+          checkpoint_issue: null
+          reviewed_at: null
+          notes: Initial local-artifact entry; no checkpoint review has advanced this baseline yet.
+    attribution:
+      upstream: mitsuhiko/agent-stuff
+      license: Review upstream repository before copying new code.
+      notes: Local file includes original-source credit; README gives broad credit.
+    known_divergence:
+      - Local extension layout may differ from upstream single-file extension layout.
+
+  - id: pi-extension-multi-edit
+    title: Multi-edit extension
+    kind: extension
+    local:
+      paths:
+        - extensions/multi-edit/
+    upstream_refs:
+      - id: agent-stuff-multi-edit-extension
+        role: source_adaptation
+        status: active
+        sync_policy: targeted
+        repo: https://github.com/mitsuhiko/agent-stuff
+        ref: main
+        paths:
+          - extensions/multi-edit.ts
+        attribution:
+          upstream: mitsuhiko/agent-stuff/extensions/multi-edit.ts
+          license: Review upstream repository before copying new code.
+          notes: Local extension may be split into helper modules and tests to satisfy mypac extension layout rules.
+        last_reviewed:
+          upstream_commit: null
+          checkpoint_issue: null
+          reviewed_at: null
+          notes: Initial local-artifact entry; no checkpoint review has advanced this baseline yet.
+    attribution:
+      upstream: mitsuhiko/agent-stuff
+      license: Review upstream repository before copying new code.
+      notes: Local file includes original-source credit; README gives broad credit.
+    known_divergence:
+      - Local extension layout may differ from upstream single-file extension layout.
+
+  - id: pi-extension-todos
+    title: Todos extension
+    kind: extension
+    local:
+      paths:
+        - extensions/todos/
+    upstream_refs:
+      - id: agent-stuff-todos-extension
+        role: source_adaptation
+        status: active
+        sync_policy: targeted
+        repo: https://github.com/mitsuhiko/agent-stuff
+        ref: main
+        paths:
+          - extensions/todos.ts
+        attribution:
+          upstream: mitsuhiko/agent-stuff/extensions/todos.ts
+          license: Review upstream repository before copying new code.
+          notes: Local extension may be split into helper modules and tests to satisfy mypac extension layout rules.
+        last_reviewed:
+          upstream_commit: null
+          checkpoint_issue: null
+          reviewed_at: null
+          notes: Initial local-artifact entry; no checkpoint review has advanced this baseline yet.
+    attribution:
+      upstream: mitsuhiko/agent-stuff
+      license: Review upstream repository before copying new code.
+      notes: Local file includes original-source credit; README gives broad credit.
+    known_divergence:
+      - Local extension layout may differ from upstream single-file extension layout.
+
+  - id: pi-extension-uv
+    title: UV extension
+    kind: extension
+    local:
+      paths:
+        - extensions/uv/
+    upstream_refs:
+      - id: agent-stuff-uv-extension
+        role: source_adaptation
+        status: active
+        sync_policy: targeted
+        repo: https://github.com/mitsuhiko/agent-stuff
+        ref: main
+        paths:
+          - extensions/uv.ts
+        attribution:
+          upstream: mitsuhiko/agent-stuff/extensions/uv.ts
+          license: Review upstream repository before copying new code.
+          notes: Local extension may be split into helper modules and tests to satisfy mypac extension layout rules.
+        last_reviewed:
+          upstream_commit: null
+          checkpoint_issue: null
+          reviewed_at: null
+          notes: Initial local-artifact entry; no checkpoint review has advanced this baseline yet.
+    attribution:
+      upstream: mitsuhiko/agent-stuff
+      license: Review upstream repository before copying new code.
+      notes: Local file includes original-source credit; README gives broad credit.
+    known_divergence:
+      - Local extension layout may differ from upstream single-file extension layout.
+
+  - id: pi-extension-whimsical
+    title: Whimsical extension
+    kind: extension
+    local:
+      paths:
+        - extensions/whimsical/
+    upstream_refs:
+      - id: agent-stuff-whimsical-extension
+        role: source_adaptation
+        status: active
+        sync_policy: targeted
+        repo: https://github.com/mitsuhiko/agent-stuff
+        ref: main
+        paths:
+          - extensions/whimsical.ts
+        attribution:
+          upstream: mitsuhiko/agent-stuff/extensions/whimsical.ts
+          license: Review upstream repository before copying new code.
+          notes: Local extension may be split into helper modules and tests to satisfy mypac extension layout rules.
+        last_reviewed:
+          upstream_commit: null
+          checkpoint_issue: null
+          reviewed_at: null
+          notes: Initial local-artifact entry; no checkpoint review has advanced this baseline yet.
+    attribution:
+      upstream: mitsuhiko/agent-stuff
+      license: Review upstream repository before copying new code.
+      notes: Local file includes original-source credit; README gives broad credit.
+    known_divergence:
+      - Local extension layout may differ from upstream single-file extension layout.
+
+  - id: pi-extension-review
+    title: Review extension
+    kind: extension
+    local:
+      paths:
+        - extensions/review/
+    upstream_refs:
+      - id: agent-stuff-review-original-extension
+        role: original_provenance
+        status: historical
+        sync_policy: provenance_only
+        repo: https://github.com/mitsuhiko/agent-stuff
+        ref: main
+        paths:
+          - extensions/review.ts
+        attribution:
+          upstream: mitsuhiko/agent-stuff/extensions/review.ts
+          license: Review upstream repository before copying new code.
+          notes: Original provenance for the review extension idea and earlier local fork.
+        last_reviewed:
+          upstream_commit: null
+          checkpoint_issue: null
+          reviewed_at: null
+          notes: Initial local-artifact entry; no checkpoint review has advanced this baseline yet.
+      - id: pi-review-current-reference-extension
+        role: current_reference
+        status: active
+        sync_policy: targeted
+        repo: https://github.com/earendil-works/pi-review
+        ref: main
+        paths:
+          - review.ts
+        attribution:
+          upstream: earendil-works/pi-review/review.ts
+          license: Review upstream repository before copying new code.
+          notes: "Per #117, this is the newer reference source for concrete prompt, rubric, bugfix, and robustness changes."
+        last_reviewed:
+          upstream_commit: null
+          checkpoint_issue: null
+          reviewed_at: null
+          notes: Initial local-artifact entry; no checkpoint review has advanced this baseline yet.
+    attribution:
+      upstream: mitsuhiko/agent-stuff and earendil-works/pi-review
+      license: Review each upstream repository before copying new code or text.
+      notes: Local implementation adapts review extension behavior to mypac conventions.
+    known_divergence:
+      - Local extension layout and supported review modes differ from upstream.
+    do_not_chase:
+      - "Per #118 and PR #190, do not chase wholesale feature parity with upstream review implementations."
+      - Missing upstream loop-fixing, custom-persistence, broad local-changes review, or other removed complexity is intentional unless a concrete prompt, rubric, bugfix, or robustness change is identified.
+
+  - id: pi-skill-review
+    title: Review skill
+    kind: skill
+    local:
+      paths:
+        - skills/pac-review/
+    upstream_refs:
+      - id: agent-stuff-review-workflow-source
+        role: original_provenance
+        status: historical
+        sync_policy: provenance_only
+        repo: https://github.com/mitsuhiko/agent-stuff
+        ref: main
+        paths:
+          - extensions/review.ts
+        attribution:
+          upstream: mitsuhiko/agent-stuff/extensions/review.ts
+          license: Review upstream repository before copying new text or structure.
+          notes: Original provenance for review workflow language.
+        last_reviewed:
+          upstream_commit: null
+          checkpoint_issue: null
+          reviewed_at: null
+          notes: Initial local-artifact entry; no checkpoint review has advanced this baseline yet.
+      - id: pi-review-workflow-reference
+        role: current_reference
+        status: active
+        sync_policy: targeted
+        repo: https://github.com/earendil-works/pi-review
+        ref: main
+        paths:
+          - review.ts
+        attribution:
+          upstream: earendil-works/pi-review/review.ts
+          license: Review upstream repository before copying new text or structure.
+          notes: "Per #117, this is the newer reference source for concrete prompt, rubric, bugfix, and robustness changes."
+        last_reviewed:
+          upstream_commit: null
+          checkpoint_issue: null
+          reviewed_at: null
+          notes: Initial local-artifact entry; no checkpoint review has advanced this baseline yet.
+    attribution:
+      upstream: mitsuhiko/agent-stuff and earendil-works/pi-review
+      license: Review each upstream repository before copying code or text.
+      notes: Local skill combines upstream review concepts with repo-specific review conventions.
+    known_divergence:
+      - Local review guidance is intentionally pac-prefixed and repository-specific.
+    do_not_chase:
+      - "Per #118 and PR #190, do not chase wholesale feature parity with upstream review implementations."
+      - Missing upstream loop-fixing, custom-persistence, broad local-changes review, or other removed complexity is intentional unless a concrete prompt, rubric, bugfix, or robustness change is identified.
+
+  - id: pi-skill-github
+    title: GitHub skill
+    kind: skill
+    local:
+      paths:
+        - skills/pac-github/
+    upstream_refs:
+      - id: agent-stuff-github-skill
+        role: source_adaptation
+        status: active
+        sync_policy: targeted
+        repo: https://github.com/mitsuhiko/agent-stuff
+        ref: main
+        paths:
+          - skills/github/SKILL.md
+        attribution:
+          upstream: mitsuhiko/agent-stuff/skills/github/SKILL.md
+          license: Review upstream repository before copying new text or structure.
+          notes: Local skill name uses the pac- prefix and adapts behavior to this repository.
+        last_reviewed:
+          upstream_commit: null
+          checkpoint_issue: null
+          reviewed_at: null
+          notes: Initial local-artifact entry; no checkpoint review has advanced this baseline yet.
+    attribution:
+      upstream: mitsuhiko/agent-stuff
+      license: Review upstream repository before copying new text or structure.
+      notes: Local skill name uses the pac- prefix and adapts behavior to this repository.
+    known_divergence:
+      - mypac adds repository-specific conventions and safety checks.
+
+  - id: pi-skill-librarian
+    title: Librarian skill
+    kind: skill
+    local:
+      paths:
+        - skills/pac-librarian/
+    upstream_refs:
+      - id: agent-stuff-librarian-skill
+        role: source_adaptation
+        status: active
+        sync_policy: targeted
+        repo: https://github.com/mitsuhiko/agent-stuff
+        ref: main
+        paths:
+          - skills/librarian/SKILL.md
+          - skills/librarian/checkout.sh
+        attribution:
+          upstream: mitsuhiko/agent-stuff/skills/librarian
+          license: Review upstream repository before copying new code, text, or structure.
+          notes: Local skill name uses the pac- prefix and adapts behavior to this repository.
+        last_reviewed:
+          upstream_commit: null
+          checkpoint_issue: null
+          reviewed_at: null
+          notes: Initial local-artifact entry; no checkpoint review has advanced this baseline yet.
+    attribution:
+      upstream: mitsuhiko/agent-stuff
+      license: Review upstream repository before copying new code, text, or structure.
+      notes: Local skill name uses the pac- prefix and adapts behavior to this repository.
+    known_divergence:
+      - mypac adds repository-specific conventions and safety checks.
+
+  - id: pi-skill-uv
+    title: UV skill
+    kind: skill
+    local:
+      paths:
+        - skills/pac-uv/
+    upstream_refs:
+      - id: agent-stuff-uv-skill
+        role: source_adaptation
+        status: active
+        sync_policy: targeted
+        repo: https://github.com/mitsuhiko/agent-stuff
+        ref: main
+        paths:
+          - skills/uv/SKILL.md
+          - skills/uv/build.md
+          - skills/uv/scripts.md
+        attribution:
+          upstream: mitsuhiko/agent-stuff/skills/uv
+          license: Review upstream repository before copying new text or structure.
+          notes: Local skill name uses the pac- prefix and adapts behavior to this repository.
+        last_reviewed:
+          upstream_commit: null
+          checkpoint_issue: null
+          reviewed_at: null
+          notes: Initial local-artifact entry; no checkpoint review has advanced this baseline yet.
+    attribution:
+      upstream: mitsuhiko/agent-stuff
+      license: Review upstream repository before copying new text or structure.
+      notes: Local skill name uses the pac- prefix and adapts behavior to this repository.
+    known_divergence:
+      - mypac adds repository-specific conventions and safety checks.
+
+  - id: pi-skill-authoring
+    title: Pi skill authoring skill
+    kind: skill
+    local:
+      paths:
+        - skills/pac-pi-skill/
+    upstream_refs:
+      - id: mattpocock-write-a-skill
+        role: pattern_source
+        status: active
+        sync_policy: targeted
+        repo: https://github.com/mattpocock/skills
+        ref: main
+        paths:
+          - skills/productivity/write-a-skill/SKILL.md
+        attribution:
+          upstream: mattpocock/skills/skills/productivity/write-a-skill/SKILL.md
+          license: Review upstream repository before copying new text or structure.
+          notes: Local guidance is adapted to Pi and mypac naming conventions.
+        last_reviewed:
+          upstream_commit: null
+          checkpoint_issue: null
+          reviewed_at: null
+          notes: Initial local-artifact entry; no checkpoint review has advanced this baseline yet. Path repair only; baseline intentionally not advanced.
+    attribution:
+      upstream: mattpocock/skills
+      license: Review upstream repository before copying new text or structure.
+      notes: Local guidance is adapted to Pi and mypac naming conventions.
+    known_divergence:
+      - mypac skills require pac- prefixes and repository-specific frontmatter guidance.
+    do_not_chase:
+      - "Per #135, do not reopen every previously decided Matt Pocock skill adaptation during path repair."
+
+  - id: pi-skill-to-prd
+    title: PRD synthesis skill
+    kind: skill
+    local:
+      paths:
+        - skills/pac-to-prd/
+    upstream_refs:
+      - id: mattpocock-to-prd
+        role: pattern_source
+        status: active
+        sync_policy: targeted
+        repo: https://github.com/mattpocock/skills
+        ref: main
+        paths:
+          - skills/engineering/to-prd/SKILL.md
+        attribution:
+          upstream: mattpocock/skills/skills/engineering/to-prd/SKILL.md
+          license: Review upstream repository before copying new text or structure.
+          notes: Historical upstream path was reorganized; use this current path for PRD-pattern checks.
+        last_reviewed:
+          upstream_commit: null
+          checkpoint_issue: null
+          reviewed_at: null
+          notes: Initial local-artifact entry; no checkpoint review has advanced this baseline yet. Path repair only; baseline intentionally not advanced.
+    attribution:
+      upstream: mattpocock/skills
+      license: Review upstream repository before copying new text or structure.
+      notes: Local guidance is adapted to Pi and mypac naming conventions.
+    known_divergence:
+      - mypac PRD guidance uses GitHub issue comments and pac workflow conventions.
+    do_not_chase:
+      - "Per #135, do not reopen every previously decided Matt Pocock skill adaptation during path repair."
+
+  - id: pi-skill-grill-with-docs
+    title: Grill-with-docs skill
+    kind: skill
+    local:
+      paths:
+        - skills/pac-grill-with-docs/
+    upstream_refs:
+      - id: mattpocock-to-prd-format
+        role: pattern_source
+        status: active
+        sync_policy: targeted
+        repo: https://github.com/mattpocock/skills
+        ref: main
+        paths:
+          - skills/engineering/to-prd/SKILL.md
+        attribution:
+          upstream: mattpocock/skills/skills/engineering/to-prd/SKILL.md
+          license: Review upstream repository before copying new text or structure.
+          notes: Local PRD comment format draws on upstream PRD authoring patterns.
+        last_reviewed:
+          upstream_commit: null
+          checkpoint_issue: null
+          reviewed_at: null
+          notes: Initial local-artifact entry; no checkpoint review has advanced this baseline yet. Path repair only; baseline intentionally not advanced.
+    attribution:
+      upstream: mattpocock/skills
+      license: Review upstream repository before copying new text or structure.
+      notes: Local skill includes PRD format conventions adapted to GitHub issue comments.
+    known_divergence:
+      - mypac PRD artifacts use hidden markers and GitHub-native context links.
+    do_not_chase:
+      - "Per #135, do not reopen every previously decided Matt Pocock skill adaptation during path repair."
+
+watch_sources:
+  - id: agent-stuff-extensions-watch
+    title: Agent Stuff extension inventory
+    sync_policy: inventory_watch
+    repo: https://github.com/mitsuhiko/agent-stuff
+    ref: main
+    paths:
+      - extensions/
+    purpose: Watch for newly added, moved, or removed upstream extensions that may deserve local artifact entries or explicit non-coverage.
+    last_reviewed:
+      upstream_commit: null
+      checkpoint_issue: null
+      reviewed_at: null
+      notes: Inventory watch only; do not force local adoption.
+
+  - id: agent-stuff-skills-watch
+    title: Agent Stuff skill inventory
+    sync_policy: inventory_watch
+    repo: https://github.com/mitsuhiko/agent-stuff
+    ref: main
+    paths:
+      - skills/
+    purpose: Watch for newly added, moved, or removed upstream skills that may deserve local artifact entries or explicit non-coverage.
+    last_reviewed:
+      upstream_commit: null
+      checkpoint_issue: null
+      reviewed_at: null
+      notes: Inventory watch only; do not force local adoption.
+
+  - id: mattpocock-skills-watch
+    title: Matt Pocock skill inventory
+    sync_policy: inventory_watch
+    repo: https://github.com/mattpocock/skills
+    ref: main
+    paths:
+      - skills/
+    purpose: "Watch for newly added, moved, or removed skills after the upstream reorganization; use #135 context before opening any new review thread."
+    last_reviewed:
+      upstream_commit: null
+      checkpoint_issue: null
+      reviewed_at: null
+      notes: Inventory watch only; do not reopen every already-decided adaptation.

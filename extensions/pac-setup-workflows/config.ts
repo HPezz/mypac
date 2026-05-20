@@ -42,6 +42,11 @@ export const REQUIRED_PAC_LABELS: LabelSpec[] = [
 		description: "pac artifact: issue contains an ADR decision comment",
 	},
 	{
+		name: "pac:upstream-checkpoint",
+		color: "C2E0C6",
+		description: "pac artifact: upstream inspiration review checkpoint",
+	},
+	{
 		name: "pac:hitl",
 		color: "D876E3",
 		description: "pac execution: requires human-in-the-loop decisions or approval",
