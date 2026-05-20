@@ -85,9 +85,10 @@ Keep one repo-root `CONTEXT.md` for stable reusable project language, invariants
 
 - Ask one question at a time.
 - Give a recommended answer with each question.
-- Challenge fuzzy or overloaded terms.
-- Cross-check claims against the codebase and issue history.
-- Use concrete scenarios to test boundaries.
+- Challenge fuzzy or overloaded terms; propose a precise project term when the user says something ambiguous.
+- Check existing `CONTEXT.md` language when relevant, and call out conflicts between the user's wording and established glossary terms.
+- Cross-check claims against the codebase and issue history; surface contradictions plainly when code behavior differs from the stated plan.
+- Use concrete scenarios to test boundaries and relationships between concepts.
 - Stop when uncertainty is low enough to choose the next action. Do not ask 100 questions for a tiny clear fix.
 
 ## Before writing back

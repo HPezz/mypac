@@ -871,8 +871,11 @@ local_artifacts:
     known_divergence:
       - mypac PRD artifacts use hidden markers and GitHub-native context links.
       - mypac grill-with-docs includes a PRD companion format and pac-specific GitHub issue persistence rules.
+      - "Per #234, mypac keeps ADRs as GitHub issue comments instead of upstream-style repo-local docs/adr files."
+      - "Per #234, mypac updates CONTEXT.md sparingly after proposing exact edits, instead of upstream-style inline updates."
     do_not_chase:
       - "Per #135, do not reopen every previously decided Matt Pocock skill adaptation during path repair."
+      - "Per #234, do not adopt upstream CONTEXT-MAP.md or multi-context structure until a concrete local need appears."
 
 watch_sources:
   - id: agent-stuff-extensions-watch
