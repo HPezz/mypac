@@ -131,6 +131,37 @@ local_artifacts:
     known_divergence:
       - Local extension layout may differ from upstream single-file extension layout.
 
+  - id: pi-extension-notify
+    title: Notify extension
+    kind: extension
+    local:
+      paths:
+        - extensions/notify/
+    upstream_refs:
+      - id: agent-stuff-notify-extension
+        role: source_adaptation
+        status: active
+        sync_policy: targeted
+        repo: https://github.com/mitsuhiko/agent-stuff
+        ref: main
+        paths:
+          - extensions/notify.ts
+        attribution:
+          upstream: mitsuhiko/agent-stuff/extensions/notify.ts
+          license: Review upstream repository before copying new code.
+          notes: Local extension may be split into helper modules and tests to satisfy mypac extension layout rules.
+        last_reviewed:
+          upstream_commit: ab79f98104bcd3c6a7c5491e609f6d6700a7414d
+          checkpoint_issue: https://github.com/ladislas/mypac/issues/227
+          reviewed_at: 2026-05-20T06:57:03Z
+          notes: "Baseline accepted from upstream checkpoint #227."
+    attribution:
+      upstream: mitsuhiko/agent-stuff
+      license: Review upstream repository before copying new code.
+      notes: Local file includes original-source credit; README gives broad credit.
+    known_divergence:
+      - Local extension layout differs from upstream single-file extension layout to allow tested helper modules.
+
   - id: pi-extension-todos
     title: Todos extension
     kind: extension
