@@ -422,6 +422,234 @@ local_artifacts:
     known_divergence:
       - mypac adds repository-specific conventions and safety checks.
 
+  - id: pi-skill-diagnose
+    title: Diagnose skill
+    kind: skill
+    local:
+      paths:
+        - skills/pac-diagnose/
+    upstream_refs:
+      - id: mattpocock-diagnose-skill
+        role: pattern_source
+        status: active
+        sync_policy: targeted
+        repo: https://github.com/mattpocock/skills
+        ref: main
+        paths:
+          - skills/engineering/diagnose/SKILL.md
+          - skills/engineering/diagnose/scripts/hitl-loop.template.sh
+        attribution:
+          upstream: mattpocock/skills/skills/engineering/diagnose
+          license: Review upstream repository before copying new text or structure.
+          notes: Local guidance is adapted to Pi and mypac diagnosis conventions.
+        last_reviewed:
+          upstream_commit: d54c497aa94400a496d3f2c38be10fa5f284c5a9
+          checkpoint_issue: https://github.com/ladislas/mypac/issues/227
+          reviewed_at: 2026-05-20T06:57:03Z
+          notes: "Baseline accepted from upstream checkpoint #227."
+    attribution:
+      upstream: mattpocock/skills
+      license: Review upstream repository before copying new text or structure.
+      notes: Local guidance is adapted to Pi and mypac diagnosis conventions.
+    known_divergence:
+      - mypac diagnosis guidance uses repo-local workflows, GitHub-native follow-ups, and pac skill naming.
+
+  - id: pi-skill-improve-architecture
+    title: Improve architecture skill
+    kind: skill
+    local:
+      paths:
+        - skills/pac-improve-architecture/
+    upstream_refs:
+      - id: mattpocock-improve-codebase-architecture
+        role: pattern_source
+        status: active
+        sync_policy: targeted
+        repo: https://github.com/mattpocock/skills
+        ref: main
+        paths:
+          - skills/engineering/improve-codebase-architecture/SKILL.md
+          - skills/engineering/improve-codebase-architecture/DEEPENING.md
+          - skills/engineering/improve-codebase-architecture/INTERFACE-DESIGN.md
+          - skills/engineering/improve-codebase-architecture/LANGUAGE.md
+        attribution:
+          upstream: mattpocock/skills/skills/engineering/improve-codebase-architecture
+          license: Review upstream repository before copying new text or structure.
+          notes: Local guidance adapts upstream architecture vocabulary to mypac workflows.
+        last_reviewed:
+          upstream_commit: d54c497aa94400a496d3f2c38be10fa5f284c5a9
+          checkpoint_issue: https://github.com/ladislas/mypac/issues/227
+          reviewed_at: 2026-05-20T06:57:03Z
+          notes: "Baseline accepted from upstream checkpoint #227."
+    attribution:
+      upstream: mattpocock/skills
+      license: Review upstream repository before copying new text or structure.
+      notes: Local guidance adapts upstream architecture vocabulary to mypac workflows.
+    known_divergence:
+      - mypac architecture guidance is pac-prefixed and routes outcomes through local exploration and issue workflows.
+
+  - id: pi-skill-tdd
+    title: TDD skill
+    kind: skill
+    local:
+      paths:
+        - skills/pac-tdd/
+    upstream_refs:
+      - id: mattpocock-tdd-skill
+        role: pattern_source
+        status: active
+        sync_policy: targeted
+        repo: https://github.com/mattpocock/skills
+        ref: main
+        paths:
+          - skills/engineering/tdd/SKILL.md
+          - skills/engineering/tdd/deep-modules.md
+          - skills/engineering/tdd/interface-design.md
+          - skills/engineering/tdd/mocking.md
+          - skills/engineering/tdd/refactoring.md
+          - skills/engineering/tdd/tests.md
+        attribution:
+          upstream: mattpocock/skills/skills/engineering/tdd
+          license: Review upstream repository before copying new text or structure.
+          notes: Local guidance adapts upstream TDD process to mypac implementation workflow.
+        last_reviewed:
+          upstream_commit: d54c497aa94400a496d3f2c38be10fa5f284c5a9
+          checkpoint_issue: https://github.com/ladislas/mypac/issues/227
+          reviewed_at: 2026-05-20T06:57:03Z
+          notes: "Baseline accepted from upstream checkpoint #227."
+    attribution:
+      upstream: mattpocock/skills
+      license: Review upstream repository before copying new text or structure.
+      notes: Local guidance adapts upstream TDD process to mypac implementation workflow.
+    known_divergence:
+      - mypac TDD guidance emphasizes repository-specific vertical slices, verification, and pac workflow rules.
+
+  - id: pi-skill-to-issues
+    title: Issue breakdown skill
+    kind: skill
+    local:
+      paths:
+        - skills/pac-to-issues/
+    upstream_refs:
+      - id: mattpocock-to-issues
+        role: pattern_source
+        status: active
+        sync_policy: targeted
+        repo: https://github.com/mattpocock/skills
+        ref: main
+        paths:
+          - skills/engineering/to-issues/SKILL.md
+        attribution:
+          upstream: mattpocock/skills/skills/engineering/to-issues/SKILL.md
+          license: Review upstream repository before copying new text or structure.
+          notes: Local guidance adapts upstream issue-breakdown patterns to GitHub-native pac workflows.
+        last_reviewed:
+          upstream_commit: d54c497aa94400a496d3f2c38be10fa5f284c5a9
+          checkpoint_issue: https://github.com/ladislas/mypac/issues/227
+          reviewed_at: 2026-05-20T06:57:03Z
+          notes: "Baseline accepted from upstream checkpoint #227."
+    attribution:
+      upstream: mattpocock/skills
+      license: Review upstream repository before copying new text or structure.
+      notes: Local guidance adapts upstream issue-breakdown patterns to GitHub-native pac workflows.
+    known_divergence:
+      - mypac issue breakdown uses pac labels, GitHub issue dependencies, and repository-specific task slicing.
+
+  - id: pi-skill-triage
+    title: Triage skill
+    kind: skill
+    local:
+      paths:
+        - skills/pac-triage/
+    upstream_refs:
+      - id: mattpocock-triage-skill
+        role: pattern_source
+        status: active
+        sync_policy: targeted
+        repo: https://github.com/mattpocock/skills
+        ref: main
+        paths:
+          - skills/engineering/triage/SKILL.md
+          - skills/engineering/triage/AGENT-BRIEF.md
+          - skills/engineering/triage/OUT-OF-SCOPE.md
+        attribution:
+          upstream: mattpocock/skills/skills/engineering/triage
+          license: Review upstream repository before copying new text or structure.
+          notes: Local guidance adapts upstream triage patterns to pac labels and GitHub issue comments.
+        last_reviewed:
+          upstream_commit: d54c497aa94400a496d3f2c38be10fa5f284c5a9
+          checkpoint_issue: https://github.com/ladislas/mypac/issues/227
+          reviewed_at: 2026-05-20T06:57:03Z
+          notes: "Baseline accepted from upstream checkpoint #227."
+    attribution:
+      upstream: mattpocock/skills
+      license: Review upstream repository before copying new text or structure.
+      notes: Local guidance adapts upstream triage patterns to pac labels and GitHub issue comments.
+    known_divergence:
+      - mypac triage uses pac-specific labels, ready-for-agent briefs, and separate wontfix/out-of-scope comment templates.
+
+  - id: pi-skill-caveman
+    title: Caveman communication skill
+    kind: skill
+    local:
+      paths:
+        - skills/pac-caveman/
+    upstream_refs:
+      - id: mattpocock-caveman-skill
+        role: pattern_source
+        status: active
+        sync_policy: targeted
+        repo: https://github.com/mattpocock/skills
+        ref: main
+        paths:
+          - skills/productivity/caveman/SKILL.md
+        attribution:
+          upstream: mattpocock/skills/skills/productivity/caveman/SKILL.md
+          license: Review upstream repository before copying new text or structure.
+          notes: Local guidance adapts upstream compressed-communication style to pac invocation rules.
+        last_reviewed:
+          upstream_commit: d54c497aa94400a496d3f2c38be10fa5f284c5a9
+          checkpoint_issue: https://github.com/ladislas/mypac/issues/227
+          reviewed_at: 2026-05-20T06:57:03Z
+          notes: "Baseline accepted from upstream checkpoint #227."
+    attribution:
+      upstream: mattpocock/skills
+      license: Review upstream repository before copying new text or structure.
+      notes: Local guidance adapts upstream compressed-communication style to pac invocation rules.
+    known_divergence:
+      - mypac caveman mode is pac-prefixed and tuned for local token-saving conventions.
+
+  - id: pi-skill-grill-me
+    title: Grill-me skill
+    kind: skill
+    local:
+      paths:
+        - skills/pac-grill-me/
+    upstream_refs:
+      - id: mattpocock-grill-me-skill
+        role: pattern_source
+        status: active
+        sync_policy: targeted
+        repo: https://github.com/mattpocock/skills
+        ref: main
+        paths:
+          - skills/productivity/grill-me/SKILL.md
+        attribution:
+          upstream: mattpocock/skills/skills/productivity/grill-me/SKILL.md
+          license: Review upstream repository before copying new text or structure.
+          notes: Local guidance adapts upstream grilling style to pac planning and confirmation rules.
+        last_reviewed:
+          upstream_commit: d54c497aa94400a496d3f2c38be10fa5f284c5a9
+          checkpoint_issue: https://github.com/ladislas/mypac/issues/227
+          reviewed_at: 2026-05-20T06:57:03Z
+          notes: "Baseline accepted from upstream checkpoint #227."
+    attribution:
+      upstream: mattpocock/skills
+      license: Review upstream repository before copying new text or structure.
+      notes: Local guidance adapts upstream grilling style to pac planning and confirmation rules.
+    known_divergence:
+      - mypac grill-me is pac-prefixed and keeps questioning bounded by local planning conventions.
+
   - id: pi-skill-authoring
     title: Pi skill authoring skill
     kind: skill
@@ -512,12 +740,32 @@ local_artifacts:
           checkpoint_issue: https://github.com/ladislas/mypac/issues/227
           reviewed_at: 2026-05-20T06:57:03Z
           notes: "Baseline accepted from upstream checkpoint #227."
+      - id: mattpocock-grill-with-docs-skill
+        role: pattern_source
+        status: active
+        sync_policy: targeted
+        repo: https://github.com/mattpocock/skills
+        ref: main
+        paths:
+          - skills/engineering/grill-with-docs/SKILL.md
+          - skills/engineering/grill-with-docs/ADR-FORMAT.md
+          - skills/engineering/grill-with-docs/CONTEXT-FORMAT.md
+        attribution:
+          upstream: mattpocock/skills/skills/engineering/grill-with-docs
+          license: Review upstream repository before copying new text or structure.
+          notes: Local guidance adapts upstream durable-doc grilling patterns to GitHub issue comments and pac artifact markers.
+        last_reviewed:
+          upstream_commit: d54c497aa94400a496d3f2c38be10fa5f284c5a9
+          checkpoint_issue: https://github.com/ladislas/mypac/issues/227
+          reviewed_at: 2026-05-20T06:57:03Z
+          notes: "Baseline accepted from upstream checkpoint #227."
     attribution:
       upstream: mattpocock/skills
       license: Review upstream repository before copying new text or structure.
       notes: Local skill includes PRD format conventions adapted to GitHub issue comments.
     known_divergence:
       - mypac PRD artifacts use hidden markers and GitHub-native context links.
+      - mypac grill-with-docs includes a PRD companion format and pac-specific GitHub issue persistence rules.
     do_not_chase:
       - "Per #135, do not reopen every previously decided Matt Pocock skill adaptation during path repair."
 
