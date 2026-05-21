@@ -2,7 +2,7 @@
  * UV Extension - Redirects Python tooling to uv equivalents
  * Original source: https://github.com/mitsuhiko/agent-stuff/blob/main/extensions/uv.ts
  *
- * This extension wraps the bash tool to prepend intercepted-commands to PATH,
+ * This extension wraps the bash tool to prepend uv's intercepted-commands to PATH,
  * which contains shim scripts that intercept common Python tooling commands
  * and redirect agents to use uv instead.
  *
@@ -13,8 +13,8 @@
  *   with special handling to block `python -m pip`, `python -m venv`, and
  *   `python -m py_compile`
  *
- * The shim scripts are located in the intercepted-commands directory and
- * provide helpful error messages with the equivalent uv commands.
+ * The shim scripts are colocated in this extension's intercepted-commands
+ * directory and provide helpful error messages with the equivalent uv commands.
  *
  * Note: PATH shims are bypassable via explicit interpreter paths
  * (for example `.venv/bin/python`). To close that gap, this extension also
@@ -28,7 +28,7 @@ import { fileURLToPath } from "url";
 import { getBlockedCommandMessage } from "./helpers.ts";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const interceptedCommandsPath = join(__dirname, "..", "..", "intercepted-commands");
+const interceptedCommandsPath = join(__dirname, "intercepted-commands");
 
 export default function (pi: ExtensionAPI) {
   const cwd = process.cwd();
