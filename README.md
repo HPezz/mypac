@@ -55,6 +55,7 @@ For readability, the skill table below drops the `pac-` prefix in the display la
 | [`github-issue-create`](skills/pac-github-issue-create/SKILL.md) | Create well-formed GitHub issues from inside the current repository |
 | [`grill-me`](skills/pac-grill-me/SKILL.md) | Relentlessly interview a plan or design one question at a time until it is clear |
 | [`grill-with-docs`](skills/pac-grill-with-docs/SKILL.md) | Grill issue-backed work, then persist durable outcomes to GitHub issue comments and sparing local context |
+| [`handoff`](skills/pac-handoff/SKILL.md) | Create a concise handoff document for another Pi session or agent |
 | [`improve-architecture`](skills/pac-improve-architecture/SKILL.md) | Review a codebase for deepening opportunities, then grill a chosen architecture candidate |
 | [`librarian`](skills/pac-librarian/SKILL.md) | Cache and refresh remote git repositories locally for future reference work |
 | [`explore`](skills/pac-explore/SKILL.md) | Explore ideas, investigate problems, and compare options without implementing |
