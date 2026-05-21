@@ -2,6 +2,22 @@ amends "package://github.com/jdx/hk/releases/download/v1.38.0/hk@1.38.0#/Config.
 import "package://github.com/jdx/hk/releases/download/v1.38.0/hk@1.38.0#/Builtins.pkl"
 
 hooks {
+    ["pre-push"] {
+        steps {
+            ["prevent-fixup-merge"] {
+                check = "scripts/prevent-fixup-merge.sh pre-push"
+            }
+        }
+    }
+
+    ["pre-merge-commit"] {
+        steps {
+            ["prevent-fixup-merge"] {
+                check = "scripts/prevent-fixup-merge.sh"
+            }
+        }
+    }
+
     ["pre-commit"] {
         fix = true
         stash = "git"
