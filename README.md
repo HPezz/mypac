@@ -79,6 +79,7 @@ For readability, the skill table below drops the `pac-` prefix in the display la
 | [`/pac-diagnose`](prompts/pac-diagnose.md) | Diagnose a bug or performance regression with a disciplined feedback-loop workflow |
 | [`/pac-grill-me`](prompts/pac-grill-me.md) | Relentlessly interview a plan or design one question at a time until it is clear |
 | [`/pac-grill-with-docs`](prompts/pac-grill-with-docs.md) | Grill issue-backed work and persist durable outcomes to GitHub issue notes and sparing local context |
+| [`/pac-handoff`](prompts/pac-handoff.md) | Create a concise handoff document for another Pi session or agent |
 | [`/pac-to-issues`](prompts/pac-to-issues.md) | Break a plan, PRD, or discussion into tracer-bullet GitHub issues |
 | [`/pac-to-prd`](prompts/pac-to-prd.md) | Synthesize context into a draft PRD or publishable GitHub PRD artifact |
 | [`/pac-triage`](prompts/pac-triage.md) | Triage GitHub issues through mypac's label-based issue workflow |
