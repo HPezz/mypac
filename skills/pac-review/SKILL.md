@@ -159,6 +159,43 @@ Provide your findings in a clear, structured format:
 
 Output all findings the author would fix if they knew about them. If there are no qualifying findings, explicitly state the code looks good. Don't stop at the first finding — list every qualifying issue. Then append the required non-blocking callouts section.
 
+## Optional Standards + Spec follow-up review
+
+Only run this pass when the user explicitly asks for a Standards + Spec review, or asks for one of those axes after the default review. Do not replace or weaken the default defect-oriented review rubric above.
+
+Keep the results separate from default review findings with these sections:
+
+```md
+## Standards Findings
+...
+
+## Spec Findings
+...
+```
+
+### Standards pass
+
+Evaluate whether the diff follows documented repository standards. Look for relevant sources such as:
+
+- `AGENTS.md` and nested agent/instruction files that apply to the changed paths
+- `CONTRIBUTING.md`, `CONTEXT.md`, README guidance, and docs that define contributor or project conventions
+- ADRs or decision records that constrain the changed area
+- Tooling/config files that express repository policy, such as linters, formatters, TypeScript config, test config, CI workflows, package scripts, or dependency policy files
+
+Do not spend findings on rules that machines already enforce unless the diff bypasses or weakens that enforcement. Flag only standards mismatches that are actionable, introduced by the diff, and likely worth fixing.
+
+For each Standards finding, cite the relevant standards source. If no relevant standards source exists, say so and keep the pass brief.
+
+### Spec pass
+
+Evaluate whether the diff matches the originating issue, PRD, ADR, design note, PR description, or user-provided spec.
+
+First identify the best available spec source from the review context, including issue/PR links, `closes #...` references, PR body references, linked PRD comments, ADR comments, or explicit user instructions. Prefer the newest linked PRD/comment that actually contains the expected structured marker when those artifacts exist. Treat ADRs and explicit decisions as constraints.
+
+If no spec source is available, clearly say that and do not invent requirements. If a spec source is stale, unreadable, or missing the expected marker, say so plainly and use the minimum direct context available.
+
+For each Spec finding, cite the spec source and explain the mismatch. Keep Spec findings separate from Standards and default review findings.
+
 ## Fix session commit discipline
 
 When applying fixes during a review fix pass (via `/review-end` → "Return and fix findings"):

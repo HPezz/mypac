@@ -11,7 +11,7 @@ Do not inspect repository history to switch workflows mid-run.
 
 ## Fix instructions
 
-1. Treat the summary's Findings/Fix Queue as a checklist.
+1. Treat the summary's Default Review Findings, Standards Findings, Spec Findings, and Combined Fix Queue sections as a checklist.
 2. Fix in priority order: P0, P1, then P2 (include P3 if quick and safe).
 3. If a finding is invalid/already fixed/not possible right now, briefly explain why and continue.
 4. Treat "Human Reviewer Callouts (Non-Blocking)" as informational only; do not convert them into fix tasks unless there is a separate explicit finding.
