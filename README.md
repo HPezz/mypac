@@ -138,8 +138,8 @@ Saved-deck replies include a clickable Markdown `file://` link, and the shared d
 - Run the checks on demand: `mise run lint`
 - Auto-fix Markdown lint issues: `mise run lint:fix`
 
-The hk configuration lints YAML and Markdown files before commit.
-If a check fails, fix the reported file and run the hook again or retry the commit.
+The hk configuration lints YAML and Markdown files before commit. It also blocks merges and pushes to `main` when the incoming commits include subjects that start with `fixup!`.
+If a check fails, fix the reported file and run the hook again or retry the commit. For a `fixup!` merge or push failure, squash the fixup commits first, for example with `git rebase --autosquash main`, then retry.
 
 ### Changelog
 
