@@ -230,7 +230,15 @@ update_state="skipped"
 ff_state="not-attempted"
 
 if (( needs_update == 1 )); then
-  git -C "$checkout_path" fetch --depth=1 --prune --tags origin >/dev/null
+  is_shallow="$(git -C "$checkout_path" rev-parse --is-shallow-repository 2>/dev/null || true)"
+  if [[ -z "$is_shallow" && -f "$checkout_path/.git/shallow" ]]; then
+    is_shallow="true"
+  fi
+  if [[ "$is_shallow" == "true" ]]; then
+    git -C "$checkout_path" fetch --depth=1 --prune --tags origin >/dev/null
+  else
+    git -C "$checkout_path" fetch --prune --tags origin >/dev/null
+  fi
   echo "$now_epoch" > "$last_fetch_file"
   update_state="fetched"
 

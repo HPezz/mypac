@@ -55,6 +55,7 @@ The script will:
 ## Update strategy
 
 - Default behavior is **throttled refresh** (every 5 minutes) to avoid unnecessary network calls.
+- Refreshes preserve the checkout's current history depth: shallow checkouts stay shallow, but checkouts that another workflow has unshallowed are fetched without `--depth=1`.
 - Force immediate refresh with:
 
 ```bash
