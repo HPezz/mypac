@@ -78,10 +78,10 @@ Default to `draft-only` unless the user clearly asks for GitHub publication.
 Write a local draft outside the repo under:
 
 ```text
-~/.pi/agent/prds/<session-id>/<timestamp>-<slug>.md
+~/.pi/agent/prds/<timestamp>-<slug>.md
 ```
 
-Derive `<session-id>` from the current Pi session identifier, following the same convention used by the slidedeck extension (`extensions/slidedeck/`). `<timestamp>` is `YYYYMMDDHHmmss` in UTC. `<slug>` is a lowercase, hyphen-separated summary of the PRD title (e.g. `pac-to-prd-draft-workflow`).
+Use a UTC timestamp such as `YYYYMMDD-HHMMSS`. Derive `<slug>` from the PRD title as a lowercase, hyphen-separated summary (e.g. `pac-to-prd-draft-workflow`).
 
 Store minimal human-editable metadata as YAML frontmatter:
 
