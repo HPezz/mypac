@@ -1,7 +1,7 @@
 # Project Guidelines
 
 This file is for `mypac`-specific instructions.
-The shared execution heuristics live in `shared/AGENTS.md` and are appended by the `extensions/shared-agents` Pi extension.
+The shared execution heuristics live in `shared/SHARED_APPEND_SYSTEM.md` and are appended by the `extensions/shared-append-system` Pi extension.
 
 ## Git Commits
 

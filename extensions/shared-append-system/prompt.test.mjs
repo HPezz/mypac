@@ -1,0 +1,100 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import sharedAppendSystemExtension from "./index.ts";
+import {
+	formatSharedAppendSystemPrompt,
+	insertSharedAppendSystemPrompt,
+	sharedAppendSystemPath,
+} from "./prompt.ts";
+
+const sharedBlock = formatSharedAppendSystemPrompt("# Shared\n\n## Rules");
+
+test("formatSharedAppendSystemPrompt wraps shared instructions with XML boundaries", () => {
+	assert.match(sharedBlock, /^<shared_append_system_context>\n/);
+	assert.match(sharedBlock, /Shared package append-system instructions and guidelines:/);
+	assert.ok(sharedBlock.includes(`<shared_append_system_instructions path="${sharedAppendSystemPath}">\n# Shared\n\n## Rules`));
+	assert.match(sharedBlock, /\n<\/shared_append_system_context>$/);
+});
+
+test("formatSharedAppendSystemPrompt omits empty shared instructions", () => {
+	assert.equal(formatSharedAppendSystemPrompt(""), "");
+});
+
+test("insertSharedAppendSystemPrompt inserts before real append-system prompt", () => {
+	const append = "Real APPEND_SYSTEM.md text";
+	const prompt = ["Pi base", append, "<project_context>", "Project instructions", "</project_context>"].join("\n\n");
+	const result = insertSharedAppendSystemPrompt(prompt, sharedBlock, append);
+
+	assert.ok(result.indexOf("Pi base") < result.indexOf("<shared_append_system_context>"));
+	assert.ok(result.indexOf("<shared_append_system_context>") < result.indexOf(append));
+	assert.ok(result.indexOf(append) < result.indexOf("<project_context>"));
+});
+
+test("insertSharedAppendSystemPrompt inserts before project context when no append prompt exists", () => {
+	const prompt = ["Pi base", "<project_context>", "Project instructions", "</project_context>"].join("\n\n");
+	const result = insertSharedAppendSystemPrompt(prompt, sharedBlock);
+
+	assert.ok(result.indexOf("Pi base") < result.indexOf("<shared_append_system_context>"));
+	assert.ok(result.indexOf("<shared_append_system_context>") < result.indexOf("<project_context>"));
+});
+
+test("insertSharedAppendSystemPrompt falls through to project context when append prompt is absent from system prompt", () => {
+	const prompt = ["Pi base", "<project_context>", "Project instructions", "</project_context>"].join("\n\n");
+	const result = insertSharedAppendSystemPrompt(prompt, sharedBlock, "missing append text");
+
+	assert.ok(result.indexOf("<shared_append_system_context>") < result.indexOf("<project_context>"));
+});
+
+test("insertSharedAppendSystemPrompt inserts before current date when there is no context marker", () => {
+	const prompt = "Pi base\nCurrent date: 2026-05-20\nCurrent working directory: /repo";
+	const result = insertSharedAppendSystemPrompt(prompt, sharedBlock);
+
+	assert.ok(result.indexOf("Pi base") < result.indexOf("<shared_append_system_context>"));
+	assert.ok(result.indexOf("<shared_append_system_context>") < result.indexOf("Current date:"));
+	assert.match(result, /<\/shared_append_system_context>\n\nCurrent date:/);
+});
+
+test("insertSharedAppendSystemPrompt is idempotent", () => {
+	const prompt = `Pi base\n\n${sharedBlock}\n\n<project_context>`;
+	assert.equal(insertSharedAppendSystemPrompt(prompt, sharedBlock), prompt);
+});
+
+test("shared append-system extension inserts shared instructions before append-system prompt", async () => {
+	const handlers = new Map();
+	const pi = {
+		on(event, handler) {
+			handlers.set(event, handler);
+		},
+	};
+	sharedAppendSystemExtension(pi);
+
+	assert.equal(typeof handlers.get("session_start"), "function");
+	assert.equal(typeof handlers.get("before_agent_start"), "function");
+	await handlers.get("session_start")();
+
+	const append = "Real APPEND_SYSTEM.md text";
+	const event = {
+		systemPrompt: `Pi base\n\n${append}\n\n<project_context>\nProject instructions\n</project_context>`,
+		systemPromptOptions: { appendSystemPrompt: append },
+	};
+	const result = await handlers.get("before_agent_start")(event);
+
+	assert.ok(result.systemPrompt.includes(`<shared_append_system_instructions path="${sharedAppendSystemPath}">`));
+	assert.ok(result.systemPrompt.indexOf("<shared_append_system_context>") < result.systemPrompt.indexOf(append));
+});
+
+test("shared append-system extension tolerates missing system prompt options", async () => {
+	const handlers = new Map();
+	sharedAppendSystemExtension({
+		on(event, handler) {
+			handlers.set(event, handler);
+		},
+	});
+	await handlers.get("session_start")();
+
+	const result = await handlers.get("before_agent_start")({
+		systemPrompt: "Pi base\n\n<project_context>\nProject instructions\n</project_context>",
+	});
+
+	assert.ok(result.systemPrompt.indexOf("<shared_append_system_context>") < result.systemPrompt.indexOf("<project_context>"));
+});
