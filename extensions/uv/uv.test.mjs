@@ -6,7 +6,7 @@ import { fileURLToPath } from "node:url";
 import { getBlockedCommandMessage } from "./helpers.ts";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const interceptedCommandsPath = resolve(__dirname, "../..", "intercepted-commands");
+const interceptedCommandsPath = resolve(__dirname, "intercepted-commands");
 
 function pathWithoutUv() {
 	const uvPaths = spawnSync("bash", ["-lc", "type -aP uv 2>/dev/null || true"], {
