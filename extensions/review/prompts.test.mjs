@@ -5,6 +5,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import {
 	loadMarkdownReviewPrompt,
+	loadReviewSummaryPrompt,
 	ReviewPromptLoadError,
 	stripPromptMarkdownTitle,
 } from "./prompts.ts";
@@ -37,4 +38,14 @@ test("loadMarkdownReviewPrompt reports missing Markdown prompt files clearly", a
 			return true;
 		},
 	);
+});
+
+test("review summary prompt preserves separate review passes", async () => {
+	const prompt = await loadReviewSummaryPrompt();
+
+	assert.match(prompt, /## Default Review Findings/);
+	assert.match(prompt, /## Standards Findings/);
+	assert.match(prompt, /## Spec Findings/);
+	assert.match(prompt, /## Combined Fix Queue/);
+	assert.match(prompt, /preserve.*separate/i);
 });

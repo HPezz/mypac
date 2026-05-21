@@ -10,6 +10,7 @@ Versioned sections should match the Git tags and GitHub releases published for t
 
 ### Added
 
+- Added optional Standards + Spec follow-up review support with a dedicated `pac-review-standards-spec` skill and `/review-end` summaries that preserve default, standards, and spec findings separately. ([#255](https://github.com/ladislas/mypac/issues/255))
 - Added `/pac-fix-copilot-review` for addressing GitHub Copilot PR review comments with explicit fixup commits and resolved review threads. ([#246](https://github.com/ladislas/mypac/issues/246))
 - Added a `notify` Pi extension that sends terminal notifications with the latest assistant response summary when Pi is ready for input, using terminal-specific OSC sequences with OSC 777 as the fallback. ([#236](https://github.com/ladislas/mypac/issues/236))
 - Added `.pac/upstream-sources.yaml`, `pac-upstream-checkpoints`, and `/pac-upstream-checkpoints` for reviewing borrowed upstream sources, tracking local artifacts, and creating checkpoint issues. ([#192](https://github.com/ladislas/mypac/issues/192))

@@ -159,6 +159,10 @@ Provide your findings in a clear, structured format:
 
 Output all findings the author would fix if they knew about them. If there are no qualifying findings, explicitly state the code looks good. Don't stop at the first finding — list every qualifying issue. Then append the required non-blocking callouts section.
 
+## Optional Standards + Spec follow-up review
+
+Do not run Standards or Spec checks during the default review pass unless the user explicitly asks for them. When the user asks for a Standards review, Spec review, or Standards + Spec follow-up, load `skills/pac-review-standards-spec/SKILL.md` and keep those findings separate from default review findings.
+
 ## Fix session commit discipline
 
 When applying fixes during a review fix pass (via `/review-end` → "Return and fix findings"):

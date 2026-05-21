@@ -357,6 +357,41 @@ local_artifacts:
       - "Per #118 and PR #190, do not chase wholesale feature parity with upstream review implementations."
       - Missing upstream loop-fixing, custom-persistence, broad local-changes review, or other removed complexity is intentional unless a concrete prompt, rubric, bugfix, or robustness change is identified.
 
+  - id: pac-review-standards-spec-skill
+    title: Standards + Spec review skill
+    kind: skill
+    local:
+      paths:
+        - skills/pac-review-standards-spec/
+    upstream_refs:
+      - id: mattpocock-review-two-axis-skill
+        role: current_reference
+        status: active
+        sync_policy: targeted
+        repo: https://github.com/mattpocock/skills
+        ref: main
+        paths:
+          - skills/in-progress/review/SKILL.md
+        attribution:
+          upstream: mattpocock/skills/skills/in-progress/review/SKILL.md
+          license: Review upstream repository before copying new text or structure.
+          notes: Local guidance adapts upstream Standards and Spec review axes as an optional follow-up to pac-review.
+        last_reviewed:
+          upstream_commit: e74f0061bb67222181640effa98c675bdb2fdaa7
+          checkpoint_issue: https://github.com/ladislas/mypac/issues/255
+          reviewed_at: 2026-05-21T09:39:13Z
+          notes: "Registered from #255 after adapting upstream's two-axis review concept into an optional follow-up skill."
+    attribution:
+      upstream: mattpocock/skills
+      license: Review upstream repository before copying new text or structure.
+      notes: Local skill adapts upstream Standards and Spec review axes to mypac's default review workflow.
+    known_divergence:
+      - Local Standards + Spec review is optional and separate from the default pac-review defect-oriented pass.
+      - Local summaries preserve default, Standards, and Spec findings as separate sections for /review-end handoff.
+    do_not_chase:
+      - "Per #255, do not replace the default pac-review rubric with the upstream two-axis review structure."
+      - "Do not add mandatory UI presets or sub-agent support unless a concrete local need is identified."
+
   - id: pi-skill-commit
     title: Commit skill
     kind: skill

@@ -6,6 +6,8 @@ Create a structured handoff that can be used immediately to implement fixes.
 You MUST summarize the review that happened in this session so findings can be acted on.
 Do not omit findings: include every actionable issue that was identified.
 
+If the session included multiple review passes (for example a default review plus Standards and Spec follow-up passes), preserve those findings in separate sections. Do not flatten Standards or Spec findings into the default findings.
+
 Required sections (in order):
 
 ## Review Scope
@@ -16,18 +18,32 @@ Required sections (in order):
 
 - "correct" or "needs attention"
 
-## Findings
+## Default Review Findings
 
-For EACH finding, include:
+Include findings from the default defect-oriented review pass. For EACH finding, include:
 
 - Priority tag ([P0]..[P3]) and short title
 - File location (`path/to/file.ext:line`)
 - Why it matters (brief)
 - What should change (brief, actionable)
 
-## Fix Queue
+If no default findings were identified, write "- (none)".
 
-1. Ordered implementation checklist (highest priority first)
+## Standards Findings
+
+Include findings from any Standards follow-up pass separately from default review findings. If no Standards pass occurred, write "- Not run." If it ran and found no issues, write "- (none)".
+
+For EACH Standards finding, include the same finding fields as above plus the relevant standards source when available.
+
+## Spec Findings
+
+Include findings from any Spec follow-up pass separately from default review findings. If no Spec pass occurred, write "- Not run." If it ran and found no issues, write "- (none)".
+
+For EACH Spec finding, include the same finding fields as above plus the spec source when available. If the Spec pass could not identify a source, preserve that note.
+
+## Combined Fix Queue
+
+1. Ordered implementation checklist across all findings (highest priority first)
 
 ## Constraints & Preferences
 
