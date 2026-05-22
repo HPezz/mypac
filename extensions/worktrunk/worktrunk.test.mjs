@@ -8,6 +8,7 @@ import {
 	parseWorktrunkList,
 	slugifyIssueTitle,
 } from "./helpers.ts";
+import { ensureWorktree } from "./index.ts";
 
 test("parses a local issue number", () => {
 	assert.deepEqual(parseIssueTarget("85"), { kind: "number", number: 85 });
@@ -42,10 +43,10 @@ test("builds repo-convention issue branch names", () => {
 });
 
 test("parses Worktrunk list output", () => {
-	const entries = parseWorktrunkList(JSON.stringify([
+	const entries = parseWorktrunkList(`\n${JSON.stringify([
 		{ branch: "main", path: "/repo", is_current: true },
 		{ branch: "ladislas/feature/85-work", path: "/repo/.worktrees/85-work" },
-	]));
+	])}\n`);
 
 	assert.deepEqual(entries, [
 		{ branch: "main", path: "/repo" },
@@ -55,6 +56,29 @@ test("parses Worktrunk list output", () => {
 		branch: "ladislas/feature/85-work",
 		path: "/repo/.worktrees/85-work",
 	});
+});
+
+test("reports an existing Worktrunk entry without a path before trying to create", async () => {
+	const calls = [];
+	const pi = {
+		async exec(command, args) {
+			calls.push([command, args]);
+			assert.deepEqual([command, args], ["wt", ["list", "--format=json"]]);
+			return {
+				code: 0,
+				stdout: JSON.stringify([{ branch: "ladislas/feature/85-work" }]),
+				stderr: "",
+			};
+		},
+	};
+
+	const result = await ensureWorktree(pi, "ladislas/feature/85-work");
+
+	assert.deepEqual(result, {
+		ok: false,
+		error: "Worktree for ladislas/feature/85-work exists but has no path in wt list output.",
+	});
+	assert.equal(calls.length, 1);
 });
 
 test("formats next Pi command with shell quoting", () => {

@@ -95,11 +95,14 @@ async function fetchIssue(pi: ExtensionAPI, repo: string, number: number): Promi
 	}
 }
 
-async function ensureWorktree(pi: ExtensionAPI, branch: string): Promise<CommandResult<{ created: boolean; path: string }>> {
+export async function ensureWorktree(pi: ExtensionAPI, branch: string): Promise<CommandResult<{ created: boolean; path: string }>> {
 	const before = await listWorktrees(pi);
 	if (!before.ok) return before;
 
 	const existing = findWorktreeByBranch(before.value, branch);
+	if (existing && !existing.path) {
+		return { ok: false, error: `Worktree for ${branch} exists but has no path in wt list output.` };
+	}
 	if (existing?.path) return { ok: true, value: { created: false, path: existing.path } };
 
 	const create = await pi.exec("wt", ["switch", "--create", "--no-cd", branch], { timeout: 120_000 });

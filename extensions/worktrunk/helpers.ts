@@ -50,7 +50,7 @@ export function buildIssueBranch(number: number, title: string, firstName = "lad
 }
 
 export function parseWorktrunkList(output: string): WorktrunkListEntry[] {
-	const parsed = JSON.parse(output || "[]") as unknown;
+	const parsed = JSON.parse(output.trim() || "[]") as unknown;
 	if (!Array.isArray(parsed)) {
 		throw new Error("expected wt list output to be a JSON array");
 	}
