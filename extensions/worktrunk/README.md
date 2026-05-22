@@ -31,7 +31,7 @@ The command:
 5. Otherwise creates one with:
 
    ```text
-   wt switch --create --no-cd <branch>
+   wt switch --create --no-cd --yes <branch>
    ```
 
 6. Prints the issue title, branch, worktree path, and next command:
@@ -52,7 +52,7 @@ mise install
 npm ci
 ```
 
-Worktrunk may ask for approval before running project hooks. That is expected.
+Because Pi slash commands run non-interactively, the extension passes `--yes` to pre-approve these repo-owned hooks.
 
 ## Requirements
 

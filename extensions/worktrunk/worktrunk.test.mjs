@@ -58,6 +58,35 @@ test("parses Worktrunk list output", () => {
 	});
 });
 
+test("creates new worktrees with non-interactive hook approval", async () => {
+	const calls = [];
+	const listBefore = JSON.stringify([{ branch: "main", path: "/repo" }]);
+	const listAfter = JSON.stringify([
+		{ branch: "main", path: "/repo" },
+		{ branch: "ladislas/feature/85-work", path: "/repo/.worktrees/85-work" },
+	]);
+	const pi = {
+		async exec(command, args) {
+			calls.push([command, args]);
+			if (calls.length === 1) return { code: 0, stdout: listBefore, stderr: "" };
+			if (calls.length === 2) return { code: 0, stdout: "", stderr: "" };
+			return { code: 0, stdout: listAfter, stderr: "" };
+		},
+	};
+
+	const result = await ensureWorktree(pi, "ladislas/feature/85-work");
+
+	assert.deepEqual(result, {
+		ok: true,
+		value: { created: true, path: "/repo/.worktrees/85-work" },
+	});
+	assert.deepEqual(calls, [
+		["wt", ["list", "--format=json"]],
+		["wt", ["switch", "--create", "--no-cd", "--yes", "ladislas/feature/85-work"]],
+		["wt", ["list", "--format=json"]],
+	]);
+});
+
 test("reports an existing Worktrunk entry without a path before trying to create", async () => {
 	const calls = [];
 	const pi = {
