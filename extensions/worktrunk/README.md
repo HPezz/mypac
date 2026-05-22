@@ -1,10 +1,12 @@
 # Worktrunk extension
 
-Repo-local Pi extension for creating issue-specific Worktrunk worktrees.
+Repo-local Pi extension for focused Worktrunk workflows.
 
-This is intentionally a `mypac` workflow, not a generic Worktrunk wrapper. Worktrunk owns worktree lifecycle behavior; this extension only adds a small Pi command for GitHub issue-backed work.
+This is intentionally a `mypac` workflow, not a generic Worktrunk wrapper. Worktrunk owns worktree lifecycle behavior; this extension only adds small Pi shortcuts for routine worktree discovery and creation.
 
-## Command
+## Commands
+
+### Issue worktrees
 
 ```text
 /worktree issue <issue-number-or-url>
@@ -40,6 +42,53 @@ The command:
    cd <worktree-path> && pi
    ```
 
+### Explicit branch worktrees
+
+```text
+/worktree branch <branch>
+```
+
+Creates or reuses a Worktrunk worktree for an explicit branch name.
+
+The command delegates to Worktrunk:
+
+```text
+wt switch --create --no-cd --yes <branch>
+```
+
+It prints the branch, worktree path, and next command:
+
+```text
+cd <worktree-path> && pi
+```
+
+### List worktrees
+
+```text
+/worktree list
+/worktree ls
+```
+
+Delegates to:
+
+```text
+wt list --format=json
+```
+
+The output shows each Worktrunk worktree branch, path, and copy/paste command:
+
+```text
+cd <worktree-path> && pi
+```
+
+### Current status
+
+```text
+/worktree status
+```
+
+Delegates to `wt list --format=json` and renders the current Worktrunk worktree, including branch/path, main or remote relation when present, commit summary, and dirty-state flags.
+
 ## Setup behavior
 
 The extension does not run project setup commands directly. Setup belongs to Worktrunk hooks so each repository can own its own policy.
@@ -52,11 +101,11 @@ mise install
 npm ci
 ```
 
-Because Pi slash commands run non-interactively, the extension passes `--yes` to pre-approve these repo-owned hooks.
+Because Pi slash commands run non-interactively, create commands pass `--yes` to pre-approve these repo-owned hooks.
 
 ## Requirements
 
-- `gh` authenticated for the target GitHub repository
+- `gh` authenticated for the target GitHub repository when using `/worktree issue`
 - `wt` installed and configured
 - `mise` and `npm` available for this repo's `pre-start` hooks
 
@@ -66,7 +115,10 @@ In scope:
 
 - GitHub issue number or issue URL input
 - Issue-derived branch names
+- Explicit branch input
 - Create-or-reuse Worktrunk worktrees
+- Listing Worktrunk worktrees
+- Current Worktrunk worktree status
 - Clear next-step output for launching Pi manually
 
 Out of scope:
