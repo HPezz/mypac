@@ -101,6 +101,12 @@ mise install
 npm ci
 ```
 
+It also defines a blocking `pre-merge` hook for `wt merge`:
+
+```text
+mise run test
+```
+
 Because Pi slash commands run non-interactively, create commands pass `--yes` to pre-approve these repo-owned hooks.
 
 ## Requirements

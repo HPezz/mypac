@@ -6,3 +6,6 @@ mise = "mise install"
 
 [[pre-start]]
 deps = "npm ci"
+
+[[pre-merge]]
+test = "mise run test"
