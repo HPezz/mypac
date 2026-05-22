@@ -21,14 +21,14 @@ Examples:
 
 The command:
 
-1. Reads issue metadata with `gh`.
+1. Shows progress while it reads issue metadata with `gh`.
 2. Builds a branch name from the issue number and title:
 
    ```text
    ladislas/feature/<issue-number>-<issue-title-slug>
    ```
 
-3. Lists Worktrunk worktrees with `wt list --format=json`.
+3. Shows progress while it lists Worktrunk worktrees with `wt list --format=json`.
 4. Reuses the existing worktree if that branch already exists.
 5. Otherwise creates one with:
 
@@ -36,10 +36,10 @@ The command:
    wt switch --create --no-cd --yes <branch>
    ```
 
-6. Prints the issue title, branch, worktree path, and next command:
+6. Prints the issue title, branch, worktree path, and next command in a Markdown code block:
 
-   ```text
-   cd <worktree-path> && pi
+   ```sh
+   cd <worktree-path> && pi '/pac-lwot <issue-number-or-url>'
    ```
 
 ### Explicit branch worktrees
