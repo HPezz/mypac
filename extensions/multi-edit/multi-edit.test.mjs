@@ -182,6 +182,22 @@ test("deriveUpdatedContent throws when old lines not found", () => {
 	);
 });
 
+test("deriveUpdatedContent tolerates trim differences in patch context", () => {
+	const result = deriveUpdatedContent("f.ts", "  const value = 1;  \n", [
+		{ oldLines: ["const value = 1;"], newLines: ["const value = 2;"], isEndOfFile: false },
+	]);
+
+	assert.equal(result, "const value = 2;\n");
+});
+
+test("deriveUpdatedContent tolerates typographic character differences in patch context", () => {
+	const result = deriveUpdatedContent("f.ts", "const title = “Hello—world”;\n", [
+		{ oldLines: ['const title = "Hello-world";'], newLines: ['const title = "Hello world";'], isEndOfFile: false },
+	]);
+
+	assert.equal(result, 'const title = "Hello world";\n');
+});
+
 // --- generateDiffString ---
 
 test("generateDiffString produces + lines for additions", () => {
@@ -252,4 +268,62 @@ test("applyClassicEdits applies multiple edits in order", async () => {
 	const result = await ws.readText("/fake/file.ts");
 	assert.ok(result.includes("A"));
 	assert.ok(result.includes("C"));
+});
+
+test("applyClassicEdits orders same-file edits by original position", async () => {
+	const cwd = "/fake";
+	const ws = createVirtualWorkspace(cwd);
+	await ws.writeText("/fake/file.ts", "first\nmiddle\nlast\n");
+
+	await applyClassicEdits(
+		[
+			{ path: "file.ts", oldText: "last", newText: "LAST" },
+			{ path: "file.ts", oldText: "first", newText: "FIRST" },
+		],
+		ws,
+		cwd,
+	);
+
+	assert.equal(await ws.readText("/fake/file.ts"), "FIRST\nmiddle\nLAST\n");
+});
+
+test("applyClassicEdits applies duplicate replacements to distinct occurrences", async () => {
+	const cwd = "/fake";
+	const ws = createVirtualWorkspace(cwd);
+	await ws.writeText("/fake/file.ts", "foo\nfoo\n");
+
+	const results = await applyClassicEdits(
+		[
+			{ path: "file.ts", oldText: "foo", newText: "bar" },
+			{ path: "file.ts", oldText: "foo", newText: "bar" },
+		],
+		ws,
+		cwd,
+	);
+
+	assert.equal(results.length, 2);
+	assert.equal(results[0].success, true);
+	assert.equal(results[1].success, true);
+	assert.equal(await ws.readText("/fake/file.ts"), "bar\nbar\n");
+});
+
+test("applyClassicEdits skips redundant duplicate replacements", async () => {
+	const cwd = "/fake";
+	const ws = createVirtualWorkspace(cwd);
+	await ws.writeText("/fake/file.ts", "foo\n");
+
+	const results = await applyClassicEdits(
+		[
+			{ path: "file.ts", oldText: "foo", newText: "bar" },
+			{ path: "file.ts", oldText: "foo", newText: "bar" },
+		],
+		ws,
+		cwd,
+	);
+
+	assert.equal(results.length, 2);
+	assert.equal(results[0].success, true);
+	assert.equal(results[1].success, true);
+	assert.match(results[1].message, /Skipped redundant edit/);
+	assert.equal(await ws.readText("/fake/file.ts"), "bar\n");
 });
