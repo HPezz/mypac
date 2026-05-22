@@ -142,6 +142,7 @@ export function formatIssueWorktreeSummary(input: {
 	issueTitle: string;
 	branch: string;
 	path: string;
+	lwotTarget: string;
 }): string {
 	const status = input.created ? "Created worktree" : "Reusing existing worktree";
 	return [
@@ -150,7 +151,9 @@ export function formatIssueWorktreeSummary(input: {
 		`Path: ${input.path}`,
 		"",
 		"Next:",
-		`cd ${shellQuote(input.path)} && pi`,
+		"```sh",
+		`cd ${shellQuote(input.path)} && pi ${shellQuote(`/pac-lwot ${input.lwotTarget}`)}`,
+		"```",
 	].join("\n");
 }
 

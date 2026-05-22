@@ -37,6 +37,7 @@ Versioned sections should match the Git tags and GitHub releases published for t
 
 ### Changed
 
+- Improved `/worktree issue` feedback with progress notifications, a prominent next-command code block, and a suggested `pi` launch prompt that starts `/pac-lwot` for the issue. ([#272](https://github.com/ladislas/mypac/issues/272))
 - Taught implementation-oriented prompts to load `pac-tdd` selectively for behavior-changing work, bug fixes, and regression coverage. ([#210](https://github.com/ladislas/mypac/issues/210))
 - Preserved full-history `pac-librarian` checkouts during refreshes so upstream checkpoint range reviews are not re-shallowed after unshallowing. ([#232](https://github.com/ladislas/mypac/issues/232))
 - Taught `/ghi` issue creation to infer existing pac workflow state labels and warn users to run `/pac-setup-workflows` when expected labels are missing. ([#202](https://github.com/ladislas/mypac/issues/202))

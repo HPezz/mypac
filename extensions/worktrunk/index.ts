@@ -66,6 +66,7 @@ export default function worktrunkExtension(pi: ExtensionAPI): void {
 				return;
 			}
 
+			ctx.ui.notify(`Reading issue #${target.number} from ${repoResult.value}...`, "info");
 			const issueResult = await fetchIssue(pi, repoResult.value, target.number);
 			if (!issueResult.ok) {
 				ctx.ui.notify(issueResult.error, "error");
@@ -74,7 +75,8 @@ export default function worktrunkExtension(pi: ExtensionAPI): void {
 
 			const issue = issueResult.value;
 			const branch = buildIssueBranch(issue.number, issue.title);
-			const worktreeResult = await ensureWorktree(pi, branch);
+			ctx.ui.notify(`Preparing Worktrunk worktree for #${issue.number} on ${branch}...`, "info");
+			const worktreeResult = await ensureWorktree(pi, branch, (message) => ctx.ui.notify(message, "info"));
 			if (!worktreeResult.ok) {
 				ctx.ui.notify(worktreeResult.error, "error");
 				return;
@@ -87,6 +89,7 @@ export default function worktrunkExtension(pi: ExtensionAPI): void {
 					issueTitle: issue.title,
 					branch,
 					path: worktreeResult.value.path,
+					lwotTarget: target.kind === "url" ? issue.url : String(issue.number),
 				}),
 				"info",
 			);
@@ -127,7 +130,9 @@ async function fetchIssue(pi: ExtensionAPI, repo: string, number: number): Promi
 export async function ensureWorktree(
 	pi: ExtensionAPI,
 	branch: string,
+	onProgress?: (message: string) => void,
 ): Promise<CommandResult<{ created: boolean; path: string }>> {
+	onProgress?.("Checking Worktrunk worktrees...");
 	const before = await listWorktrees(pi);
 	if (!before.ok) return before;
 
@@ -137,10 +142,12 @@ export async function ensureWorktree(
 	}
 	if (existing?.path) return { ok: true, value: { created: false, path: existing.path } };
 
+	onProgress?.(`Creating Worktrunk worktree for ${branch}. This may run setup hooks...`);
 	const createArgs = ["switch", "--create", "--no-cd", "--yes", branch];
 	const create = await pi.exec("wt", createArgs, { timeout: 120_000 });
 	if (create.code !== 0) return { ok: false, error: formatExecError(`Could not create Worktrunk worktree for ${branch}`, create) };
 
+	onProgress?.("Verifying Worktrunk worktree...");
 	const after = await listWorktrees(pi);
 	if (!after.ok) return after;
 

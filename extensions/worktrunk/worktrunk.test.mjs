@@ -118,6 +118,7 @@ test("formats branch worktree summaries", () => {
 
 test("creates new worktrees with non-interactive hook approval", async () => {
 	const calls = [];
+	const progress = [];
 	const listBefore = JSON.stringify([{ branch: "main", path: "/repo" }]);
 	const listAfter = JSON.stringify([
 		{ branch: "main", path: "/repo" },
@@ -132,7 +133,7 @@ test("creates new worktrees with non-interactive hook approval", async () => {
 		},
 	};
 
-	const result = await ensureWorktree(pi, "ladislas/feature/85-work");
+	const result = await ensureWorktree(pi, "ladislas/feature/85-work", (message) => progress.push(message));
 
 	assert.deepEqual(result, {
 		ok: true,
@@ -142,6 +143,11 @@ test("creates new worktrees with non-interactive hook approval", async () => {
 		["wt", ["list", "--format=json"]],
 		["wt", ["switch", "--create", "--no-cd", "--yes", "ladislas/feature/85-work"]],
 		["wt", ["list", "--format=json"]],
+	]);
+	assert.deepEqual(progress, [
+		"Checking Worktrunk worktrees...",
+		"Creating Worktrunk worktree for ladislas/feature/85-work. This may run setup hooks...",
+		"Verifying Worktrunk worktree...",
 	]);
 });
 
@@ -210,7 +216,7 @@ test("reports an existing Worktrunk entry without a path before trying to create
 	assert.equal(calls.length, 1);
 });
 
-test("formats next Pi command with shell quoting", () => {
+test("formats next Pi command as a Markdown code block with an initial pac-lwot prompt", () => {
 	assert.equal(
 		formatIssueWorktreeSummary({
 			created: true,
@@ -218,6 +224,7 @@ test("formats next Pi command with shell quoting", () => {
 			issueTitle: "Adopt Worktrunk",
 			branch: "ladislas/feature/85-adopt-worktrunk",
 			path: "/tmp/my worktree",
+			lwotTarget: "85",
 		}),
 		[
 			"Created worktree for #85: Adopt Worktrunk",
@@ -225,7 +232,9 @@ test("formats next Pi command with shell quoting", () => {
 			"Path: /tmp/my worktree",
 			"",
 			"Next:",
-			"cd '/tmp/my worktree' && pi",
+			"```sh",
+			"cd '/tmp/my worktree' && pi '/pac-lwot 85'",
+			"```",
 		].join("\n"),
 	);
 });
