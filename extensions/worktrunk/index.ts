@@ -105,7 +105,7 @@ export async function ensureWorktree(pi: ExtensionAPI, branch: string): Promise<
 	}
 	if (existing?.path) return { ok: true, value: { created: false, path: existing.path } };
 
-	const create = await pi.exec("wt", ["switch", "--create", "--no-cd", branch], { timeout: 120_000 });
+	const create = await pi.exec("wt", ["switch", "--create", "--no-cd", "--yes", branch], { timeout: 120_000 });
 	if (create.code !== 0) return { ok: false, error: formatExecError(`Could not create Worktrunk worktree for ${branch}`, create) };
 
 	const after = await listWorktrees(pi);
