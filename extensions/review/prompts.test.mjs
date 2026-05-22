@@ -47,5 +47,7 @@ test("review summary prompt preserves separate review passes", async () => {
 	assert.match(prompt, /## Standards Findings/);
 	assert.match(prompt, /## Spec Findings/);
 	assert.match(prompt, /## Combined Fix Queue/);
+	assert.match(prompt, /This change adds or removes feature flags/);
+	assert.match(prompt, /This change changes configuration defaults/);
 	assert.match(prompt, /preserve.*separate/i);
 });
