@@ -5,6 +5,34 @@ export type IssueTarget =
 export type WorktrunkListEntry = {
 	branch: string | null;
 	path?: string;
+	isCurrent: boolean;
+	isMain: boolean;
+	mainState?: string;
+	commit?: {
+		shortSha?: string;
+		message?: string;
+	};
+	workingTree?: {
+		staged: boolean;
+		modified: boolean;
+		untracked: boolean;
+		renamed: boolean;
+		deleted: boolean;
+		diff?: {
+			added?: number;
+			deleted?: number;
+		};
+	};
+	main?: {
+		ahead?: number;
+		behind?: number;
+	};
+	remote?: {
+		name?: string;
+		branch?: string;
+		ahead?: number;
+		behind?: number;
+	};
 };
 
 export function parseIssueTarget(input: string): IssueTarget | null {
@@ -57,11 +85,51 @@ export function parseWorktrunkList(output: string): WorktrunkListEntry[] {
 
 	return parsed.map((item) => {
 		const record = item && typeof item === "object" ? (item as Record<string, unknown>) : {};
-		return {
+		const commit = parseRecord(record.commit);
+		const workingTree = parseRecord(record.working_tree);
+		const diff = parseRecord(workingTree?.diff);
+		const main = parseRecord(record.main);
+		const remote = parseRecord(record.remote);
+		const entry: WorktrunkListEntry = {
 			branch: typeof record.branch === "string" ? record.branch : null,
 			path: typeof record.path === "string" && record.path.length > 0 ? record.path : undefined,
+			isCurrent: record.is_current === true,
+			isMain: record.is_main === true,
 		};
+		if (typeof record.main_state === "string") entry.mainState = record.main_state;
+		if (commit) entry.commit = {
+			shortSha: typeof commit.short_sha === "string" ? commit.short_sha : undefined,
+			message: typeof commit.message === "string" ? commit.message : undefined,
+		};
+		if (workingTree) entry.workingTree = {
+			staged: workingTree.staged === true,
+			modified: workingTree.modified === true,
+			untracked: workingTree.untracked === true,
+			renamed: workingTree.renamed === true,
+			deleted: workingTree.deleted === true,
+			diff: diff
+				? {
+					added: typeof diff.added === "number" ? diff.added : undefined,
+					deleted: typeof diff.deleted === "number" ? diff.deleted : undefined,
+				}
+				: undefined,
+		};
+		if (main) entry.main = {
+			ahead: typeof main.ahead === "number" ? main.ahead : undefined,
+			behind: typeof main.behind === "number" ? main.behind : undefined,
+		};
+		if (remote) entry.remote = {
+			name: typeof remote.name === "string" ? remote.name : undefined,
+			branch: typeof remote.branch === "string" ? remote.branch : undefined,
+			ahead: typeof remote.ahead === "number" ? remote.ahead : undefined,
+			behind: typeof remote.behind === "number" ? remote.behind : undefined,
+		};
+		return entry;
 	});
+}
+
+function parseRecord(value: unknown): Record<string, unknown> | undefined {
+	return value && typeof value === "object" ? (value as Record<string, unknown>) : undefined;
 }
 
 export function findWorktreeByBranch(entries: WorktrunkListEntry[], branch: string): WorktrunkListEntry | undefined {
@@ -84,6 +152,81 @@ export function formatIssueWorktreeSummary(input: {
 		"Next:",
 		`cd ${shellQuote(input.path)} && pi`,
 	].join("\n");
+}
+
+export function formatBranchWorktreeSummary(input: { created: boolean; branch: string; path: string }): string {
+	const status = input.created ? "Created worktree" : "Reusing existing worktree";
+	return [
+		`${status} for branch: ${input.branch}`,
+		`Path: ${input.path}`,
+		"",
+		"Next:",
+		`cd ${shellQuote(input.path)} && pi`,
+	].join("\n");
+}
+
+export function formatWorktreeList(entries: WorktrunkListEntry[]): string {
+	if (entries.length === 0) return "No Worktrunk worktrees found.";
+
+	return [
+		"Worktrunk worktrees:",
+		...entries.map((entry) => {
+			const branch = entry.branch ?? "(detached)";
+			const suffix = entry.isCurrent ? " (current)" : entry.isMain ? " (main)" : "";
+			if (!entry.path) return `- ${branch}${suffix}\n  Path: unavailable`;
+			return [`- ${branch}${suffix}`, `  Path: ${entry.path}`, `  Next: cd ${shellQuote(entry.path)} && pi`].join("\n");
+		}),
+	].join("\n");
+}
+
+export function formatCurrentWorktreeStatus(entries: WorktrunkListEntry[]): string {
+	const current = entries.find((entry) => entry.isCurrent);
+	if (!current) return "Could not identify the current Worktrunk worktree from wt list output.";
+
+	return [
+		"Current Worktrunk worktree:",
+		`Branch: ${current.branch ?? "(detached)"}`,
+		`Path: ${current.path ?? "unavailable"}`,
+		formatRelation(current),
+		formatCommit(current),
+		formatDirtyState(current),
+	].filter(Boolean).join("\n");
+}
+
+function formatRelation(entry: WorktrunkListEntry): string | undefined {
+	if (entry.remote) {
+		const name = [entry.remote.name, entry.remote.branch].filter(Boolean).join("/") || "remote";
+		return `Remote: ${name} (${formatAheadBehind(entry.remote)})`;
+	}
+	if (entry.main) {
+		const state = entry.mainState ? `, state: ${entry.mainState}` : "";
+		return `Main: ${formatAheadBehind(entry.main)}${state}`;
+	}
+	return entry.mainState ? `Main state: ${entry.mainState}` : undefined;
+}
+
+function formatCommit(entry: WorktrunkListEntry): string | undefined {
+	if (!entry.commit?.shortSha && !entry.commit?.message) return undefined;
+	return `Commit: ${[entry.commit.shortSha, entry.commit.message].filter(Boolean).join(" - ")}`;
+}
+
+function formatDirtyState(entry: WorktrunkListEntry): string {
+	const tree = entry.workingTree;
+	if (!tree) return "Dirty: unknown";
+
+	const flags = [
+		tree.staged ? "staged" : undefined,
+		tree.modified ? "modified" : undefined,
+		tree.untracked ? "untracked" : undefined,
+		tree.renamed ? "renamed" : undefined,
+		tree.deleted ? "deleted" : undefined,
+	].filter(Boolean);
+	const diff = tree.diff && (tree.diff.added || tree.diff.deleted) ? ` (+${tree.diff.added ?? 0}/-${tree.diff.deleted ?? 0})` : "";
+	return `Dirty: ${flags.length > 0 ? flags.join(", ") : "clean"}${diff}`;
+}
+
+function formatAheadBehind(relation: { ahead?: number; behind?: number }): string {
+	return `ahead ${relation.ahead ?? 0}, behind ${relation.behind ?? 0}`;
 }
 
 function shellQuote(value: string): string {

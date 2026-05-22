@@ -2,7 +2,10 @@ import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import {
 	buildIssueBranch,
 	findWorktreeByBranch,
+	formatBranchWorktreeSummary,
+	formatCurrentWorktreeStatus,
 	formatIssueWorktreeSummary,
+	formatWorktreeList,
 	parseIssueTarget,
 	parseWorktrunkList,
 } from "./helpers.ts";
@@ -20,8 +23,34 @@ export default function worktrunkExtension(pi: ExtensionAPI): void {
 		description: "Manage Worktrunk worktrees",
 		handler: async (args, ctx) => {
 			const tokens = (args ?? "").trim().split(/\s+/).filter(Boolean);
-			if (tokens[0] !== "issue") {
-				ctx.ui.notify("Usage: /worktree issue <issue-number-or-url>", "info");
+			const command = tokens[0];
+
+			if (command === "list" || command === "ls") {
+				const result = await listWorktrees(pi);
+				ctx.ui.notify(result.ok ? formatWorktreeList(result.value) : result.error, result.ok ? "info" : "error");
+				return;
+			}
+
+			if (command === "status") {
+				const result = await listWorktrees(pi);
+				ctx.ui.notify(result.ok ? formatCurrentWorktreeStatus(result.value) : result.error, result.ok ? "info" : "error");
+				return;
+			}
+
+			if (command === "branch") {
+				const branch = tokens.slice(1).join(" ").trim();
+				if (!branch) {
+					ctx.ui.notify("Usage: /worktree branch <branch>", "error");
+					return;
+				}
+
+				const result = await ensureWorktree(pi, branch);
+				ctx.ui.notify(result.ok ? formatBranchWorktreeSummary({ ...result.value, branch }) : result.error, result.ok ? "info" : "error");
+				return;
+			}
+
+			if (command !== "issue") {
+				ctx.ui.notify("Usage: /worktree <issue|branch|list|ls|status> [...args]", "info");
 				return;
 			}
 
@@ -95,7 +124,10 @@ async function fetchIssue(pi: ExtensionAPI, repo: string, number: number): Promi
 	}
 }
 
-export async function ensureWorktree(pi: ExtensionAPI, branch: string): Promise<CommandResult<{ created: boolean; path: string }>> {
+export async function ensureWorktree(
+	pi: ExtensionAPI,
+	branch: string,
+): Promise<CommandResult<{ created: boolean; path: string }>> {
 	const before = await listWorktrees(pi);
 	if (!before.ok) return before;
 
@@ -105,7 +137,8 @@ export async function ensureWorktree(pi: ExtensionAPI, branch: string): Promise<
 	}
 	if (existing?.path) return { ok: true, value: { created: false, path: existing.path } };
 
-	const create = await pi.exec("wt", ["switch", "--create", "--no-cd", "--yes", branch], { timeout: 120_000 });
+	const createArgs = ["switch", "--create", "--no-cd", "--yes", branch];
+	const create = await pi.exec("wt", createArgs, { timeout: 120_000 });
 	if (create.code !== 0) return { ok: false, error: formatExecError(`Could not create Worktrunk worktree for ${branch}`, create) };
 
 	const after = await listWorktrees(pi);

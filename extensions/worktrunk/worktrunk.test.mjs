@@ -4,6 +4,9 @@ import {
 	buildIssueBranch,
 	findWorktreeByBranch,
 	formatIssueWorktreeSummary,
+	formatBranchWorktreeSummary,
+	formatCurrentWorktreeStatus,
+	formatWorktreeList,
 	parseIssueTarget,
 	parseWorktrunkList,
 	slugifyIssueTitle,
@@ -49,13 +52,68 @@ test("parses Worktrunk list output", () => {
 	])}\n`);
 
 	assert.deepEqual(entries, [
-		{ branch: "main", path: "/repo" },
-		{ branch: "ladislas/feature/85-work", path: "/repo/.worktrees/85-work" },
+		{ branch: "main", path: "/repo", isCurrent: true, isMain: false },
+		{ branch: "ladislas/feature/85-work", path: "/repo/.worktrees/85-work", isCurrent: false, isMain: false },
 	]);
 	assert.deepEqual(findWorktreeByBranch(entries, "ladislas/feature/85-work"), {
 		branch: "ladislas/feature/85-work",
 		path: "/repo/.worktrees/85-work",
+		isCurrent: false,
+		isMain: false,
 	});
+});
+
+test("parses and renders Worktrunk list details", () => {
+	const entries = parseWorktrunkList(JSON.stringify([
+		{
+			branch: "ladislas/feature/270-work",
+			path: "/repo/.worktrees/270-work",
+			is_current: true,
+			commit: { short_sha: "abc1234", message: "Add worktree commands" },
+			working_tree: { staged: false, modified: true, untracked: true, renamed: false, deleted: false, diff: { added: 3, deleted: 1 } },
+			main_state: "ahead",
+			main: { ahead: 1, behind: 0 },
+		},
+		{ branch: "main", path: "/repo", is_main: true },
+	]));
+
+	assert.equal(
+		formatWorktreeList(entries),
+		[
+			"Worktrunk worktrees:",
+			"- ladislas/feature/270-work (current)",
+			"  Path: /repo/.worktrees/270-work",
+			"  Next: cd /repo/.worktrees/270-work && pi",
+			"- main (main)",
+			"  Path: /repo",
+			"  Next: cd /repo && pi",
+		].join("\n"),
+	);
+
+	assert.equal(
+		formatCurrentWorktreeStatus(entries),
+		[
+			"Current Worktrunk worktree:",
+			"Branch: ladislas/feature/270-work",
+			"Path: /repo/.worktrees/270-work",
+			"Main: ahead 1, behind 0, state: ahead",
+			"Commit: abc1234 - Add worktree commands",
+			"Dirty: modified, untracked (+3/-1)",
+		].join("\n"),
+	);
+});
+
+test("formats branch worktree summaries", () => {
+	assert.equal(
+		formatBranchWorktreeSummary({ created: false, branch: "ladislas/feature/manual-work", path: "/tmp/manual work" }),
+		[
+			"Reusing existing worktree for branch: ladislas/feature/manual-work",
+			"Path: /tmp/manual work",
+			"",
+			"Next:",
+			"cd '/tmp/manual work' && pi",
+		].join("\n"),
+	);
 });
 
 test("creates new worktrees with non-interactive hook approval", async () => {
@@ -85,6 +143,48 @@ test("creates new worktrees with non-interactive hook approval", async () => {
 		["wt", ["switch", "--create", "--no-cd", "--yes", "ladislas/feature/85-work"]],
 		["wt", ["list", "--format=json"]],
 	]);
+});
+
+test("creates branch worktrees with non-interactive hook approval", async () => {
+	const calls = [];
+	const pi = {
+		async exec(command, args) {
+			calls.push([command, args]);
+			if (calls.length === 1) return { code: 0, stdout: JSON.stringify([{ branch: "main", path: "/repo" }]), stderr: "" };
+			if (calls.length === 2) return { code: 0, stdout: "", stderr: "" };
+			return { code: 0, stdout: JSON.stringify([{ branch: "ladislas/feature/manual-work", path: "/repo/.worktrees/manual-work" }]), stderr: "" };
+		},
+	};
+
+	const result = await ensureWorktree(pi, "ladislas/feature/manual-work");
+
+	assert.deepEqual(result, {
+		ok: true,
+		value: { created: true, path: "/repo/.worktrees/manual-work" },
+	});
+	assert.deepEqual(calls[1], ["wt", ["switch", "--create", "--no-cd", "--yes", "ladislas/feature/manual-work"]]);
+});
+
+test("reuses existing worktrees without creating", async () => {
+	const calls = [];
+	const pi = {
+		async exec(command, args) {
+			calls.push([command, args]);
+			return {
+				code: 0,
+				stdout: JSON.stringify([{ branch: "ladislas/feature/manual-work", path: "/repo/.worktrees/manual-work" }]),
+				stderr: "",
+			};
+		},
+	};
+
+	const result = await ensureWorktree(pi, "ladislas/feature/manual-work");
+
+	assert.deepEqual(result, {
+		ok: true,
+		value: { created: false, path: "/repo/.worktrees/manual-work" },
+	});
+	assert.deepEqual(calls, [["wt", ["list", "--format=json"]]]);
 });
 
 test("reports an existing Worktrunk entry without a path before trying to create", async () => {
