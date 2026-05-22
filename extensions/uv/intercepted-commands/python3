@@ -1,5 +1,4 @@
 #!/bin/bash
-# Original source: https://github.com/mitsuhiko/agent-stuff/blob/main/intercepted-commands/python3
 
 # Check uv is available before anything else
 if ! command -v uv >/dev/null 2>&1; then

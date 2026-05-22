@@ -10,8 +10,6 @@ metadata:
 
 # GitHub Skill
 
-<!-- Original source: https://github.com/mitsuhiko/agent-stuff/blob/main/skills/github/SKILL.md -->
-
 Use the `gh` CLI to interact with GitHub. Always specify `--repo owner/repo` when not in a git directory, or use URLs directly.
 
 ## Pull Requests

@@ -15,6 +15,7 @@ This model defines the vocabulary for `.pac/upstream-sources.yaml` and `/pac-ups
 - `skill`: one local skill directory under `skills/`.
 - `extension`: one local extension directory under `extensions/`.
 - `prompt`: one local prompt file under `prompts/`.
+- `theme`: one local theme file under `themes/`.
 - `document`: one standalone document with active upstream tracking.
 - `script`: one standalone script with active upstream tracking.
 

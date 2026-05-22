@@ -1,6 +1,5 @@
 /**
  * Multi-Edit Extension — replaces the built-in `edit` tool.
- * Original source: https://github.com/mitsuhiko/agent-stuff/blob/main/extensions/multi-edit.ts
  *
  * Supports all original parameters (path, oldText, newText) plus:
  * - `multi`: array of {path, oldText, newText} edits applied in sequence

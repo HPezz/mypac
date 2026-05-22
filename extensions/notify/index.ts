@@ -1,5 +1,4 @@
 /**
- * Original source: https://github.com/mitsuhiko/agent-stuff/blob/main/extensions/notify.ts
  * Additional reference: https://github.com/ferologics/pi-notify/blob/master/index.ts
  *
  * Sends a terminal desktop notification when Pi is ready for input.

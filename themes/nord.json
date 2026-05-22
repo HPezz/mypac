@@ -1,6 +1,5 @@
 {
   "$schema": "https://raw.githubusercontent.com/badlogic/pi-mono/main/packages/coding-agent/src/modes/interactive/theme/theme-schema.json",
-  "$comment": "Original source: https://github.com/ifiokjr/oh-pi/blob/main/packages/themes/themes/nord.json",
   "name": "nord",
   "vars": {
     "nord0": "#2e3440", "nord1": "#3b4252", "nord2": "#434c5e", "nord3": "#4c566a",

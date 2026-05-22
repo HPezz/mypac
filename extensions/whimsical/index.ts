@@ -1,5 +1,4 @@
 /**
- * Original source: https://github.com/mitsuhiko/agent-stuff/blob/main/extensions/whimsical.ts
  */
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { pickRandom } from "./helpers.ts";

@@ -1,5 +1,4 @@
 /**
- * Original source: https://github.com/mitsuhiko/agent-stuff/blob/main/extensions/btw.ts
  */
 import { existsSync } from "node:fs";
 import path from "node:path";

@@ -1,6 +1,5 @@
 /**
  * Q&A extraction hook - extracts questions from assistant responses
- * Original source: https://github.com/mitsuhiko/agent-stuff/blob/main/extensions/answer.ts
  *
  * Custom interactive TUI for answering questions.
  *

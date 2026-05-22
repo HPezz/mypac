@@ -10,8 +10,6 @@ metadata:
 
 # Use uv for Python workflows
 
-<!-- Original source: https://github.com/mitsuhiko/agent-stuff/blob/main/skills/uv/SKILL.md -->
-
 ## Quick Reference
 
 ```bash
