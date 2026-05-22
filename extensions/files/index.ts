@@ -1,6 +1,5 @@
 /**
  * Files Extension
- * Original source: https://github.com/mitsuhiko/agent-stuff/blob/main/extensions/files.ts
  *
  * /files command lists files in the current git tree (plus session-referenced files)
  * and offers quick actions like reveal, open, edit, or diff.

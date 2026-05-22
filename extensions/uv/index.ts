@@ -1,6 +1,5 @@
 /**
  * UV Extension - Redirects Python tooling to uv equivalents
- * Original source: https://github.com/mitsuhiko/agent-stuff/blob/main/extensions/uv.ts
  *
  * This extension wraps the bash tool to prepend uv's intercepted-commands to PATH,
  * which contains shim scripts that intercept common Python tooling commands

@@ -34,7 +34,7 @@ local_artifacts:
     attribution:
       upstream: mitsuhiko/agent-stuff
       license: Review upstream repository before copying new code.
-      notes: Local file includes original-source credit; README gives broad credit.
+      notes: Registry carries the source credit; README gives broad credit.
     known_divergence:
       - Local extension layout may differ from upstream single-file extension layout.
 
@@ -65,7 +65,7 @@ local_artifacts:
     attribution:
       upstream: mitsuhiko/agent-stuff
       license: Review upstream repository before copying new code.
-      notes: Local file includes original-source credit; README gives broad credit.
+      notes: Registry carries the source credit; README gives broad credit.
     known_divergence:
       - Local extension layout may differ from upstream single-file extension layout.
 
@@ -96,7 +96,7 @@ local_artifacts:
     attribution:
       upstream: mitsuhiko/agent-stuff
       license: Review upstream repository before copying new code.
-      notes: Local file includes original-source credit; README gives broad credit.
+      notes: Registry carries the source credit; README gives broad credit.
     known_divergence:
       - Local extension layout may differ from upstream single-file extension layout.
 
@@ -127,7 +127,7 @@ local_artifacts:
     attribution:
       upstream: mitsuhiko/agent-stuff
       license: Review upstream repository before copying new code.
-      notes: Local file includes original-source credit; README gives broad credit.
+      notes: Registry carries the source credit; README gives broad credit.
     known_divergence:
       - Local extension layout may differ from upstream single-file extension layout.
 
@@ -158,7 +158,7 @@ local_artifacts:
     attribution:
       upstream: mitsuhiko/agent-stuff
       license: Review upstream repository before copying new code.
-      notes: Local file includes original-source credit; README gives broad credit.
+      notes: Registry carries the source credit; README gives broad credit.
     known_divergence:
       - Local extension layout differs from upstream single-file extension layout to allow tested helper modules.
 
@@ -189,7 +189,7 @@ local_artifacts:
     attribution:
       upstream: mitsuhiko/agent-stuff
       license: Review upstream repository before copying new code.
-      notes: Local file includes original-source credit; README gives broad credit.
+      notes: Registry carries the source credit; README gives broad credit.
     known_divergence:
       - Local extension layout may differ from upstream single-file extension layout.
 
@@ -208,8 +208,13 @@ local_artifacts:
         ref: main
         paths:
           - extensions/uv.ts
+          - intercepted-commands/pip
+          - intercepted-commands/pip3
+          - intercepted-commands/poetry
+          - intercepted-commands/python
+          - intercepted-commands/python3
         attribution:
-          upstream: mitsuhiko/agent-stuff/extensions/uv.ts
+          upstream: mitsuhiko/agent-stuff/extensions/uv.ts and intercepted-commands/*
           license: Review upstream repository before copying new code.
           notes: Local extension may be split into helper modules and tests to satisfy mypac extension layout rules.
         last_reviewed:
@@ -220,7 +225,7 @@ local_artifacts:
     attribution:
       upstream: mitsuhiko/agent-stuff
       license: Review upstream repository before copying new code.
-      notes: Local file includes original-source credit; README gives broad credit.
+      notes: Registry carries the source credit; README gives broad credit.
     known_divergence:
       - Local extension layout may differ from upstream single-file extension layout.
 
@@ -251,7 +256,7 @@ local_artifacts:
     attribution:
       upstream: mitsuhiko/agent-stuff
       license: Review upstream repository before copying new code.
-      notes: Local file includes original-source credit; README gives broad credit.
+      notes: Registry carries the source credit; README gives broad credit.
     known_divergence:
       - Local extension layout may differ from upstream single-file extension layout.
 
@@ -305,6 +310,81 @@ local_artifacts:
     do_not_chase:
       - "Per #118 and PR #190, do not chase wholesale feature parity with upstream review implementations."
       - Missing upstream loop-fixing, custom-persistence, broad local-changes review, or other removed complexity is intentional unless a concrete prompt, rubric, bugfix, or robustness change is identified.
+
+  - id: pi-theme-nightowl
+    title: Night Owl theme
+    kind: theme
+    local:
+      paths:
+        - themes/nightowl.json
+    upstream_refs:
+      - id: agent-stuff-nightowl-theme
+        role: source_adaptation
+        status: active
+        sync_policy: targeted
+        repo: https://github.com/mitsuhiko/agent-stuff
+        ref: main
+        paths:
+          - themes/nightowl.json
+        attribution:
+          upstream: mitsuhiko/agent-stuff/themes/nightowl.json
+          license: Review upstream repository before copying new theme values.
+          notes: Local theme tracks the Agent Stuff Night Owl theme as its source adaptation.
+        last_reviewed:
+          upstream_commit: null
+          checkpoint_issue: null
+          reviewed_at: null
+          notes: Registered from #263 after moving inline theme provenance into the registry.
+
+  - id: pi-theme-nord
+    title: Nord theme
+    kind: theme
+    local:
+      paths:
+        - themes/nord.json
+    upstream_refs:
+      - id: oh-pi-nord-theme
+        role: source_adaptation
+        status: active
+        sync_policy: targeted
+        repo: https://github.com/ifiokjr/oh-pi
+        ref: main
+        paths:
+          - packages/themes/themes/nord.json
+        attribution:
+          upstream: ifiokjr/oh-pi/packages/themes/themes/nord.json
+          license: Review upstream repository before copying new theme values.
+          notes: Local theme tracks the oh-pi Nord theme as its source adaptation.
+        last_reviewed:
+          upstream_commit: null
+          checkpoint_issue: null
+          reviewed_at: null
+          notes: Registered from #263 after moving inline theme provenance into the registry.
+
+  - id: pi-theme-gruvbox-dark
+    title: Gruvbox Dark theme
+    kind: theme
+    local:
+      paths:
+        - themes/gruvbox-dark.json
+    upstream_refs:
+      - id: oh-pi-gruvbox-dark-theme
+        role: source_adaptation
+        status: active
+        sync_policy: targeted
+        repo: https://github.com/ifiokjr/oh-pi
+        ref: main
+        paths:
+          - packages/themes/themes/gruvbox-dark.json
+        attribution:
+          upstream: ifiokjr/oh-pi/packages/themes/themes/gruvbox-dark.json
+          license: Review upstream repository before copying new theme values.
+          notes: Local theme tracks the oh-pi Gruvbox Dark theme as its source adaptation.
+        last_reviewed:
+          upstream_commit: null
+          checkpoint_issue: null
+          reviewed_at: null
+          notes: Registered from #263 after moving inline theme provenance into the registry.
 
   - id: pi-skill-review
     title: Review skill

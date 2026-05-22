@@ -10,8 +10,6 @@ metadata:
 
 # Cache remote repository checkouts
 
-<!-- Original source: https://github.com/mitsuhiko/agent-stuff/blob/main/skills/librarian/SKILL.md -->
-
 Use this skill when the user points you to a remote git repository (GitHub/GitLab/Bitbucket URLs, `git@...`, or `owner/repo` shorthand).
 
 The goal is to keep a reusable local checkout that is:

@@ -1,6 +1,5 @@
 /**
- * Code Review Extension (inspired by Codex's review feature)
- * Original source: https://github.com/mitsuhiko/agent-stuff/blob/main/extensions/review.ts
+ * Code Review Extension
  *
  * Provides a `/review-start` command that prompts the agent to review code changes.
  * Supports two review modes:

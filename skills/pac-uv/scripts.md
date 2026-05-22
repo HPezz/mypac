@@ -1,7 +1,5 @@
 # Running Scripts with uv
 
-<!-- Original source: https://github.com/mitsuhiko/agent-stuff/blob/main/skills/uv/scripts.md -->
-
 ## Basic Usage
 
 ```bash

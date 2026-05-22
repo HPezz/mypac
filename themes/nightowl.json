@@ -1,6 +1,5 @@
 {
 	"$schema": "https://raw.githubusercontent.com/badlogic/pi-mono/main/packages/coding-agent/theme-schema.json",
-	"$comment": "Original source: https://github.com/mitsuhiko/agent-stuff/blob/main/themes/nightowl.json",
 	"name": "nightowl",
 	"vars": {
 		"cyan": "#7fdbca",

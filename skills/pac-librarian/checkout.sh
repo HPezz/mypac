@@ -1,5 +1,4 @@
 #!/usr/bin/env bash
-# Original source: https://github.com/mitsuhiko/agent-stuff/blob/main/skills/librarian/checkout.sh
 set -euo pipefail
 
 usage() {

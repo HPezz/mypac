@@ -1,7 +1,5 @@
 # uv Build Backend
 
-<!-- Original source: https://github.com/mitsuhiko/agent-stuff/blob/main/skills/uv/build.md -->
-
 Use `uv_build` for pure Python packages. For extension modules, use `hatchling` instead.
 
 ## pyproject.toml
