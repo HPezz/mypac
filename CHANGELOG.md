@@ -10,6 +10,7 @@ Versioned sections should match the Git tags and GitHub releases published for t
 
 ### Added
 
+- Added a repo-local Worktrunk extension with `/worktree issue <issue-number-or-url>`, issue-derived branch names, create-or-reuse behavior, Worktrunk `pre-start` setup hooks, and workflow documentation for parallel Pi issue work. ([#85](https://github.com/ladislas/mypac/issues/85))
 - Added a custom Pi footer extension with write-cache token totals, provider-qualified model labels, context/budget threshold coloring, Codex/Copilot/Claude usage bars, and no default auto-compaction percentage segment. ([#265](https://github.com/ladislas/mypac/issues/265))
 - Added hooks that block `fixup!` commits from being merged or pushed into `main` through the local workflow. ([#259](https://github.com/ladislas/mypac/issues/259))
 - Added optional Standards + Spec follow-up review support with a dedicated `pac-review-standards-spec` skill and `/review-end` summaries that preserve default, standards, and spec findings separately. ([#255](https://github.com/ladislas/mypac/issues/255))

@@ -1,0 +1,8 @@
+[[pre-start]]
+trust = "mise trust"
+
+[[pre-start]]
+mise = "mise install"
+
+[[pre-start]]
+deps = "npm ci"
