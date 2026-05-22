@@ -126,6 +126,8 @@ Include only applicable callouts (no yes/no lines):
 - **This change modifies auth/permission behavior:** <what changed and where>
 - **This change introduces backwards-incompatible public schema/API/contract changes:** <what changed and where>
 - **This change includes irreversible or destructive operations:** <operation and scope>
+- **This change adds or removes feature flags:** <feature flags changed> (call out re-use of dormant feature flags!)
+- **This change changes configuration defaults:** <config var changed>
 
 Rules for this section:
 
