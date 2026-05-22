@@ -27,8 +27,15 @@ Agents/clankers must never force push to this repository. Force pushing rewrites
 
 Branches follow the pattern: `<firstname>/<type>/<topic-more_info>`
 
+For work that originates from a GitHub issue, include the issue number in the topic:
+
+```text
+<firstname>/<type>/<issue-number>-<topic-more_info>
+```
+
 - Types: `feature`, `release`, `bugfix`
-- Example: `ladislas/feature/dark-mode_ui`
+- Non-issue example: `ladislas/feature/dark-mode_ui`
+- Issue-backed example: `ladislas/feature/85-worktrunk_issue_worktrees`
 
 Always create a branch — keep `main` clean.
 
