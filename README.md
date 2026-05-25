@@ -2,7 +2,7 @@
 
 **mypac** stands for **My Personal AI Config**.
 
-It is an opinionated package of reusable **Pi** assets: extensions, prompts, and skills for coding workflows.
+It is an opinionated package of reusable **Pi** assets: extensions, prompts, skills, and personas for coding workflows.
 This repo is both my personal lab and a browsable catalog for people who want to discover, copy, or install useful Pi building blocks.
 
 It is set up to be used with **[pi](https://github.com/badlogic/pi-mono/tree/main/packages/pi-coding-agent)**.
@@ -14,6 +14,7 @@ If you are evaluating this repository, the main things to look at are:
 - **Extensions** that add Pi commands, tools, UI flows, and workflow guardrails
 - **Skills** that encode repeatable repo and GitHub workflows
 - **Prompts** that turn common work modes into slash commands
+- **Personas** that can be enabled at runtime for reusable communication and judgment style
 
 In short: this is a small shop of reusable Pi assets for planning, implementation, review, GitHub work, and day-to-day repo operations.
 
@@ -35,6 +36,7 @@ For readability, the skill table below drops the `pac-` prefix in the display la
 | [`files`](extensions/files/) | `/files`, shortcuts | Browses repo and session files, with quick actions like open, reveal, diff, edit, and add to prompt |
 | [`ghi`](extensions/ghi/) | `/ghi` | Creates a GitHub issue in the current repository using `gh` |
 | [`multi-edit`](extensions/multi-edit/) | `edit` tool override | Extends Pi's `edit` tool with batch edits and Codex-style patch support |
+| [`personas`](extensions/personas/) | `/persona` | Lists, enables, and disables reusable persona prompt content from [`personas/`](personas/) |
 | [`review`](extensions/review/) | `/review-start`, `/review-end` | Reviews uncommitted changes, commits, branches, PRs, or folders from inside Pi |
 | [`session-breakdown`](extensions/session-breakdown/) | `/session-breakdown` | Shows local Pi session usage, cost, model, directory, and cache/context statistics without printing raw transcripts |
 | [`session-names`](extensions/session-names/) | background behavior | Names `/pac-lwot` sessions from the work context you provide |
@@ -157,6 +159,7 @@ The main Pi resource directories in this repository are:
 - `prompts/`
 - `extensions/`
 - `skills/`
+- `personas/` (loaded by the `personas` extension, not directly by Pi)
 
 ## Ask Pi to do the first-time setup
 
