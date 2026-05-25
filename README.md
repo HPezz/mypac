@@ -36,6 +36,7 @@ For readability, the skill table below drops the `pac-` prefix in the display la
 | [`ghi`](extensions/ghi/) | `/ghi` | Creates a GitHub issue in the current repository using `gh` |
 | [`multi-edit`](extensions/multi-edit/) | `edit` tool override | Extends Pi's `edit` tool with batch edits and Codex-style patch support |
 | [`review`](extensions/review/) | `/review-start`, `/review-end` | Reviews uncommitted changes, commits, branches, PRs, or folders from inside Pi |
+| [`session-breakdown`](extensions/session-breakdown/) | `/session-breakdown` | Shows local Pi session usage, cost, model, directory, and cache/context statistics without printing raw transcripts |
 | [`session-names`](extensions/session-names/) | background behavior | Names `/pac-lwot` sessions from the work context you provide |
 | [`shared-append-system`](extensions/shared-append-system/) | background behavior | Injects shared append-system instructions into the session system prompt |
 | [`slidedeck`](extensions/slidedeck/) | `/pac-slidedeck` | Generates a self-contained HTML slidedeck and saves it under `~/.pi/agent/slidedecks/` instead of the repo workspace |
