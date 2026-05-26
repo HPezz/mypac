@@ -254,5 +254,5 @@ function buildUsageParts(usage: FooterProviderUsage, theme: any): { left: string
 		const reset = window.resetsIn ? ` ${window.resetsIn}` : "";
 		windows.push(`${theme.fg("dim", window.label)} ${renderUsageBar(window.usedPercent, theme)} ${theme.fg("dim", pct + reset)}`);
 	}
-	return { left: theme.fg("dim", "usage ") + theme.fg("accent", usage.provider), windows };
+	return { left: theme.fg("accent", usage.provider) + theme.fg("dim", " usage"), windows };
 }

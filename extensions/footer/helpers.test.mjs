@@ -7,6 +7,7 @@ import {
 	formatStatusSegment,
 	getBudgetColor,
 	getContextColor,
+	renderProviderUsageLines,
 	sumUsageFromEntries,
 } from "./helpers.ts";
 
@@ -68,4 +69,12 @@ test("context color warns before and turns red at the fixed 120k dumb zone", () 
 	assert.equal(getContextColor(71_999), "success");
 	assert.equal(getContextColor(72_000), "warning");
 	assert.equal(getContextColor(120_000), "error");
+});
+
+test("provider usage label puts provider before usage", () => {
+	const theme = { fg: (_color, text) => text };
+	const [line] = renderProviderUsageLines({ provider: "Codex", windows: [{ label: "5h", usedPercent: 25 }] }, 80, theme);
+
+	assert.match(line, /^Codex usage\b/);
+	assert.doesNotMatch(line, /^usage Codex\b/);
 });
