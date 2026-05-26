@@ -7,6 +7,8 @@ import {
 	formatStatusSegment,
 	getBudgetColor,
 	getContextColor,
+	renderFooterLines,
+	renderProviderUsageLines,
 	sumUsageFromEntries,
 } from "./helpers.ts";
 
@@ -68,4 +70,36 @@ test("context color warns before and turns red at the fixed 120k dumb zone", () 
 	assert.equal(getContextColor(71_999), "success");
 	assert.equal(getContextColor(72_000), "warning");
 	assert.equal(getContextColor(120_000), "error");
+});
+
+test("provider usage label puts provider before usage", () => {
+	const theme = { fg: (_color, text) => text };
+	const [line] = renderProviderUsageLines({ provider: "Codex", windows: [{ label: "5h", usedPercent: 25 }] }, 80, theme);
+
+	assert.match(line, /^Codex usage\b/);
+	assert.doesNotMatch(line, /^usage Codex\b/);
+});
+
+test("provider usage label uses current thinking level color", () => {
+	const theme = { fg: (color, text) => `<${color}>${text}</${color}>` };
+	const [line] = renderProviderUsageLines({ provider: "Codex", windows: [{ label: "5h", usedPercent: 25 }] }, 120, theme, "high");
+
+	assert.match(line, /^<thinkingHigh>Codex<\/thinkingHigh><dim> usage<\/dim>/);
+});
+
+test("written thinking level uses current thinking level color", () => {
+	const theme = { fg: (color, text) => `<${color}>${text}</${color}>` };
+	const lines = renderFooterLines(
+		{
+			usage: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, totalCost: 0 },
+			usingSubscription: false,
+			model: { provider: "openai-codex", id: "gpt-5.5", reasoning: true },
+			thinkingLevel: "high",
+		},
+		120,
+		theme,
+	);
+
+	assert.match(lines.join("\n"), /<thinkingHigh>high<\/thinkingHigh>/);
+	assert.doesNotMatch(lines.join("\n"), /<accent>high<\/accent>/);
 });
