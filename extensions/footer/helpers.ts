@@ -94,6 +94,25 @@ export function getContextColor(tokens: number): "success" | "warning" | "error"
 	return "success";
 }
 
+function getThinkingColor(thinkingLevel?: string): string {
+	switch (thinkingLevel) {
+		case "off":
+			return "thinkingOff";
+		case "minimal":
+			return "thinkingMinimal";
+		case "low":
+			return "thinkingLow";
+		case "medium":
+			return "thinkingMedium";
+		case "high":
+			return "thinkingHigh";
+		case "xhigh":
+			return "thinkingXhigh";
+		default:
+			return "accent";
+	}
+}
+
 export function formatModelName(model?: FooterModelRef, _thinkingLevel?: string): string {
 	if (!model?.id) return "no-model";
 	const provider = model.provider ? `${model.provider}/` : "";
@@ -145,7 +164,7 @@ export function renderFooterLines(data: FooterRenderData, width: number, theme: 
 	const contextPercent = buildContextPercentSegment(data, theme);
 	const statusWithPercent = [status, contextPercent].filter((segment): segment is string => Boolean(segment)).join(" ");
 	const budgetLine = [statusWithPercent, contextSegment].filter((segment): segment is string => Boolean(segment)).join(theme.fg("dim", " · "));
-	const usageParts = data.providerUsage?.windows.length ? buildUsageParts(data.providerUsage, theme) : null;
+	const usageParts = data.providerUsage?.windows.length ? buildUsageParts(data.providerUsage, theme, data.thinkingLevel) : null;
 
 	const wideLines = renderWideLines({ location, sessionMeta, modelLine, budgetLine, usageParts }, safeWidth, theme);
 	if (wideLines) return wideLines;
@@ -157,7 +176,7 @@ function buildModelSegments(data: FooterRenderData, theme: any): string[] {
 	const model = theme.fg("dim", formatModelName(data.model, data.thinkingLevel));
 	const segments = [model];
 	if (data.model?.reasoning && data.thinkingLevel && data.thinkingLevel !== "off") {
-		segments.push(theme.fg("accent", data.thinkingLevel));
+		segments.push(theme.fg(getThinkingColor(data.thinkingLevel), data.thinkingLevel));
 	}
 	return segments;
 }
@@ -236,9 +255,9 @@ function renderUsageBar(usedPercent: number, theme: any): string {
 	return theme.fg(color, BAR_FILLED.repeat(filled)) + theme.fg("dim", BAR_EMPTY.repeat(width - filled));
 }
 
-export function renderProviderUsageLines(usage: FooterProviderUsage, width: number, theme: any): string[] {
+export function renderProviderUsageLines(usage: FooterProviderUsage, width: number, theme: any, thinkingLevel?: string): string[] {
 	const safeWidth = Math.max(1, width);
-	const parts = buildUsageParts(usage, theme);
+	const parts = buildUsageParts(usage, theme, thinkingLevel);
 	return [renderUsageLine(parts, safeWidth, theme)];
 }
 
@@ -246,7 +265,7 @@ function renderUsageLine(parts: { left: string; windows: string[] }, width: numb
 	return truncateToWidth([parts.left, ...parts.windows].join(theme.fg("dim", "   ·   ")), width);
 }
 
-function buildUsageParts(usage: FooterProviderUsage, theme: any): { left: string; windows: string[] } {
+function buildUsageParts(usage: FooterProviderUsage, theme: any, thinkingLevel?: string): { left: string; windows: string[] } {
 	const windows: string[] = [];
 	for (const window of usage.windows) {
 		const remainingPercent = Math.max(0, Math.min(100, 100 - window.usedPercent));
@@ -254,5 +273,5 @@ function buildUsageParts(usage: FooterProviderUsage, theme: any): { left: string
 		const reset = window.resetsIn ? ` ${window.resetsIn}` : "";
 		windows.push(`${theme.fg("dim", window.label)} ${renderUsageBar(window.usedPercent, theme)} ${theme.fg("dim", pct + reset)}`);
 	}
-	return { left: theme.fg("accent", usage.provider) + theme.fg("dim", " usage"), windows };
+	return { left: theme.fg(getThinkingColor(thinkingLevel), usage.provider) + theme.fg("dim", " usage"), windows };
 }
