@@ -10,6 +10,7 @@ function createHarness(harnessOptions = {}) {
 	const selectedModels = [];
 	const notifications = [];
 	const statuses = [];
+	const calls = [];
 	const proxies = [];
 	const pi = {
 		registerCommand(name, definition) {
@@ -35,7 +36,7 @@ function createHarness(harnessOptions = {}) {
 			baseUrl: `http://127.0.0.1:${options.port}`,
 			isManaged: true,
 			stopped: false,
-			ensureRunning: async () => harnessOptions.ensureRunning?.(proxy) ?? { ok: true, managed: true },
+			ensureRunning: async (onStatus) => harnessOptions.ensureRunning?.(proxy, onStatus) ?? { ok: true, managed: true },
 			stop: async () => {
 				proxy.stopped = true;
 			},
@@ -48,16 +49,24 @@ function createHarness(harnessOptions = {}) {
 	const ctx = {
 		hasUI: true,
 		model: { provider: "openai-codex", id: "gpt-5" },
-		waitForIdle: async () => {},
+		waitForIdle: async () => {
+			calls.push("waitForIdle");
+			await harnessOptions.waitForIdle?.();
+		},
 		ui: {
 			theme: { fg: (_style, text) => text },
-			setStatus: (key, value) => statuses.push({ key, value }),
+			setStatus: (key, value) => {
+				calls.push(`setStatus:${value}`);
+				statuses.push({ key, value });
+			},
+			setWorkingMessage: (message) => calls.push(`setWorkingMessage:${message ?? ""}`),
+			setWorkingVisible: (visible) => calls.push(`setWorkingVisible:${visible}`),
 			notify: (message, level) => notifications.push({ message, level }),
 		},
 	};
 
 	registerHeadroomExtension(pi, createProxy);
-	return { commands, events, registered, unregistered, selectedModels, notifications, statuses, proxies, ctx };
+	return { commands, events, registered, unregistered, selectedModels, notifications, statuses, proxies, calls, ctx };
 }
 
 test("/headroom description advertises binary override option", () => {
@@ -88,6 +97,34 @@ test("/headroom stop before wrap is a no-op and stop after wrap unregisters prov
 	assert.equal(proxies[0].stopped, true);
 	assert.deepEqual(selectedModels, [ctx.model, ctx.model]);
 	assert.match(notifications.at(-1).message, /Headroom disabled/);
+});
+
+test("/headroom wrap shows working indicator before waiting for idle", async () => {
+	const { commands, calls, notifications, ctx } = createHarness();
+
+	await commands.get("headroom").handler("wrap", ctx);
+
+	assert.equal(calls[0], "setStatus:⏳ Headroom starting...");
+	assert.equal(calls[1], "setWorkingMessage:Starting Headroom proxy...");
+	assert.equal(calls[2], "setWorkingVisible:true");
+	assert.equal(calls[3], "waitForIdle");
+	assert.match(notifications[0].message, /Starting Headroom proxy/);
+	assert.equal(calls.at(-2), "setWorkingMessage:");
+	assert.equal(calls.at(-1), "setWorkingVisible:false");
+});
+
+test("/headroom wrap shows proxy startup progress in status UI", async () => {
+	const { commands, statuses, calls, ctx } = createHarness({
+		ensureRunning: async (_proxy, onStatus) => {
+			onStatus("Waiting for Headroom proxy... 12s elapsed");
+			return { ok: true, managed: true };
+		},
+	});
+
+	await commands.get("headroom").handler("wrap", ctx);
+
+	assert.ok(statuses.some((status) => status.value === "⏳ Waiting for Headroom proxy... 12s elapsed"));
+	assert.ok(calls.some((call) => call === "setWorkingMessage:Waiting for Headroom proxy... 12s elapsed"));
 });
 
 test("/headroom wrap failure detects missing binary through error code", async () => {
@@ -126,7 +163,7 @@ test("/headroom wrap notes when current provider is not routed", async () => {
 
 	await commands.get("headroom").handler("wrap", ctx);
 
-	assert.match(notifications.at(-1).message, /Current provider is local/);
+	assert.ok(notifications.some((notification) => /Current provider is local/.test(notification.message)));
 });
 
 test("session shutdown cleans up only after Headroom registered providers", async () => {
