@@ -45,6 +45,12 @@ export function registerHeadroomExtension(pi: ExtensionAPI, createProxy: CreateP
 		ctx.ui.notify(message, level);
 	}
 
+	function setWorkingMessage(ctx: CommandContext, message: string | undefined): void {
+		if (!ctx.hasUI) return;
+		ctx.ui.setWorkingMessage(message);
+		ctx.ui.setWorkingVisible(message !== undefined);
+	}
+
 	function isRoutedProvider(provider: string | undefined): boolean {
 		return !!provider && (SUPPORTED_PROVIDERS as readonly string[]).includes(provider);
 	}
@@ -86,57 +92,62 @@ export function registerHeadroomExtension(pi: ExtensionAPI, createProxy: CreateP
 	}
 
 	async function handleWrap(options: HeadroomOptions, ctx: CommandContext): Promise<void> {
-		await ctx.waitForIdle();
 		setStatus(ctx, "starting");
+		notify(ctx, `Starting Headroom proxy on port ${options.port}...`, "info");
+		setWorkingMessage(ctx, "Starting Headroom proxy...");
+		try {
+			await ctx.waitForIdle();
 
-		const previousManager = manager;
-		const shouldReplaceManager = !manager || optionsChanged(options);
-		const proxy = shouldReplaceManager ? createProxy(options) : manager!;
-		const result = await proxy.ensureRunning((message) => {
-			if (ctx.hasUI) ctx.ui.setStatus(STATUS_KEY, ctx.ui.theme.fg("dim", `⏳ ${message}`));
-		});
+			const previousManager = manager;
+			const shouldReplaceManager = !manager || optionsChanged(options);
+			const proxy = shouldReplaceManager ? createProxy(options) : manager!;
+			const result = await proxy.ensureRunning((message) => {
+				if (ctx.hasUI) {
+					ctx.ui.setStatus(STATUS_KEY, ctx.ui.theme.fg("dim", `⏳ ${message}`));
+					setWorkingMessage(ctx, message);
+				}
+			});
 
-		if (!result.ok) {
-			if (shouldReplaceManager) await proxy.stop();
-			const keepExistingRouting = enabled && shouldReplaceManager;
-			if (!keepExistingRouting) {
-				await removeProviderOverrides();
-				enabled = false;
-				manager = null;
-				managerOptions = null;
-				await reselectCurrentModel(ctx);
+			if (!result.ok) {
+				if (shouldReplaceManager) await proxy.stop();
+				const keepExistingRouting = enabled && shouldReplaceManager;
+				if (!keepExistingRouting) {
+					await removeProviderOverrides();
+					enabled = false;
+					manager = null;
+					managerOptions = null;
+					await reselectCurrentModel(ctx);
+				}
+				setStatus(ctx, keepExistingRouting ? "enabled" : "error");
+				const message = isMissingBinaryError(result.error)
+					? getInstallGuidance(options.binary)
+					: `Failed to start Headroom proxy: ${result.error.message}`;
+				notify(ctx, message, "error");
+				return;
 			}
-			setStatus(ctx, keepExistingRouting ? "enabled" : "error");
-			const message = isMissingBinaryError(result.error)
-				? getInstallGuidance(options.binary)
-				: `Failed to start Headroom proxy: ${result.error.message}`;
-			notify(ctx, message, "error");
-			return;
-		}
 
-		if (shouldReplaceManager) {
-			manager = proxy;
-			managerOptions = options;
-			if (previousManager && previousManager !== proxy) await previousManager.stop();
-		}
+			if (shouldReplaceManager) {
+				manager = proxy;
+				managerOptions = options;
+				if (previousManager && previousManager !== proxy) await previousManager.stop();
+			}
 
-		await applyProviderOverrides(options.port);
-		enabled = true;
-		const routingApplied = await reselectCurrentModel(ctx);
-		setStatus(ctx, routingApplied ? "enabled" : "routing_pending");
-		const details = [
-			`Headroom enabled on ${proxy.baseUrl}`,
-			"Routed providers: openai-codex, openai, anthropic",
-			`Proxy: ${result.managed ? "managed by this Pi session" : "externally detected"}`,
-		];
-		if (ctx.model?.provider && !isRoutedProvider(ctx.model.provider)) {
-			details.push(`Current provider is ${ctx.model.provider}; switch to a routed provider to send traffic through Headroom.`);
+			await applyProviderOverrides(options.port);
+			enabled = true;
+			const routingApplied = await reselectCurrentModel(ctx);
+			setStatus(ctx, routingApplied ? "enabled" : "routing_pending");
+			const details = [
+				`Headroom enabled on ${proxy.baseUrl}`,
+				"Routed providers: openai-codex, openai, anthropic",
+				`Proxy: ${result.managed ? "managed by this Pi session" : "externally detected"}`,
+			];
+			if (ctx.model?.provider && !isRoutedProvider(ctx.model.provider)) {
+				details.push(`Current provider is ${ctx.model.provider}; switch to a routed provider to send traffic through Headroom.`);
+			}
+			notify(ctx, details.join("\n"), "info");
+		} finally {
+			setWorkingMessage(ctx, undefined);
 		}
-		notify(
-			ctx,
-			details.join("\n"),
-			"info",
-		);
 	}
 
 	async function handleStop(ctx: CommandContext): Promise<void> {

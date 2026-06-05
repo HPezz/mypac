@@ -10,6 +10,7 @@ Versioned sections should match the Git tags and GitHub releases published for t
 
 ### Added
 
+- Added a `/headroom` Pi extension for routing supported providers through a managed or externally detected Headroom proxy.
 - Added cost-focused `/session-breakdown` stats with a compact colorized default report, trend insights, model/directory cost bars, an outlier diagnostic summary, top-5 session/model/directory drill-downs, worktree-aware directory grouping, and cache/context metrics when available. ([#280](https://github.com/ladislas/mypac/issues/280))
 - Added a `/persona` Pi extension and `personas/` prompt-content directory for enabling reusable runtime personas, starting with the preserved Rick persona. ([#37](https://github.com/ladislas/mypac/issues/37))
 - Added a repo-local Worktrunk extension with `/worktree issue <issue-number-or-url>`, issue-derived branch names, create-or-reuse behavior, Worktrunk `pre-start` setup hooks, and workflow documentation for parallel Pi issue work. ([#85](https://github.com/ladislas/mypac/issues/85))
@@ -36,6 +37,10 @@ Versioned sections should match the Git tags and GitHub releases published for t
 ### Removed
 
 - Removed OpenSpec prompts, skills, docs, and artifacts in favor of the GitHub-native planning workflow, and kept `/pac-explore` as a non-OpenSpec discovery mode. ([#216](https://github.com/ladislas/mypac/issues/216))
+
+### Fixed
+
+- Extended Headroom proxy startup waiting and surfaced elapsed startup progress in the `/headroom wrap` status indicator.
 
 ### Changed
 

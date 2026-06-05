@@ -168,6 +168,35 @@ test("proxy manager reports spawn errors such as missing headroom binary", async
 	assert.match(result.error.message, /ENOENT/);
 });
 
+test("proxy manager keeps waiting for slow Headroom startup and reports progress", async () => {
+	const child = {
+		exitCode: null,
+		kill: () => true,
+		on() { return this; },
+	};
+	let healthCalls = 0;
+	const sleeps = [];
+	const statuses = [];
+	const manager = new HeadroomProxyManager({ binary: "headroom", port: 8787, mode: "token" }, {
+		spawn: () => child,
+		fetchJson: async () => {
+			healthCalls++;
+			if (healthCalls < 16) throw new Error("offline");
+			return { status: "healthy" };
+		},
+		sleep: async (ms) => {
+			sleeps.push(ms);
+		},
+	});
+
+	const result = await manager.ensureRunning((message) => statuses.push(message));
+
+	assert.deepEqual(result, { ok: true, managed: true });
+	assert.equal(manager.isManaged, true);
+	assert.ok(sleeps.reduce((total, delay) => total + delay, 0) > 10_250);
+	assert.ok(statuses.some((message) => /Waiting for Headroom proxy/.test(message)));
+});
+
 test("proxy manager kills a spawned proxy that never becomes healthy", async () => {
 	const kills = [];
 	const child = {

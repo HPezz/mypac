@@ -21,7 +21,8 @@ export interface ManagedProcess {
 	unref?: () => void;
 }
 
-const STARTUP_DELAYS_MS = [250, 500, 1000, 1000, 1500, 2000, 2000, 2000];
+const STARTUP_TIMEOUT_MS = 60_000;
+const STARTUP_POLL_INTERVAL_MS = 1_000;
 
 export class HeadroomProxyManager {
 	private process: ManagedProcess | null = null;
@@ -63,8 +64,11 @@ export class HeadroomProxyManager {
 			return { ok: false, error: toError(error) };
 		}
 
-		for (const delay of STARTUP_DELAYS_MS) {
+		let waitedMs = 0;
+		while (waitedMs < STARTUP_TIMEOUT_MS) {
+			const delay = Math.min(STARTUP_POLL_INTERVAL_MS, STARTUP_TIMEOUT_MS - waitedMs);
 			await this.operations.sleep(delay);
+			waitedMs += delay;
 			if (this.startupError) {
 				const error = this.startupError;
 				this.clearManagedProcess();
@@ -83,10 +87,11 @@ export class HeadroomProxyManager {
 				this.clearManagedProcess();
 				return { ok: false, error };
 			}
+			onStatus?.(`Waiting for Headroom proxy... ${Math.round(waitedMs / 1000)}s elapsed`);
 		}
 
 		await this.stop();
-		return { ok: false, error: new Error("Headroom proxy did not become healthy before timeout") };
+		return { ok: false, error: new Error(`Headroom proxy did not become healthy within ${Math.round(STARTUP_TIMEOUT_MS / 1000)}s`) };
 	}
 
 	async isHealthy(): Promise<boolean> {
