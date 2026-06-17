@@ -81,14 +81,14 @@ export function registerHeadroomExtension(
 	}
 
 	async function applyProviderOverrides(port: number): Promise<void> {
+		providerOverridesRegistered = true;
 		for (const override of buildProviderOverrides(port)) {
 			pi.registerProvider(override.provider, override.config);
 		}
-		providerOverridesRegistered = true;
 	}
 
-	async function removeProviderOverrides(): Promise<void> {
-		if (!providerOverridesRegistered) return;
+	async function removeProviderOverrides(force = false): Promise<void> {
+		if (!force && !providerOverridesRegistered) return;
 		for (const provider of SUPPORTED_PROVIDERS) {
 			pi.unregisterProvider(provider);
 		}
@@ -97,6 +97,15 @@ export function registerHeadroomExtension(
 
 	function isMissingBinaryError(error: Error): boolean {
 		return (error as NodeJS.ErrnoException).code === "ENOENT";
+	}
+
+	function isSamePortReconfiguration(options: HeadroomOptions): boolean {
+		return Boolean(
+			runtime.isEnabled
+				&& runtime.activeOptions
+				&& runtime.activeOptions.port === options.port
+				&& (runtime.activeOptions.mode !== options.mode || runtime.activeOptions.binary !== options.binary),
+		);
 	}
 
 	async function publishHeadroomStats(proxy: HeadroomProxy, status: "working" | "error"): Promise<void> {
@@ -115,12 +124,31 @@ export function registerHeadroomExtension(
 		await publishHeadroomStats(runtime.activeProxy, status);
 	}
 
+	async function restoreProviderOverridesAfterFailure(ctx: HeadroomContext): Promise<void> {
+		try {
+			if (runtime.isEnabled && runtime.activeOptions) {
+				await applyProviderOverrides(runtime.activeOptions.port);
+			} else {
+				await removeProviderOverrides(true);
+			}
+		} catch (error) {
+			const failureDetail = error instanceof Error ? error.message : String(error);
+			notify(ctx, `Failed to restore Headroom routing: ${failureDetail}`, "error");
+		}
+	}
+
 	async function handleWrap(options: HeadroomOptions, ctx: CommandContext): Promise<void> {
 		setStatus(ctx, "starting");
 		notify(ctx, `Starting Headroom proxy on port ${options.port}...`, "info");
 		setWorkingMessage(ctx, "Starting Headroom proxy...");
 		try {
 			await ctx.waitForIdle();
+
+			if (isSamePortReconfiguration(options)) {
+				notify(ctx, "Headroom is already enabled on this port with different mode or binary settings; run `/headroom stop` first or choose a different port.", "error");
+				setStatus(ctx, "enabled");
+				return;
+			}
 
 			const attempt = runtime.prepareWrap(options);
 			const result = await attempt.proxy.ensureRunning((message) => {
@@ -148,8 +176,17 @@ export function registerHeadroomExtension(
 				return;
 			}
 
-			await applyProviderOverrides(options.port);
-			await runtime.commitWrap(options, attempt);
+			try {
+				await applyProviderOverrides(options.port);
+				await runtime.commitWrap(options, attempt);
+			} catch (error) {
+				await runtime.abandonFailedWrap(attempt);
+				await restoreProviderOverridesAfterFailure(ctx);
+				const failureDetail = error instanceof Error ? error.message : String(error);
+				notify(ctx, `Failed to register Headroom routing: ${failureDetail}`, "error");
+				setStatus(ctx, runtime.isEnabled ? "enabled" : "error");
+				return;
+			}
 			const routingApplied = await reselectCurrentModel(ctx);
 			setStatus(ctx, routingApplied ? "enabled" : "routing_pending");
 			await publishHeadroomStats(attempt.proxy, "working");
@@ -230,10 +267,17 @@ export function registerHeadroomExtension(
 
 	pi.on("session_start", async (_event, ctx) => {
 		if (!runtime.isEnabled || !runtime.activeOptions || !runtime.activeProxy) return;
-		await applyProviderOverrides(runtime.activeOptions.port);
-		const routingApplied = await reselectCurrentModel(ctx);
-		setStatus(ctx, routingApplied ? "enabled" : "routing_pending");
-		await publishHeadroomStats(runtime.activeProxy, "working");
+		try {
+			await applyProviderOverrides(runtime.activeOptions.port);
+			const routingApplied = await reselectCurrentModel(ctx);
+			setStatus(ctx, routingApplied ? "enabled" : "routing_pending");
+			await publishHeadroomStats(runtime.activeProxy, "working");
+		} catch (error) {
+			const failureDetail = error instanceof Error ? error.message : String(error);
+			notify(ctx, `Failed to restore Headroom routing: ${failureDetail}`, "error");
+			setStatus(ctx, "error");
+			publishFooterState({ status: "error" });
+		}
 	});
 
 	pi.on("session_shutdown", async (event) => {
