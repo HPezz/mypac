@@ -87,6 +87,14 @@ test("provider usage label uses current thinking level color", () => {
 	assert.match(line, /^<thinkingHigh>Codex<\/thinkingHigh><dim> usage<\/dim>/);
 });
 
+test("provider usage uses compact separators", () => {
+	const theme = { fg: (_color, text) => text };
+	const [line] = renderProviderUsageLines({ provider: "Codex", windows: [{ label: "5h", usedPercent: 25 }, { label: "7d", usedPercent: 5 }] }, 120, theme);
+
+	assert.match(line, /Codex usage · 5h/);
+	assert.doesNotMatch(line, /   ·   /);
+});
+
 test("written thinking level uses current thinking level color", () => {
 	const theme = { fg: (color, text) => `<${color}>${text}</${color}>` };
 	const lines = renderFooterLines(
@@ -102,4 +110,57 @@ test("written thinking level uses current thinking level color", () => {
 
 	assert.match(lines.join("\n"), /<thinkingHigh>high<\/thinkingHigh>/);
 	assert.doesNotMatch(lines.join("\n"), /<accent>high<\/accent>/);
+});
+
+test("headroom indicator renders on provider usage line with savings", () => {
+	const theme = { fg: (_color, text) => text };
+	const lines = renderFooterLines(
+		{
+			usage: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, totalCost: 0 },
+			usingSubscription: false,
+			model: { provider: "openai-codex", id: "gpt-5.5", reasoning: true },
+			thinkingLevel: "medium",
+			providerUsage: { provider: "Codex", windows: [{ label: "5h", usedPercent: 29, resetsIn: "21m" }] },
+			headroomState: { status: "working", tokensSaved: 1234, compressionPercent: 17.6 },
+		},
+		140,
+		theme,
+	);
+
+	const usageLine = lines.find((line) => line.includes("Codex usage"));
+	assert.ok(usageLine);
+	assert.match(usageLine, /^Codex usage · 5h/);
+	assert.match(usageLine, /Headroom ✓ \(1\.2k\/18%\)$/);
+	assert.ok(usageLine.includes("   Headroom"));
+});
+
+test("headroom indicator renders not-started state", () => {
+	const theme = { fg: (_color, text) => text };
+	const lines = renderFooterLines(
+		{
+			usage: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, totalCost: 0 },
+			usingSubscription: false,
+			headroomState: { status: "not_started" },
+		},
+		80,
+		theme,
+	);
+
+	assert.match(lines.join("\n"), /Headroom - \(0\/0%\)/);
+});
+
+test("right-only headroom line does not start with a separator when narrow", () => {
+	const theme = { fg: (_color, text) => text };
+	const lines = renderFooterLines(
+		{
+			usage: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, totalCost: 0 },
+			usingSubscription: false,
+			headroomState: { status: "not_started" },
+		},
+		12,
+		theme,
+	);
+
+	assert.match(lines.at(-1), /^Headroom/);
+	assert.doesNotMatch(lines.at(-1), /^ ·/);
 });

@@ -123,6 +123,7 @@ test("proxy manager owns and stops only spawned healthy proxy", async () => {
 			if (healthCalls === 1) throw new Error("not running yet");
 			return { status: "healthy" };
 		},
+		isPortOpen: async () => false,
 		sleep: async () => {},
 	});
 
@@ -160,12 +161,32 @@ test("proxy manager reports spawn errors such as missing headroom binary", async
 			},
 		}),
 		fetchJson: async () => { throw new Error("offline"); },
+		isPortOpen: async () => false,
 		sleep: async () => { errorListener?.(new Error("spawn missing-headroom ENOENT")); },
 	});
 
 	const result = await manager.ensureRunning();
 	assert.equal(result.ok, false);
 	assert.match(result.error.message, /ENOENT/);
+});
+
+test("proxy manager reports an occupied unhealthy port before spawning", async () => {
+	let spawned = false;
+	const manager = new HeadroomProxyManager({ binary: "headroom", port: 8787, mode: "token" }, {
+		spawn: () => {
+			spawned = true;
+			throw new Error("should not spawn");
+		},
+		fetchJson: async () => { throw new Error("HTTP 500"); },
+		isPortOpen: async () => true,
+		sleep: async () => {},
+	});
+
+	const result = await manager.ensureRunning();
+	assert.equal(result.ok, false);
+	assert.equal(spawned, false);
+	assert.match(result.error.message, /Port 8787 is already in use/);
+	assert.match(result.error.message, /--port <port>/);
 });
 
 test("proxy manager keeps waiting for slow Headroom startup and reports progress", async () => {
@@ -184,6 +205,7 @@ test("proxy manager keeps waiting for slow Headroom startup and reports progress
 			if (healthCalls < 16) throw new Error("offline");
 			return { status: "healthy" };
 		},
+		isPortOpen: async () => false,
 		sleep: async (ms) => {
 			sleeps.push(ms);
 		},
@@ -211,6 +233,7 @@ test("proxy manager kills a spawned proxy that never becomes healthy", async () 
 	const manager = new HeadroomProxyManager({ binary: "headroom", port: 8787, mode: "token" }, {
 		spawn: () => child,
 		fetchJson: async () => { throw new Error("offline"); },
+		isPortOpen: async () => false,
 		sleep: async () => {},
 	});
 
@@ -243,6 +266,7 @@ test("proxy manager escalates stubborn managed proxies and suppresses kill races
 			if (healthCalls === 1) throw new Error("offline");
 			return { status: "healthy" };
 		},
+		isPortOpen: async () => false,
 		sleep: async () => {},
 	});
 
@@ -270,6 +294,7 @@ test("proxy manager clears managed state when spawned proxy exits", async () => 
 			if (healthCalls === 1) throw new Error("offline");
 			return { status: "healthy" };
 		},
+		isPortOpen: async () => false,
 		sleep: async () => {},
 	});
 
@@ -308,6 +333,7 @@ test("proxy manager stops unhealthy managed proxy before restart", async () => {
 			if (healthCalls === 1 || healthCalls === 3) throw new Error("offline");
 			return { status: "healthy" };
 		},
+		isPortOpen: async () => false,
 		sleep: async () => {},
 	});
 
@@ -337,6 +363,7 @@ test("proxy manager does not claim ownership if spawned proxy exits before exter
 			if (healthCalls === 1) throw new Error("offline");
 			return { status: "healthy" };
 		},
+		isPortOpen: async () => false,
 		sleep: async () => {
 			if (exitListener && child.exitCode === null) {
 				child.exitCode = 0;

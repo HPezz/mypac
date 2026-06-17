@@ -1,6 +1,7 @@
 import type { ExtensionAPI, ExtensionCommandContext } from "@earendil-works/pi-coding-agent";
 import { buildProviderOverrides, formatStatus, getInstallGuidance, parseHeadroomArgs, type HeadroomOptions } from "./helpers.ts";
 import { HeadroomProxyManager } from "./proxy.ts";
+import { extractHeadroomSavings, publishHeadroomFooterState } from "./state.ts";
 
 const STATUS_KEY = "headroom";
 const SUPPORTED_PROVIDERS = ["openai-codex", "openai", "anthropic"] as const;
@@ -91,6 +92,15 @@ export function registerHeadroomExtension(pi: ExtensionAPI, createProxy: CreateP
 		return (error as NodeJS.ErrnoException).code === "ENOENT";
 	}
 
+	async function publishHeadroomStats(pi: ExtensionAPI, proxy: HeadroomProxyManager, status: "working" | "error"): Promise<void> {
+		try {
+			const stats = await proxy.stats();
+			publishHeadroomFooterState(pi, { status, ...extractHeadroomSavings(stats) });
+		} catch {
+			publishHeadroomFooterState(pi, { status });
+		}
+	}
+
 	async function handleWrap(options: HeadroomOptions, ctx: CommandContext): Promise<void> {
 		setStatus(ctx, "starting");
 		notify(ctx, `Starting Headroom proxy on port ${options.port}...`, "info");
@@ -114,11 +124,13 @@ export function registerHeadroomExtension(pi: ExtensionAPI, createProxy: CreateP
 				if (!keepExistingRouting) {
 					await removeProviderOverrides();
 					enabled = false;
+					publishHeadroomFooterState(pi, { status: "not_started" });
 					manager = null;
 					managerOptions = null;
 					await reselectCurrentModel(ctx);
 				}
 				setStatus(ctx, keepExistingRouting ? "enabled" : "error");
+				if (!keepExistingRouting) publishHeadroomFooterState(pi, { status: "error" });
 				const message = isMissingBinaryError(result.error)
 					? getInstallGuidance(options.binary)
 					: `Failed to start Headroom proxy: ${result.error.message}`;
@@ -136,6 +148,7 @@ export function registerHeadroomExtension(pi: ExtensionAPI, createProxy: CreateP
 			enabled = true;
 			const routingApplied = await reselectCurrentModel(ctx);
 			setStatus(ctx, routingApplied ? "enabled" : "routing_pending");
+			await publishHeadroomStats(pi, proxy, "working");
 			const details = [
 				`Headroom enabled on ${proxy.baseUrl}`,
 				"Routed providers: openai-codex, openai, anthropic",
@@ -155,6 +168,7 @@ export function registerHeadroomExtension(pi: ExtensionAPI, createProxy: CreateP
 		const wasEnabled = enabled;
 		await removeProviderOverrides();
 		enabled = false;
+		publishHeadroomFooterState(pi, { status: "not_started" });
 		if (manager) await manager.stop();
 		manager = null;
 		managerOptions = null;
@@ -208,6 +222,7 @@ export function registerHeadroomExtension(pi: ExtensionAPI, createProxy: CreateP
 	pi.on("session_shutdown", async () => {
 		await removeProviderOverrides();
 		enabled = false;
+		publishHeadroomFooterState(pi, { status: "not_started" });
 		if (manager) await manager.stop();
 		manager = null;
 		managerOptions = null;
