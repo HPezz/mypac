@@ -7,6 +7,8 @@ export const sharedAppendSystemPath = path.join(packageRoot, "shared", "SHARED_A
 
 const PROJECT_CONTEXT_MARKER = "<project_context>";
 const CURRENT_DATE_MARKER = "\nCurrent date:";
+const CURRENT_WORKING_DIRECTORY_MARKER = "\nCurrent working directory:";
+export const VERBOSITY_STEERING_PROMPT = "Be terse; avoid restating existing context unless it is necessary.";
 
 export async function loadSharedAppendSystemInstructions(): Promise<string> {
 	try {
@@ -54,4 +56,20 @@ export function insertSharedAppendSystemPrompt(
 	}
 
 	return `${systemPrompt}\n\n${sharedAppendSystemPrompt}`;
+}
+
+export function appendVerbositySteeringPrompt(systemPrompt: string): string {
+	if (systemPrompt.includes(VERBOSITY_STEERING_PROMPT)) return systemPrompt;
+
+	const currentDateIndex = systemPrompt.indexOf(CURRENT_DATE_MARKER);
+	if (currentDateIndex !== -1) {
+		return `${systemPrompt.slice(0, currentDateIndex)}\n\n${VERBOSITY_STEERING_PROMPT}${systemPrompt.slice(currentDateIndex)}`;
+	}
+
+	const currentWorkingDirectoryIndex = systemPrompt.indexOf(CURRENT_WORKING_DIRECTORY_MARKER);
+	if (currentWorkingDirectoryIndex !== -1) {
+		return `${systemPrompt.slice(0, currentWorkingDirectoryIndex)}\n\n${VERBOSITY_STEERING_PROMPT}${systemPrompt.slice(currentWorkingDirectoryIndex)}`;
+	}
+
+	return `${systemPrompt}\n\n${VERBOSITY_STEERING_PROMPT}`;
 }

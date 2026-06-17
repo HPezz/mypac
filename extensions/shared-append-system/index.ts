@@ -1,5 +1,6 @@
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import {
+	appendVerbositySteeringPrompt,
 	formatSharedAppendSystemPrompt,
 	insertSharedAppendSystemPrompt,
 	loadSharedAppendSystemInstructions,
@@ -14,16 +15,14 @@ export default function sharedAppendSystemExtension(pi: ExtensionAPI) {
 
 	pi.on("before_agent_start", async (event) => {
 		const sharedAppendSystemPrompt = formatSharedAppendSystemPrompt(sharedAppendSystemInstructions);
-		if (!sharedAppendSystemPrompt) {
-			return;
-		}
+		const systemPrompt = insertSharedAppendSystemPrompt(
+			event.systemPrompt,
+			sharedAppendSystemPrompt,
+			event.systemPromptOptions?.appendSystemPrompt,
+		);
 
 		return {
-			systemPrompt: insertSharedAppendSystemPrompt(
-				event.systemPrompt,
-				sharedAppendSystemPrompt,
-				event.systemPromptOptions?.appendSystemPrompt,
-			),
+			systemPrompt: appendVerbositySteeringPrompt(systemPrompt),
 		};
 	});
 }
