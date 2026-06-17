@@ -136,6 +136,32 @@ Useful first commands:
 `/pac-slidedeck` saves the generated HTML outside the repo under `~/.pi/agent/slidedecks/<session-id>/...`, so deck artifacts do not pollute your workspace.
 Saved-deck replies include a clickable Markdown `file://` link, and the shared deck scaffold is based on the preferred issue #85 presentation style.
 
+### Optional: Headroom proxy
+
+The [`headroom`](extensions/headroom/) extension can route supported Pi providers through a local [Headroom](https://github.com/chopratejas/headroom) proxy. Headroom is a context optimization layer for LLM applications; in this repo, `/headroom wrap` starts the proxy and points supported providers at it for the current Pi session.
+
+Install or update Headroom as a uv tool:
+
+```bash
+uv tool install --force "headroom-ai[all]"
+```
+
+Use it from Pi with:
+
+```text
+/headroom wrap
+/headroom status
+/headroom stop
+```
+
+Uninstall Headroom with:
+
+```bash
+uv tool uninstall headroom-ai
+```
+
+See the [Headroom docs](https://headroom-docs.vercel.app/docs) for upstream installation and usage details.
+
 ### Repository tooling
 
 - Install `mise` with Homebrew: `brew install mise`
