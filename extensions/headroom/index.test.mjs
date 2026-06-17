@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { registerHeadroomExtension } from "./index.ts";
+import { HEADROOM_FOOTER_STATE_EVENT } from "./state.ts";
 
 function createHarness(harnessOptions = {}) {
 	const commands = new Map();
@@ -11,6 +12,7 @@ function createHarness(harnessOptions = {}) {
 	const notifications = [];
 	const statuses = [];
 	const calls = [];
+	const footerEvents = [];
 	const proxies = [];
 	const pi = {
 		registerCommand(name, definition) {
@@ -28,6 +30,10 @@ function createHarness(harnessOptions = {}) {
 		setModel: async (model) => {
 			selectedModels.push(model);
 			return harnessOptions.setModelResult ?? true;
+		},
+		events: {
+			emit: (channel, data) => footerEvents.push({ channel, data }),
+			on: () => () => {},
 		},
 	};
 	const createProxy = (options) => {
@@ -66,7 +72,7 @@ function createHarness(harnessOptions = {}) {
 	};
 
 	registerHeadroomExtension(pi, createProxy);
-	return { commands, events, registered, unregistered, selectedModels, notifications, statuses, proxies, calls, ctx };
+	return { commands, events, registered, unregistered, selectedModels, notifications, statuses, proxies, footerEvents, calls, ctx };
 }
 
 test("/headroom description advertises binary override option", () => {
@@ -125,6 +131,18 @@ test("/headroom wrap shows proxy startup progress in status UI", async () => {
 
 	assert.ok(statuses.some((status) => status.value === "⏳ Waiting for Headroom proxy... 12s elapsed"));
 	assert.ok(calls.some((call) => call === "setWorkingMessage:Waiting for Headroom proxy... 12s elapsed"));
+});
+
+test("/headroom wrap and stop publish footer state events", async () => {
+	const { commands, footerEvents, ctx } = createHarness();
+
+	await commands.get("headroom").handler("wrap", ctx);
+	await commands.get("headroom").handler("stop", ctx);
+
+	assert.deepEqual(footerEvents, [
+		{ channel: HEADROOM_FOOTER_STATE_EVENT, data: { status: "working", tokensSaved: undefined, compressionPercent: undefined } },
+		{ channel: HEADROOM_FOOTER_STATE_EVENT, data: { status: "not_started" } },
+	]);
 });
 
 test("/headroom wrap failure detects missing binary through error code", async () => {

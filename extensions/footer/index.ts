@@ -1,6 +1,7 @@
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
-import type { FooterProviderUsage } from "./helpers.ts";
+import type { FooterHeadroomState, FooterProviderUsage } from "./helpers.ts";
 import { renderFooterLines, sumUsageFromEntries } from "./helpers.ts";
+import { HEADROOM_FOOTER_STATE_EVENT, parseHeadroomFooterState } from "../headroom/state.ts";
 import { detectUsageProvider, fetchProviderUsage } from "./usage.ts";
 
 const USAGE_REFRESH_INTERVAL_MS = 5 * 60_000;
@@ -19,6 +20,7 @@ export default function (pi: ExtensionAPI) {
 	let activeUsageProvider: ReturnType<typeof detectUsageProvider> = null;
 	let tuiRef: { requestRender: () => void } | null = null;
 	let refreshTimer: ReturnType<typeof setInterval> | null = null;
+	let headroomState: FooterHeadroomState = { status: "not_started" };
 
 	function stopRefreshTimer(): void {
 		if (!refreshTimer) return;
@@ -71,10 +73,17 @@ export default function (pi: ExtensionAPI) {
 			refreshUsage(ctx.model?.provider);
 			startRefreshTimer();
 			const unsubscribeBranch = footerData.onBranchChange(() => tui.requestRender());
+			const unsubscribeHeadroom = pi.events.on(HEADROOM_FOOTER_STATE_EVENT, (data) => {
+				const state = parseHeadroomFooterState(data);
+				if (!state) return;
+				headroomState = state;
+				tui.requestRender();
+			});
 
 			return {
 				dispose: () => {
 					unsubscribeBranch();
+					unsubscribeHeadroom();
 					tuiRef = null;
 					stopRefreshTimer();
 				},
@@ -92,6 +101,7 @@ export default function (pi: ExtensionAPI) {
 							thinkingLevel: pi.getThinkingLevel(),
 							contextUsage: ctx.getContextUsage(),
 							providerUsage: latestUsage,
+							headroomState,
 						},
 						width,
 						theme,

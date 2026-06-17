@@ -31,6 +31,13 @@ export interface FooterRenderData {
 	thinkingLevel?: string;
 	contextUsage?: FooterContextUsage;
 	providerUsage?: FooterProviderUsage | null;
+	headroomState?: FooterHeadroomState;
+}
+
+export interface FooterHeadroomState {
+	status: "working" | "error" | "not_started";
+	tokensSaved?: number;
+	compressionPercent?: number;
 }
 
 export interface FooterUsageWindow {
@@ -159,12 +166,13 @@ export function renderFooterLines(data: FooterRenderData, width: number, theme: 
 	const location = formatLocationLine(data);
 	const sessionMeta = formatSessionMeta(data);
 	const modelLine = buildModelSegments(data, theme).join(theme.fg("dim", " · "));
+	const headroomSegment = buildHeadroomSegment(data, theme);
 	const contextSegment = buildContextSegment(data, theme);
 	const status = theme.fg("dim", formatStatusSegment(data.usage, data.usingSubscription));
 	const contextPercent = buildContextPercentSegment(data, theme);
 	const statusWithPercent = [status, contextPercent].filter((segment): segment is string => Boolean(segment)).join(" ");
 	const budgetLine = [statusWithPercent, contextSegment].filter((segment): segment is string => Boolean(segment)).join(theme.fg("dim", " · "));
-	const usageParts = data.providerUsage?.windows.length ? buildUsageParts(data.providerUsage, theme, data.thinkingLevel) : null;
+	const usageParts = buildFooterUsageParts(data.providerUsage, headroomSegment, theme, data.thinkingLevel);
 
 	const wideLines = renderWideLines({ location, sessionMeta, modelLine, budgetLine, usageParts }, safeWidth, theme);
 	if (wideLines) return wideLines;
@@ -179,6 +187,15 @@ function buildModelSegments(data: FooterRenderData, theme: any): string[] {
 		segments.push(theme.fg(getThinkingColor(data.thinkingLevel), data.thinkingLevel));
 	}
 	return segments;
+}
+
+function buildHeadroomSegment(data: FooterRenderData, theme: any): string | null {
+	const state = data.headroomState;
+	if (!state) return null;
+	const symbol = state.status === "working" ? theme.fg("success", "✓") : state.status === "error" ? theme.fg("error", "x") : theme.fg("warning", "-");
+	const tokensSaved = formatTokens(state.tokensSaved ?? 0);
+	const compressionPercent = Math.round(state.compressionPercent ?? 0);
+	return `${theme.fg("dim", "Headroom ")}${symbol}${theme.fg("dim", ` (${tokensSaved}/${compressionPercent}%)`)}`;
 }
 
 function buildContextSegment(data: FooterRenderData, theme: any): string | null {
@@ -203,7 +220,7 @@ interface RenderParts {
 	sessionMeta: string;
 	modelLine: string;
 	budgetLine: string;
-	usageParts: { left: string; windows: string[] } | null;
+	usageParts: { left: string; windows: string[]; right?: string } | null;
 }
 
 function renderWideLines(parts: RenderParts, width: number, theme: any): string[] | null {
@@ -236,6 +253,7 @@ function renderNarrowLines(parts: RenderParts, width: number, theme: any): strin
 	return lines;
 }
 
+
 function joinColumns(left: string, right: string, width: number): string | null {
 	const leftWidth = visibleWidth(left);
 	const rightWidth = visibleWidth(right);
@@ -261,8 +279,22 @@ export function renderProviderUsageLines(usage: FooterProviderUsage, width: numb
 	return [renderUsageLine(parts, safeWidth, theme)];
 }
 
-function renderUsageLine(parts: { left: string; windows: string[] }, width: number, theme: any): string {
-	return truncateToWidth([parts.left, ...parts.windows].join(theme.fg("dim", "   ·   ")), width);
+function renderUsageLine(parts: { left: string; windows: string[]; right?: string }, width: number, theme: any): string {
+	const left = [parts.left, ...parts.windows].filter(Boolean).join(theme.fg("dim", " · "));
+	if (!parts.right) return truncateToWidth(left, width);
+	const leftWidth = visibleWidth(left);
+	const rightWidth = visibleWidth(parts.right);
+	const minGap = 3;
+	if (!left) return truncateToWidth(parts.right, width);
+	if (leftWidth + minGap + rightWidth > width) return truncateToWidth(`${left}${theme.fg("dim", " · ")}${parts.right}`, width);
+	return left + " ".repeat(width - leftWidth - rightWidth) + parts.right;
+}
+
+function buildFooterUsageParts(usage: FooterProviderUsage | null | undefined, headroomSegment: string | null, theme: any, thinkingLevel?: string): { left: string; windows: string[]; right?: string } | null {
+	if (!usage?.windows.length) return headroomSegment ? { left: "", windows: [], right: headroomSegment } : null;
+	const parts = buildUsageParts(usage, theme, thinkingLevel);
+	if (headroomSegment) return { ...parts, right: headroomSegment };
+	return parts;
 }
 
 function buildUsageParts(usage: FooterProviderUsage, theme: any, thinkingLevel?: string): { left: string; windows: string[] } {
