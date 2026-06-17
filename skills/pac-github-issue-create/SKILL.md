@@ -51,6 +51,8 @@ Turn the provided note into a useful GitHub issue with:
 
    - If the note already reads like a good issue title, you may reuse it.
    - Otherwise, derive a short imperative or descriptive title.
+   - Prefer concise, scannable titles that name the concrete work without redundant framing.
+   - Avoid conventional-commit prefixes like `feat:` unless the user explicitly supplied that style.
    - Ask at most one brief follow-up question only if the note is too ambiguous to create a useful issue.
 
 5. Create a structured issue body with these sections:
