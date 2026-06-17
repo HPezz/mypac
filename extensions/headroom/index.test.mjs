@@ -402,3 +402,26 @@ test("session handoff preserves active Headroom runtime and re-registers provide
 	assert.deepEqual(second.selectedModels, [second.ctx.model]);
 	assert.equal(second.statuses.at(-1).value, "✓ Headroom");
 });
+
+test("reload preserves active Headroom runtime and re-registers providers", async () => {
+	const first = createHarness();
+	const handler = first.commands.get("headroom").handler;
+
+	await handler("wrap --port 9999", first.ctx);
+	await first.events.get("session_shutdown")({ reason: "reload" });
+
+	assert.deepEqual(first.unregistered, ["openai-codex", "openai", "anthropic"]);
+	assert.equal(first.proxies[0].stopped, false);
+
+	const second = createHarness({ runtime: first.runtime });
+	await second.events.get("session_start")({ reason: "reload" }, second.ctx);
+
+	assert.deepEqual(second.registered.map((entry) => entry.provider), ["openai-codex", "openai", "anthropic"]);
+	assert.deepEqual(second.registered.map((entry) => entry.config.baseUrl), [
+		"http://127.0.0.1:9999/v1",
+		"http://127.0.0.1:9999/v1",
+		"http://127.0.0.1:9999",
+	]);
+	assert.deepEqual(second.selectedModels, [second.ctx.model]);
+	assert.equal(second.statuses.at(-1).value, "✓ Headroom");
+});

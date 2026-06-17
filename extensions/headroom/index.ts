@@ -6,7 +6,7 @@ import { extractHeadroomSavings, publishHeadroomFooterState, type HeadroomFooter
 
 const STATUS_KEY = "headroom";
 const SUPPORTED_PROVIDERS = ["openai-codex", "openai", "anthropic"] as const;
-const SESSION_HANDOFF_REASONS = new Set(["new", "resume", "fork"]);
+const SESSION_HANDOFF_REASONS = new Set(["new", "resume", "fork", "reload"]);
 
 type CommandContext = ExtensionCommandContext;
 type HeadroomContext = Pick<ExtensionCommandContext, "hasUI" | "ui" | "model">;
