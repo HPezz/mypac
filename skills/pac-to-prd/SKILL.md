@@ -134,7 +134,12 @@ When publishing from a local draft file:
 
 Then:
 
-- create a new GitHub issue whose title is a concise version of the PRD title and whose **body is the PRD itself**
+- create a new GitHub issue whose title is a concise, scannable version of the PRD title and whose **body is the PRD itself**
+  - derive the issue title from the PRD title, but do not mirror it mechanically when a shorter title is clearer
+  - prefer a short imperative or descriptive title that names the concrete work, such as `Improve pac-to-prd issue titles`
+  - strip PRD/publication wrappers and redundant framing such as `PRD —`, `Create issue for`, or broad context already obvious from the repository
+  - preserve the specific subject so issue lists remain understandable without opening the issue
+  - avoid conventional-commit prefixes like `feat:` unless the user explicitly supplied that style
 - do **not** create a duplicate PRD comment
 - add `pac:ready_for_agent` and `pac:prd` only when those labels already exist in the target repository
 - never create missing labels automatically
