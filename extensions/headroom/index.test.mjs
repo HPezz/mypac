@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { registerHeadroomExtension } from "./index.ts";
+import { HeadroomRuntime } from "./runtime.ts";
 import { HEADROOM_FOOTER_STATE_EVENT } from "./state.ts";
 
 function createHarness(harnessOptions = {}) {
@@ -52,6 +53,7 @@ function createHarness(harnessOptions = {}) {
 		proxies.push(proxy);
 		return proxy;
 	};
+	const runtime = harnessOptions.runtime ?? new HeadroomRuntime(createProxy);
 	const ctx = {
 		hasUI: true,
 		model: { provider: "openai-codex", id: "gpt-5" },
@@ -71,8 +73,8 @@ function createHarness(harnessOptions = {}) {
 		},
 	};
 
-	registerHeadroomExtension(pi, createProxy);
-	return { commands, events, registered, unregistered, selectedModels, notifications, statuses, proxies, footerEvents, calls, ctx };
+	registerHeadroomExtension(pi, createProxy, runtime);
+	return { commands, events, registered, unregistered, selectedModels, notifications, statuses, proxies, footerEvents, calls, ctx, runtime };
 }
 
 test("/headroom description advertises binary override option", () => {
@@ -279,4 +281,27 @@ test("session shutdown cleans up only after Headroom registered providers", asyn
 	await shutdown();
 	assert.deepEqual(unregistered, ["openai-codex", "openai", "anthropic"]);
 	assert.equal(proxies[0].stopped, true);
+});
+
+test("session handoff preserves active Headroom runtime and re-registers providers", async () => {
+	const first = createHarness();
+	const handler = first.commands.get("headroom").handler;
+
+	await handler("wrap --port 9999", first.ctx);
+	await first.events.get("session_shutdown")({ reason: "new" });
+
+	assert.deepEqual(first.unregistered, ["openai-codex", "openai", "anthropic"]);
+	assert.equal(first.proxies[0].stopped, false);
+
+	const second = createHarness({ runtime: first.runtime });
+	await second.events.get("session_start")({ reason: "new", previousSessionFile: "old.jsonl" }, second.ctx);
+
+	assert.deepEqual(second.registered.map((entry) => entry.provider), ["openai-codex", "openai", "anthropic"]);
+	assert.deepEqual(second.registered.map((entry) => entry.config.baseUrl), [
+		"http://127.0.0.1:9999/v1",
+		"http://127.0.0.1:9999/v1",
+		"http://127.0.0.1:9999",
+	]);
+	assert.deepEqual(second.selectedModels, [second.ctx.model]);
+	assert.equal(second.statuses.at(-1).value, "✓ Headroom");
 });
