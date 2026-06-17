@@ -1,4 +1,5 @@
 import { spawn, type ChildProcess } from "node:child_process";
+import { connect } from "node:net";
 import { buildProxyArgs, type HeadroomMode } from "./helpers.ts";
 
 export interface HeadroomProxyOptions {
@@ -11,6 +12,7 @@ export interface HeadroomProxyOptions {
 export interface HeadroomProxyOperations {
 	spawn: (command: string, args: string[], options: { stdio: "ignore"; detached: boolean }) => ManagedProcess;
 	fetchJson: (url: string, timeoutMs: number) => Promise<unknown>;
+	isPortOpen: (host: string, port: number, timeoutMs: number) => Promise<boolean>;
 	sleep: (ms: number) => Promise<void>;
 }
 
@@ -51,6 +53,12 @@ export class HeadroomProxyManager {
 	async ensureRunning(onStatus?: (message: string) => void): Promise<{ ok: true; managed: boolean } | { ok: false; error: Error }> {
 		if (await this.isHealthy()) {
 			return { ok: true, managed: this.managed };
+		}
+		if (!this.process && await this.operations.isPortOpen(this.options.host ?? "127.0.0.1", this.options.port, 1000)) {
+			return {
+				ok: false,
+				error: new Error(`Port ${this.options.port} is already in use, but ${this.baseUrl}/health is not healthy. Stop the existing service or choose another port with /headroom wrap --port <port>.`),
+			};
 		}
 		if (this.process && this.managed) {
 			onStatus?.("Stopping unhealthy Headroom proxy...");
@@ -165,6 +173,18 @@ const defaultOperations: HeadroomProxyOperations = {
 		if (!response.ok) throw new Error(`HTTP ${response.status}`);
 		return response.json();
 	},
+	isPortOpen: (host, port, timeoutMs) => new Promise((resolve) => {
+		const socket = connect({ host, port });
+		const finish = (open: boolean) => {
+			socket.removeAllListeners();
+			socket.destroy();
+			resolve(open);
+		};
+		socket.setTimeout(timeoutMs);
+		socket.once("connect", () => finish(true));
+		socket.once("timeout", () => finish(false));
+		socket.once("error", () => finish(false));
+	}),
 	sleep: (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
 };
 
