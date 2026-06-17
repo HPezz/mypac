@@ -1,7 +1,7 @@
 import type { ExtensionAPI, ExtensionCommandContext } from "@earendil-works/pi-coding-agent";
 import { buildProviderOverrides, formatStatus, getInstallGuidance, parseHeadroomArgs, type HeadroomOptions } from "./helpers.ts";
 import { HeadroomProxyManager } from "./proxy.ts";
-import { extractHeadroomSavings, publishHeadroomFooterState } from "./state.ts";
+import { extractHeadroomSavings, publishHeadroomFooterState, type HeadroomFooterState, type HeadroomFooterStatus } from "./state.ts";
 
 const STATUS_KEY = "headroom";
 const SUPPORTED_PROVIDERS = ["openai-codex", "openai", "anthropic"] as const;
@@ -19,6 +19,12 @@ export function registerHeadroomExtension(pi: ExtensionAPI, createProxy: CreateP
 	let manager: HeadroomProxyManager | null = null;
 	let managerOptions: HeadroomOptions | null = null;
 	let providerOverridesRegistered = false;
+	let lastFooterStatus: HeadroomFooterStatus = "not_started";
+
+	function publishFooterState(state: HeadroomFooterState): void {
+		lastFooterStatus = state.status;
+		publishHeadroomFooterState(pi, state);
+	}
 
 	function setStatus(ctx: CommandContext, status: HeadroomStatus): void {
 		if (!ctx.hasUI) return;
@@ -92,13 +98,20 @@ export function registerHeadroomExtension(pi: ExtensionAPI, createProxy: CreateP
 		return (error as NodeJS.ErrnoException).code === "ENOENT";
 	}
 
-	async function publishHeadroomStats(pi: ExtensionAPI, proxy: HeadroomProxyManager, status: "working" | "error"): Promise<void> {
+	async function publishHeadroomStats(proxy: HeadroomProxyManager, status: "working" | "error"): Promise<void> {
 		try {
 			const stats = await proxy.stats();
-			publishHeadroomFooterState(pi, { status, ...extractHeadroomSavings(stats) });
+			if (proxy !== manager || !enabled) return;
+			publishFooterState({ status, ...extractHeadroomSavings(stats) });
 		} catch {
-			publishHeadroomFooterState(pi, { status });
+			if (proxy !== manager || !enabled) return;
+			publishFooterState({ status });
 		}
+	}
+
+	async function refreshHeadroomStats(status: "working" | "error" = lastFooterStatus === "error" ? "error" : "working"): Promise<void> {
+		if (!enabled || !manager) return;
+		await publishHeadroomStats(manager, status);
 	}
 
 	async function handleWrap(options: HeadroomOptions, ctx: CommandContext): Promise<void> {
@@ -124,13 +137,13 @@ export function registerHeadroomExtension(pi: ExtensionAPI, createProxy: CreateP
 				if (!keepExistingRouting) {
 					await removeProviderOverrides();
 					enabled = false;
-					publishHeadroomFooterState(pi, { status: "not_started" });
+					publishFooterState({ status: "not_started" });
 					manager = null;
 					managerOptions = null;
 					await reselectCurrentModel(ctx);
 				}
 				setStatus(ctx, keepExistingRouting ? "enabled" : "error");
-				if (!keepExistingRouting) publishHeadroomFooterState(pi, { status: "error" });
+				if (!keepExistingRouting) publishFooterState({ status: "error" });
 				const message = isMissingBinaryError(result.error)
 					? getInstallGuidance(options.binary)
 					: `Failed to start Headroom proxy: ${result.error.message}`;
@@ -148,7 +161,7 @@ export function registerHeadroomExtension(pi: ExtensionAPI, createProxy: CreateP
 			enabled = true;
 			const routingApplied = await reselectCurrentModel(ctx);
 			setStatus(ctx, routingApplied ? "enabled" : "routing_pending");
-			await publishHeadroomStats(pi, proxy, "working");
+			await publishHeadroomStats(proxy, "working");
 			const details = [
 				`Headroom enabled on ${proxy.baseUrl}`,
 				"Routed providers: openai-codex, openai, anthropic",
@@ -168,7 +181,7 @@ export function registerHeadroomExtension(pi: ExtensionAPI, createProxy: CreateP
 		const wasEnabled = enabled;
 		await removeProviderOverrides();
 		enabled = false;
-		publishHeadroomFooterState(pi, { status: "not_started" });
+		publishFooterState({ status: "not_started" });
 		if (manager) await manager.stop();
 		manager = null;
 		managerOptions = null;
@@ -183,6 +196,10 @@ export function registerHeadroomExtension(pi: ExtensionAPI, createProxy: CreateP
 			proxy.health().catch(() => undefined),
 			proxy.stats().catch(() => undefined),
 		]);
+		if (enabled && proxy === manager) {
+			const nextFooterStatus = health ? "working" : "error";
+			publishFooterState(stats ? { status: nextFooterStatus, ...extractHeadroomSavings(stats) } : { status: nextFooterStatus });
+		}
 		notify(
 			ctx,
 			formatStatus({
@@ -219,10 +236,14 @@ export function registerHeadroomExtension(pi: ExtensionAPI, createProxy: CreateP
 		},
 	});
 
+	pi.on("turn_end", async () => {
+		await refreshHeadroomStats();
+	});
+
 	pi.on("session_shutdown", async () => {
 		await removeProviderOverrides();
 		enabled = false;
-		publishHeadroomFooterState(pi, { status: "not_started" });
+		publishFooterState({ status: "not_started" });
 		if (manager) await manager.stop();
 		manager = null;
 		managerOptions = null;
