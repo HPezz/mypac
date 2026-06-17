@@ -2,6 +2,8 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import sharedAppendSystemExtension from "./index.ts";
 import {
+	VERBOSITY_STEERING_PROMPT,
+	appendVerbositySteeringPrompt,
 	formatSharedAppendSystemPrompt,
 	insertSharedAppendSystemPrompt,
 	sharedAppendSystemPath,
@@ -59,6 +61,39 @@ test("insertSharedAppendSystemPrompt is idempotent", () => {
 	assert.equal(insertSharedAppendSystemPrompt(prompt, sharedBlock), prompt);
 });
 
+test("appendVerbositySteeringPrompt appends terse guidance at the end without changing the prefix", () => {
+	const prompt = "Pi base\n\n<project_context>\nProject instructions\n</project_context>";
+	const result = appendVerbositySteeringPrompt(prompt);
+
+	assert.ok(result.startsWith(`${prompt}\n\n`));
+	assert.ok(result.endsWith(VERBOSITY_STEERING_PROMPT));
+	assert.match(VERBOSITY_STEERING_PROMPT, /terse/i);
+	assert.match(VERBOSITY_STEERING_PROMPT, /avoid restating/i);
+});
+
+test("appendVerbositySteeringPrompt inserts terse guidance before the dynamic footer", () => {
+	const footer = "Current date: 2026-05-20\nCurrent working directory: /repo";
+	const prompt = `Pi base\n\n<project_context>\nProject instructions\n</project_context>\n${footer}`;
+	const result = appendVerbositySteeringPrompt(prompt);
+
+	assert.ok(result.includes(`</project_context>\n\n${VERBOSITY_STEERING_PROMPT}\n${footer}`));
+	assert.ok(result.endsWith(footer));
+});
+
+test("appendVerbositySteeringPrompt inserts terse guidance before a current working directory footer", () => {
+	const footer = "Current working directory: /repo";
+	const prompt = `Pi base\n\n<project_context>\nProject instructions\n</project_context>\n${footer}`;
+	const result = appendVerbositySteeringPrompt(prompt);
+
+	assert.ok(result.includes(`</project_context>\n\n${VERBOSITY_STEERING_PROMPT}\n${footer}`));
+	assert.ok(result.endsWith(footer));
+});
+
+test("appendVerbositySteeringPrompt is idempotent", () => {
+	const prompt = `Pi base\n\n${VERBOSITY_STEERING_PROMPT}\nCurrent date: 2026-05-20`;
+	assert.equal(appendVerbositySteeringPrompt(prompt), prompt);
+});
+
 test("shared append-system extension inserts shared instructions before append-system prompt", async () => {
 	const handlers = new Map();
 	const pi = {
@@ -81,6 +116,7 @@ test("shared append-system extension inserts shared instructions before append-s
 
 	assert.ok(result.systemPrompt.includes(`<shared_append_system_instructions path="${sharedAppendSystemPath}">`));
 	assert.ok(result.systemPrompt.indexOf("<shared_append_system_context>") < result.systemPrompt.indexOf(append));
+	assert.ok(result.systemPrompt.endsWith(VERBOSITY_STEERING_PROMPT));
 });
 
 test("shared append-system extension tolerates missing system prompt options", async () => {
@@ -97,4 +133,5 @@ test("shared append-system extension tolerates missing system prompt options", a
 	});
 
 	assert.ok(result.systemPrompt.indexOf("<shared_append_system_context>") < result.systemPrompt.indexOf("<project_context>"));
+	assert.ok(result.systemPrompt.endsWith(VERBOSITY_STEERING_PROMPT));
 });
