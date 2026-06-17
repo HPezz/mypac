@@ -46,8 +46,8 @@ function createHarness(harnessOptions = {}) {
 			stop: async () => {
 				proxy.stopped = true;
 			},
-			health: async () => ({ status: "healthy" }),
-			stats: async () => ({}),
+			health: async () => harnessOptions.health?.(proxy) ?? { status: "healthy" },
+			stats: async () => harnessOptions.stats?.(proxy) ?? {},
 		};
 		proxies.push(proxy);
 		return proxy;
@@ -141,6 +141,90 @@ test("/headroom wrap and stop publish footer state events", async () => {
 
 	assert.deepEqual(footerEvents, [
 		{ channel: HEADROOM_FOOTER_STATE_EVENT, data: { status: "working", tokensSaved: undefined, compressionPercent: undefined } },
+		{ channel: HEADROOM_FOOTER_STATE_EVENT, data: { status: "not_started" } },
+	]);
+});
+
+test("/headroom refreshes footer savings after each turn", async () => {
+	const stats = [
+		{ summary: { compression: { total_tokens_removed: 0, avg_compression_pct: 0 } } },
+		{ summary: { compression: { total_tokens_removed: 1234, avg_compression_pct: 17.6 } } },
+	];
+	const { commands, events, footerEvents, ctx } = createHarness({ stats: async () => stats.shift() ?? stats.at(-1) });
+
+	await commands.get("headroom").handler("wrap", ctx);
+	await events.get("turn_end")({}, ctx);
+
+	assert.deepEqual(footerEvents, [
+		{ channel: HEADROOM_FOOTER_STATE_EVENT, data: { status: "working", tokensSaved: 0, compressionPercent: 0 } },
+		{ channel: HEADROOM_FOOTER_STATE_EVENT, data: { status: "working", tokensSaved: 1234, compressionPercent: 17.6 } },
+	]);
+});
+
+test("/headroom status refreshes enabled footer savings", async () => {
+	const stats = [
+		{ summary: { compression: { total_tokens_removed: 0, avg_compression_pct: 0 } } },
+		{ summary: { compression: { total_tokens_removed: 2345, avg_compression_pct: 22.4 } } },
+	];
+	const { commands, footerEvents, ctx } = createHarness({ stats: async () => stats.shift() ?? stats.at(-1) });
+
+	await commands.get("headroom").handler("wrap", ctx);
+	await commands.get("headroom").handler("status", ctx);
+
+	assert.deepEqual(footerEvents, [
+		{ channel: HEADROOM_FOOTER_STATE_EVENT, data: { status: "working", tokensSaved: 0, compressionPercent: 0 } },
+		{ channel: HEADROOM_FOOTER_STATE_EVENT, data: { status: "working", tokensSaved: 2345, compressionPercent: 22.4 } },
+	]);
+});
+
+test("turn_end stats refresh preserves error footer status", async () => {
+	let offline = false;
+	const { commands, events, footerEvents, ctx } = createHarness({
+		health: async () => {
+			if (offline) throw new Error("offline");
+			return { status: "healthy" };
+		},
+		stats: async () => {
+			if (offline) throw new Error("offline");
+			return { summary: { compression: { total_tokens_removed: 0, avg_compression_pct: 0 } } };
+		},
+	});
+
+	await commands.get("headroom").handler("wrap", ctx);
+	offline = true;
+	await commands.get("headroom").handler("status", ctx);
+	await events.get("turn_end")({}, ctx);
+
+	assert.deepEqual(footerEvents, [
+		{ channel: HEADROOM_FOOTER_STATE_EVENT, data: { status: "working", tokensSaved: 0, compressionPercent: 0 } },
+		{ channel: HEADROOM_FOOTER_STATE_EVENT, data: { status: "error" } },
+		{ channel: HEADROOM_FOOTER_STATE_EVENT, data: { status: "error" } },
+	]);
+});
+
+test("in-flight turn_end stats refresh does not publish after stop", async () => {
+	let statsCalls = 0;
+	let resolveTurnStats;
+	const turnStats = new Promise((resolve) => {
+		resolveTurnStats = resolve;
+	});
+	const { commands, events, footerEvents, ctx } = createHarness({
+		stats: async () => {
+			statsCalls++;
+			if (statsCalls === 1) return { summary: { compression: { total_tokens_removed: 0, avg_compression_pct: 0 } } };
+			return turnStats;
+		},
+	});
+
+	await commands.get("headroom").handler("wrap", ctx);
+	const turnEnd = events.get("turn_end")({}, ctx);
+	assert.equal(statsCalls, 2);
+	await commands.get("headroom").handler("stop", ctx);
+	resolveTurnStats({ summary: { compression: { total_tokens_removed: 1234, avg_compression_pct: 17.6 } } });
+	await turnEnd;
+
+	assert.deepEqual(footerEvents, [
+		{ channel: HEADROOM_FOOTER_STATE_EVENT, data: { status: "working", tokensSaved: 0, compressionPercent: 0 } },
 		{ channel: HEADROOM_FOOTER_STATE_EVENT, data: { status: "not_started" } },
 	]);
 });
