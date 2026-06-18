@@ -1,7 +1,27 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { registerHeadroomExtension } from "./index.ts";
+import { HeadroomRuntime } from "./runtime.ts";
 import { HEADROOM_FOOTER_STATE_EVENT } from "./state.ts";
+
+class MemoryLeaseStore {
+	constructor() {
+		this.leases = [];
+	}
+
+	async acquire(lease) {
+		this.leases = this.leases.filter((entry) => entry.instanceId !== lease.instanceId);
+		this.leases.push(lease);
+	}
+
+	async release(instanceId) {
+		this.leases = this.leases.filter((entry) => entry.instanceId !== instanceId);
+	}
+
+	async getActiveLeases(port) {
+		return this.leases.filter((entry) => entry.port === port);
+	}
+}
 
 function createHarness(harnessOptions = {}) {
 	const commands = new Map();
@@ -22,9 +42,11 @@ function createHarness(harnessOptions = {}) {
 			events.set(event, handler);
 		},
 		registerProvider(provider, config) {
+			harnessOptions.registerProvider?.(provider, config);
 			registered.push({ provider, config });
 		},
 		unregisterProvider(provider) {
+			harnessOptions.unregisterProvider?.(provider);
 			unregistered.push(provider);
 		},
 		setModel: async (model) => {
@@ -52,6 +74,7 @@ function createHarness(harnessOptions = {}) {
 		proxies.push(proxy);
 		return proxy;
 	};
+	const runtime = harnessOptions.runtime ?? new HeadroomRuntime(createProxy, { leaseStore: harnessOptions.leaseStore ?? new MemoryLeaseStore() });
 	const ctx = {
 		hasUI: true,
 		model: { provider: "openai-codex", id: "gpt-5" },
@@ -71,8 +94,8 @@ function createHarness(harnessOptions = {}) {
 		},
 	};
 
-	registerHeadroomExtension(pi, createProxy);
-	return { commands, events, registered, unregistered, selectedModels, notifications, statuses, proxies, footerEvents, calls, ctx };
+	registerHeadroomExtension(pi, createProxy, runtime);
+	return { commands, events, registered, unregistered, selectedModels, notifications, statuses, proxies, footerEvents, calls, ctx, runtime };
 }
 
 test("/headroom description advertises binary override option", () => {
@@ -259,6 +282,82 @@ test("/headroom wrap failure with existing manager rolls back stale routing", as
 	assert.equal(statuses.at(-1).value, "⚠ Headroom offline");
 });
 
+test("/headroom wrap provider registration failure preserves existing runtime proxy", async () => {
+	const { commands, runtime, proxies, notifications, ctx } = createHarness({
+		registerProvider: (_provider, config) => {
+			if (config.baseUrl.includes("8788")) throw new Error("register failed");
+		},
+	});
+	const handler = commands.get("headroom").handler;
+
+	await handler("wrap --port 8787", ctx);
+	const previousProxy = runtime.activeProxy;
+	await handler("wrap --port 8788", ctx);
+
+	assert.equal(runtime.activeProxy, previousProxy);
+	assert.equal(proxies[0].stopped, false);
+	assert.equal(proxies[1].stopped, true);
+	assert.ok(notifications.some((notification) => /Failed to register Headroom routing/.test(notification.message)));
+});
+
+test("/headroom wrap provider registration failure keeps cleanup armed", async () => {
+	const { commands, events, unregistered, ctx } = createHarness({
+		registerProvider: () => {
+			throw new Error("register failed");
+		},
+	});
+
+	await commands.get("headroom").handler("wrap", ctx);
+	await events.get("session_shutdown")({ reason: "exit" });
+
+	assert.deepEqual(unregistered, ["openai-codex", "openai", "anthropic"]);
+});
+
+test("/headroom wrap provider registration failure reports even when rollback routing fails", async () => {
+	const { commands, notifications, ctx } = createHarness({
+		registerProvider: () => {
+			throw new Error("register failed");
+		},
+		unregisterProvider: () => {
+			throw new Error("unregister failed");
+		},
+	});
+
+	await assert.doesNotReject(() => commands.get("headroom").handler("wrap", ctx));
+
+	assert.ok(notifications.some((notification) => /Failed to register Headroom routing/.test(notification.message)));
+	assert.ok(notifications.some((notification) => /Failed to restore Headroom routing/.test(notification.message)));
+});
+
+test("session_start provider restore failure is reported", async () => {
+	let failRestore = false;
+	const { commands, events, notifications, statuses, ctx } = createHarness({
+		registerProvider: () => {
+			if (failRestore) throw new Error("restore failed");
+		},
+	});
+
+	await commands.get("headroom").handler("wrap", ctx);
+	failRestore = true;
+	await assert.doesNotReject(() => events.get("session_start")({}, ctx));
+
+	assert.ok(notifications.some((notification) => /Failed to restore Headroom routing/.test(notification.message)));
+	assert.ok(statuses.some((status) => status.value === "⚠ Headroom offline"));
+});
+
+test("/headroom wrap rejects same-port mode changes while enabled", async () => {
+	const { commands, runtime, proxies, notifications, ctx } = createHarness();
+	const handler = commands.get("headroom").handler;
+
+	await handler("wrap --port 8787 --mode token", ctx);
+	const previousProxy = runtime.activeProxy;
+	await handler("wrap --port 8787 --mode cache", ctx);
+
+	assert.equal(runtime.activeProxy, previousProxy);
+	assert.equal(proxies.length, 1);
+	assert.match(notifications.at(-1).message, /run `\/headroom stop` first/);
+});
+
 test("/headroom wrap notes when current provider is not routed", async () => {
 	const { commands, notifications, ctx } = createHarness();
 	ctx.model = { provider: "local", id: "dev-model" };
@@ -279,4 +378,50 @@ test("session shutdown cleans up only after Headroom registered providers", asyn
 	await shutdown();
 	assert.deepEqual(unregistered, ["openai-codex", "openai", "anthropic"]);
 	assert.equal(proxies[0].stopped, true);
+});
+
+test("session handoff preserves active Headroom runtime and re-registers providers", async () => {
+	const first = createHarness();
+	const handler = first.commands.get("headroom").handler;
+
+	await handler("wrap --port 9999", first.ctx);
+	await first.events.get("session_shutdown")({ reason: "new" });
+
+	assert.deepEqual(first.unregistered, ["openai-codex", "openai", "anthropic"]);
+	assert.equal(first.proxies[0].stopped, false);
+
+	const second = createHarness({ runtime: first.runtime });
+	await second.events.get("session_start")({ reason: "new", previousSessionFile: "old.jsonl" }, second.ctx);
+
+	assert.deepEqual(second.registered.map((entry) => entry.provider), ["openai-codex", "openai", "anthropic"]);
+	assert.deepEqual(second.registered.map((entry) => entry.config.baseUrl), [
+		"http://127.0.0.1:9999/v1",
+		"http://127.0.0.1:9999/v1",
+		"http://127.0.0.1:9999",
+	]);
+	assert.deepEqual(second.selectedModels, [second.ctx.model]);
+	assert.equal(second.statuses.at(-1).value, "✓ Headroom");
+});
+
+test("reload preserves active Headroom runtime and re-registers providers", async () => {
+	const first = createHarness();
+	const handler = first.commands.get("headroom").handler;
+
+	await handler("wrap --port 9999", first.ctx);
+	await first.events.get("session_shutdown")({ reason: "reload" });
+
+	assert.deepEqual(first.unregistered, ["openai-codex", "openai", "anthropic"]);
+	assert.equal(first.proxies[0].stopped, false);
+
+	const second = createHarness({ runtime: first.runtime });
+	await second.events.get("session_start")({ reason: "reload" }, second.ctx);
+
+	assert.deepEqual(second.registered.map((entry) => entry.provider), ["openai-codex", "openai", "anthropic"]);
+	assert.deepEqual(second.registered.map((entry) => entry.config.baseUrl), [
+		"http://127.0.0.1:9999/v1",
+		"http://127.0.0.1:9999/v1",
+		"http://127.0.0.1:9999",
+	]);
+	assert.deepEqual(second.selectedModels, [second.ctx.model]);
+	assert.equal(second.statuses.at(-1).value, "✓ Headroom");
 });
