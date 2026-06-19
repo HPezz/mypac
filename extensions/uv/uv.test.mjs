@@ -1,23 +1,34 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { dirname, resolve } from "node:path";
+import { chmodSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { getBlockedCommandMessage } from "./helpers.ts";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
+const mypacRoot = resolve(__dirname, "../..");
 const interceptedCommandsPath = resolve(__dirname, "intercepted-commands");
 
-function pathWithoutUv() {
-	const uvPaths = spawnSync("bash", ["-lc", "type -aP uv 2>/dev/null || true"], {
+function pathWithoutCommands(...commandNames) {
+	const commandPaths = commandNames.flatMap((command) => spawnSync("bash", ["-lc", 'type -aP "$1" 2>/dev/null || true', "_", command], {
 		encoding: "utf8",
-	}).stdout.trim().split("\n").filter(Boolean);
-	const uvDirs = new Set(uvPaths.map((path) => dirname(path)));
+	}).stdout.trim().split("\n").filter(Boolean));
+	const commandDirs = new Set(commandPaths.map((path) => dirname(path)));
 
 	return (process.env.PATH ?? "")
 		.split(":")
-		.filter((path) => path && path !== interceptedCommandsPath && !uvDirs.has(path))
+		.filter((path) => path && path !== interceptedCommandsPath && !commandDirs.has(path))
 		.join(":");
+}
+
+function pathWithoutUv() {
+	return pathWithoutCommands("uv");
+}
+
+function pathWithoutUvOrMise() {
+	return pathWithoutCommands("uv", "mise");
 }
 
 // --- Allowed commands ---
@@ -104,10 +115,175 @@ test("blocks pip in multiline command", () => {
 	assert.ok(msg?.includes("pip is disabled"));
 });
 
+test("python shim handles uv path containing spaces", () => {
+	const tmp = mkdtempSync(join(tmpdir(), "uv path "));
+	try {
+		const managedPython = join(tmp, "managed-python");
+		const fakeUv = join(tmp, "uv");
+		writeFileSync(managedPython, "#!/usr/bin/env bash\nexit 0\n");
+		chmodSync(managedPython, 0o755);
+		writeFileSync(fakeUv, `#!/usr/bin/env bash
+set -eu
+if [ "$1" = "python" ] && [ "$2" = "find" ]; then
+	printf '%s\n' "$FAKE_MANAGED_PYTHON"
+	exit 0
+fi
+if [ "$1" = "run" ]; then
+	printf 'UV_PYTHON=%s\n' "$3"
+	exit 0
+fi
+exit 99
+`);
+		chmodSync(fakeUv, 0o755);
+
+		const result = spawnSync(resolve(interceptedCommandsPath, "python3"), ["--version"], {
+			env: {
+				...process.env,
+				FAKE_MANAGED_PYTHON: managedPython,
+				PATH: `${tmp}:${interceptedCommandsPath}:${pathWithoutUv()}`,
+			},
+			encoding: "utf8",
+		});
+
+		assert.equal(result.status, 0, result.stderr || result.stdout);
+		assert.equal(result.stdout.trim(), `UV_PYTHON=${managedPython}`);
+	} finally {
+		rmSync(tmp, { force: true, recursive: true });
+	}
+});
+
+test("python shim ignores shell functions named uv", () => {
+	const tmp = mkdtempSync(join(tmpdir(), "uv function "));
+	try {
+		const managedPython = join(tmp, "managed-python");
+		const fakeUv = join(tmp, "uv");
+		writeFileSync(managedPython, "#!/usr/bin/env bash\nexit 0\n");
+		chmodSync(managedPython, 0o755);
+		writeFileSync(fakeUv, `#!/usr/bin/env bash
+set -eu
+if [ "$1" = "python" ] && [ "$2" = "find" ]; then
+	printf '%s\n' "$FAKE_MANAGED_PYTHON"
+	exit 0
+fi
+if [ "$1" = "run" ]; then
+	printf 'UV_PYTHON=%s\n' "$3"
+	exit 0
+fi
+exit 99
+`);
+		chmodSync(fakeUv, 0o755);
+
+		const result = spawnSync(resolve(interceptedCommandsPath, "python3"), ["--version"], {
+			env: {
+				...process.env,
+				"BASH_FUNC_uv%%": "() { return 99; }",
+				FAKE_MANAGED_PYTHON: managedPython,
+				PATH: `${tmp}:${interceptedCommandsPath}:${pathWithoutUv()}`,
+			},
+			encoding: "utf8",
+		});
+
+		assert.equal(result.status, 0, result.stderr || result.stdout);
+		assert.equal(result.stdout.trim(), `UV_PYTHON=${managedPython}`);
+	} finally {
+		rmSync(tmp, { force: true, recursive: true });
+	}
+});
+
+test("python shim ignores shell functions named mise", () => {
+	const tmp = mkdtempSync(join(tmpdir(), "mise function "));
+	try {
+		const managedPython = join(tmp, "managed-python");
+		const fakeUv = join(tmp, "managed uv");
+		const fakeMise = join(tmp, "mise");
+		writeFileSync(managedPython, "#!/usr/bin/env bash\nexit 0\n");
+		chmodSync(managedPython, 0o755);
+		writeFileSync(fakeUv, `#!/usr/bin/env bash
+set -eu
+if [ "$1" = "python" ] && [ "$2" = "find" ]; then
+	printf '%s\n' "$FAKE_MANAGED_PYTHON"
+	exit 0
+fi
+if [ "$1" = "run" ]; then
+	printf 'UV_PYTHON=%s\n' "$3"
+	exit 0
+fi
+exit 99
+`);
+		chmodSync(fakeUv, 0o755);
+		writeFileSync(fakeMise, `#!/usr/bin/env bash
+set -eu
+if [ "$1" = "which" ] && [ "$4" = "uv" ]; then
+	printf '%s\n' "$FAKE_UV"
+	exit 0
+fi
+exit 99
+`);
+		chmodSync(fakeMise, 0o755);
+
+		const result = spawnSync(resolve(interceptedCommandsPath, "python3"), ["--version"], {
+			env: {
+				...process.env,
+				"BASH_FUNC_mise%%": "() { return 99; }",
+				FAKE_MANAGED_PYTHON: managedPython,
+				FAKE_UV: fakeUv,
+				PATH: `${tmp}:${interceptedCommandsPath}:${pathWithoutUv()}`,
+			},
+			encoding: "utf8",
+		});
+
+		assert.equal(result.status, 0, result.stderr || result.stdout);
+		assert.equal(result.stdout.trim(), `UV_PYTHON=${managedPython}`);
+	} finally {
+		rmSync(tmp, { force: true, recursive: true });
+	}
+});
+
 // --- unavailable uv runtime ---
 
-test("python shim explains how to install uv when uv is unavailable", () => {
+test("python shim uses mypac mise uv when uv unavailable on PATH", (t) => {
 	const simulatedPath = pathWithoutUv();
+	const misePath = spawnSync("bash", ["-lc", "type -P mise || true"], {
+		env: { ...process.env, PATH: simulatedPath },
+		encoding: "utf8",
+	}).stdout.trim();
+	const systemPython = spawnSync("bash", ["-lc", "command -v python3 || command -v python || true"], {
+		env: { ...process.env, PATH: simulatedPath },
+		encoding: "utf8",
+	}).stdout.trim();
+
+	if (!misePath) {
+		t.skip("mise is unavailable on PATH");
+		return;
+	}
+	if (!systemPython) {
+		t.skip("no system Python available outside shim path");
+		return;
+	}
+
+	const miseUvPath = spawnSync(misePath, ["which", "-C", mypacRoot, "uv"], {
+		env: { ...process.env, PATH: simulatedPath },
+		encoding: "utf8",
+	}).stdout.trim();
+	const miseUvExecutable = spawnSync("bash", ["-lc", "[ -x \"$1\" ]", "_", miseUvPath]);
+	if (!miseUvPath || miseUvExecutable.status !== 0) {
+		t.skip("mise cannot resolve an executable uv for this repo");
+		return;
+	}
+
+	const result = spawnSync(resolve(interceptedCommandsPath, "python3"), ["--version"], {
+		cwd: "/tmp",
+		env: { ...process.env, PATH: `${interceptedCommandsPath}:${simulatedPath}` },
+		encoding: "utf8",
+	});
+
+	assert.equal(result.status, 0, result.stderr || result.stdout);
+	assert.match(`${result.stdout}\n${result.stderr}`, /Python \d+\.\d+/);
+	assert.ok(!result.stderr.includes("uv is required"), result.stderr);
+});
+
+test("python shim explains how to install uv when uv is unavailable", () => {
+	const simulatedPath = pathWithoutUvOrMise();
 	const systemPython = spawnSync("bash", ["-lc", "command -v python3 || command -v python || true"], {
 		env: { ...process.env, PATH: simulatedPath },
 		encoding: "utf8",
