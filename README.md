@@ -35,7 +35,6 @@ For readability, the skill table below drops the `pac-` prefix in the display la
 | [`context`](extensions/context/) | `/context` | Shows loaded context and tracks which repo-local skills have been pulled into the session |
 | [`files`](extensions/files/) | `/files`, shortcuts | Browses repo and session files, with quick actions like open, reveal, diff, edit, and add to prompt |
 | [`ghi`](extensions/ghi/) | `/ghi` | Creates a GitHub issue in the current repository using `gh` |
-| [`multi-edit`](extensions/multi-edit/) | `edit` tool override | Extends Pi's `edit` tool with batch edits and Codex-style patch support |
 | [`personas`](extensions/personas/) | `/persona` | Lists, enables, and disables reusable persona prompt content from [`personas/`](personas/) |
 | [`review`](extensions/review/) | `/review-start`, `/review-end` | Reviews uncommitted changes, commits, branches, PRs, or folders from inside Pi |
 | [`session-breakdown`](extensions/session-breakdown/) | `/session-breakdown` | Shows local Pi session usage, cost, model, directory, and cache/context statistics without printing raw transcripts |
