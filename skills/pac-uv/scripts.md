@@ -37,7 +37,7 @@ Declare dependencies directly in the script:
 
 ```python
 # /// script
-# requires-python = ">=3.12"
+# requires-python = ">=3.14"
 # dependencies = [
 #   "requests<3",
 #   "rich",
@@ -53,7 +53,7 @@ Then just: `uv run script.py`
 ### Managing Dependencies
 
 ```bash
-uv init --script example.py --python 3.12   # Create script with metadata
+uv init --script example.py --python 3.14   # Create script with metadata
 uv add --script example.py requests rich    # Add dependencies
 ```
 

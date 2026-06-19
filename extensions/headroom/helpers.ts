@@ -93,7 +93,7 @@ export function getInstallGuidance(binary = DEFAULT_HEADROOM_BINARY): string {
 		`Headroom binary not found: ${binary}`,
 		"Install Headroom with uv, then try /headroom wrap again:",
 		"",
-		"  uv tool install --python 3.12 'headroom-ai[proxy]'",
+		"  uv tool install --python 3.14 'headroom-ai[proxy]'",
 		"",
 		"If already installed, ensure the headroom command is on PATH or set HEADROOM_BIN.",
 	].join("\n");

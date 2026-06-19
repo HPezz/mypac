@@ -11,7 +11,7 @@ const pip3CommandPattern = /(?:^|\n|[;|&]{1,2})\s*(?:\S+\/)?pip3\s*(?:$|\s)/m;
 const poetryCommandPattern = /(?:^|\n|[;|&]{1,2})\s*(?:\S+\/)?poetry\s*(?:$|\s)/m;
 
 // Match python invocations including explicit paths like .venv/bin/python
-// and .venv/bin/python3.12.
+// and .venv/bin/python3.14.
 const pythonPipPattern =
 	/(?:^|\n|[;|&]{1,2})\s*(?:\S+\/)?python(?:3(?:\.\d+)?)?\b[^\n;|&]*(?:\s-m\s*pip\b|\s-mpip\b)/m;
 const pythonVenvPattern =

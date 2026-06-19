@@ -62,7 +62,7 @@ test("builds provider overrides for supported Pi providers", () => {
 
 test("install guidance recommends uv tool install, not npm or pip", () => {
 	const guidance = getInstallGuidance("headroom");
-	assert.match(guidance, /uv tool install --python 3\.12 'headroom-ai\[proxy\]'/);
+	assert.match(guidance, /uv tool install --python 3\.14 'headroom-ai\[proxy\]'/);
 	assert.doesNotMatch(guidance, /npm install/);
 	assert.doesNotMatch(guidance, /pip install/);
 });

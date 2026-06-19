@@ -24,7 +24,7 @@ uv init --script foo.py            # Create script with inline metadata
 
 ```python
 # /// script
-# requires-python = ">=3.12"
+# requires-python = ">=3.14"
 # dependencies = ["requests"]
 # ///
 ```
