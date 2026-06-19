@@ -8,6 +8,11 @@ export interface HeadroomFooterState {
 	compressionPercent?: number;
 }
 
+export interface HeadroomStatsSnapshot {
+	inputTokens?: number;
+	savedTokens?: number;
+}
+
 export const HEADROOM_FOOTER_STATE_EVENT = "headroom:footer-state";
 
 export function publishHeadroomFooterState(pi: Pick<ExtensionAPI, "events">, state: HeadroomFooterState): void {
@@ -34,4 +39,49 @@ export function extractHeadroomSavings(stats: unknown): Pick<HeadroomFooterState
 		tokensSaved: typeof compression?.total_tokens_removed === "number" ? compression.total_tokens_removed : undefined,
 		compressionPercent: typeof compression?.avg_compression_pct === "number" ? compression.avg_compression_pct : undefined,
 	};
+}
+
+export function extractHeadroomStatsSnapshot(stats: unknown): HeadroomStatsSnapshot | null {
+	const input = stats as {
+		tokens?: { input?: unknown; saved?: unknown };
+		summary?: { compression?: { total_tokens_removed?: unknown } };
+	} | undefined;
+	const tokens = input?.tokens;
+	const compression = input?.summary?.compression;
+	const inputTokens = typeof tokens?.input === "number" ? tokens.input : undefined;
+	const savedTokens = typeof tokens?.saved === "number"
+		? tokens.saved
+		: typeof compression?.total_tokens_removed === "number"
+			? compression.total_tokens_removed
+			: undefined;
+	if (inputTokens === undefined && savedTokens === undefined) return null;
+	return { inputTokens, savedTokens };
+}
+
+export function extractSessionHeadroomSavings(stats: unknown, baseline: HeadroomStatsSnapshot | null): Pick<HeadroomFooterState, "tokensSaved" | "compressionPercent"> {
+	const current = extractHeadroomStatsSnapshot(stats);
+	if (!current || !baseline) return { tokensSaved: undefined, compressionPercent: undefined };
+	const tokensSaved = calculateDelta(current.savedTokens, baseline.savedTokens);
+	const inputTokens = calculateDelta(current.inputTokens, baseline.inputTokens);
+	const totalOriginalTokens = tokensSaved !== undefined && inputTokens !== undefined ? tokensSaved + inputTokens : undefined;
+	return {
+		tokensSaved,
+		compressionPercent: totalOriginalTokens !== undefined && tokensSaved !== undefined
+			? totalOriginalTokens > 0 ? (tokensSaved / totalOriginalTokens) * 100 : 0
+			: undefined,
+	};
+}
+
+export function didHeadroomStatsCountersReset(current: HeadroomStatsSnapshot | null, baseline: HeadroomStatsSnapshot | null): boolean {
+	if (!current || !baseline) return false;
+	return didCounterReset(current.savedTokens, baseline.savedTokens) || didCounterReset(current.inputTokens, baseline.inputTokens);
+}
+
+function didCounterReset(current: number | undefined, baseline: number | undefined): boolean {
+	return current !== undefined && baseline !== undefined && current < baseline;
+}
+
+function calculateDelta(current: number | undefined, baseline: number | undefined): number | undefined {
+	if (current === undefined || baseline === undefined) return undefined;
+	return Math.max(0, current - baseline);
 }

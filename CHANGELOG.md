@@ -40,6 +40,7 @@ Versioned sections should match the Git tags and GitHub releases published for t
 
 ### Fixed
 
+- Fixed Headroom footer savings to show current Pi-session deltas instead of proxy-global totals. ([#309](https://github.com/ladislas/mypac/issues/309))
 - Extended Headroom proxy startup waiting and surfaced elapsed startup progress in the `/headroom wrap` status indicator.
 
 ### Changed

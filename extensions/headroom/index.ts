@@ -2,7 +2,7 @@ import type { ExtensionAPI, ExtensionCommandContext } from "@earendil-works/pi-c
 import { buildProviderOverrides, formatStatus, getInstallGuidance, parseHeadroomArgs, type HeadroomOptions } from "./helpers.ts";
 import { HeadroomProxyManager } from "./proxy.ts";
 import { getProcessHeadroomRuntime, HeadroomRuntime, type CreateHeadroomProxy, type HeadroomProxy } from "./runtime.ts";
-import { extractHeadroomSavings, publishHeadroomFooterState, type HeadroomFooterState, type HeadroomFooterStatus } from "./state.ts";
+import { didHeadroomStatsCountersReset, extractHeadroomStatsSnapshot, extractSessionHeadroomSavings, publishHeadroomFooterState, type HeadroomFooterState, type HeadroomFooterStatus, type HeadroomStatsSnapshot } from "./state.ts";
 
 const STATUS_KEY = "headroom";
 const SUPPORTED_PROVIDERS = ["openai-codex", "openai", "anthropic"] as const;
@@ -25,9 +25,11 @@ export function registerHeadroomExtension(
 	runtime.setCreateProxy(createProxy as CreateHeadroomProxy);
 	let providerOverridesRegistered = false;
 	let lastFooterStatus: HeadroomFooterStatus = "not_started";
+	let sessionBaselineStats: HeadroomStatsSnapshot | null = null;
 
 	function publishFooterState(state: HeadroomFooterState): void {
 		lastFooterStatus = state.status;
+		if (state.status === "not_started") sessionBaselineStats = null;
 		publishHeadroomFooterState(pi, state);
 	}
 
@@ -108,11 +110,19 @@ export function registerHeadroomExtension(
 		);
 	}
 
+	function extractCurrentSessionHeadroomSavings(stats: unknown): Pick<HeadroomFooterState, "tokensSaved" | "compressionPercent"> {
+		const currentStats = extractHeadroomStatsSnapshot(stats);
+		if (currentStats && (!sessionBaselineStats || didHeadroomStatsCountersReset(currentStats, sessionBaselineStats))) {
+			sessionBaselineStats = currentStats;
+		}
+		return extractSessionHeadroomSavings(stats, sessionBaselineStats);
+	}
+
 	async function publishHeadroomStats(proxy: HeadroomProxy, status: "working" | "error"): Promise<void> {
 		try {
 			const stats = await proxy.stats();
 			if (proxy !== runtime.activeProxy || !runtime.isEnabled) return;
-			publishFooterState({ status, ...extractHeadroomSavings(stats) });
+			publishFooterState({ status, ...extractCurrentSessionHeadroomSavings(stats) });
 		} catch {
 			if (proxy !== runtime.activeProxy || !runtime.isEnabled) return;
 			publishFooterState({ status });
@@ -189,6 +199,7 @@ export function registerHeadroomExtension(
 			}
 			const routingApplied = await reselectCurrentModel(ctx);
 			setStatus(ctx, routingApplied ? "enabled" : "routing_pending");
+			sessionBaselineStats = null;
 			await publishHeadroomStats(attempt.proxy, "working");
 			const details = [
 				`Headroom enabled on ${attempt.proxy.baseUrl}`,
@@ -208,6 +219,7 @@ export function registerHeadroomExtension(
 		await ctx.waitForIdle();
 		const wasEnabled = runtime.isEnabled;
 		await removeProviderOverrides();
+		sessionBaselineStats = null;
 		publishFooterState({ status: "not_started" });
 		await runtime.stop();
 		if (wasEnabled) await reselectCurrentModel(ctx);
@@ -223,7 +235,7 @@ export function registerHeadroomExtension(
 		]);
 		if (runtime.isEnabled && proxy === runtime.activeProxy) {
 			const nextFooterStatus = health ? "working" : "error";
-			publishFooterState(stats ? { status: nextFooterStatus, ...extractHeadroomSavings(stats) } : { status: nextFooterStatus });
+			publishFooterState(stats ? { status: nextFooterStatus, ...extractCurrentSessionHeadroomSavings(stats) } : { status: nextFooterStatus });
 		}
 		notify(
 			ctx,

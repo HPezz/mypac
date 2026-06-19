@@ -170,8 +170,8 @@ test("/headroom wrap and stop publish footer state events", async () => {
 
 test("/headroom refreshes footer savings after each turn", async () => {
 	const stats = [
-		{ summary: { compression: { total_tokens_removed: 0, avg_compression_pct: 0 } } },
-		{ summary: { compression: { total_tokens_removed: 1234, avg_compression_pct: 17.6 } } },
+		{ tokens: { input: 10_000, saved: 2_000 }, summary: { compression: { total_tokens_removed: 2_000, avg_compression_pct: 50 } } },
+		{ tokens: { input: 10_800, saved: 2_200 }, summary: { compression: { total_tokens_removed: 2_200, avg_compression_pct: 5 } } },
 	];
 	const { commands, events, footerEvents, ctx } = createHarness({ stats: async () => stats.shift() ?? stats.at(-1) });
 
@@ -180,14 +180,14 @@ test("/headroom refreshes footer savings after each turn", async () => {
 
 	assert.deepEqual(footerEvents, [
 		{ channel: HEADROOM_FOOTER_STATE_EVENT, data: { status: "working", tokensSaved: 0, compressionPercent: 0 } },
-		{ channel: HEADROOM_FOOTER_STATE_EVENT, data: { status: "working", tokensSaved: 1234, compressionPercent: 17.6 } },
+		{ channel: HEADROOM_FOOTER_STATE_EVENT, data: { status: "working", tokensSaved: 200, compressionPercent: 20 } },
 	]);
 });
 
 test("/headroom status refreshes enabled footer savings", async () => {
 	const stats = [
-		{ summary: { compression: { total_tokens_removed: 0, avg_compression_pct: 0 } } },
-		{ summary: { compression: { total_tokens_removed: 2345, avg_compression_pct: 22.4 } } },
+		{ tokens: { input: 10_000, saved: 2_000 }, summary: { compression: { total_tokens_removed: 2_000, avg_compression_pct: 50 } } },
+		{ tokens: { input: 10_900, saved: 2_100 }, summary: { compression: { total_tokens_removed: 2_100, avg_compression_pct: 5 } } },
 	];
 	const { commands, footerEvents, ctx } = createHarness({ stats: async () => stats.shift() ?? stats.at(-1) });
 
@@ -196,7 +196,51 @@ test("/headroom status refreshes enabled footer savings", async () => {
 
 	assert.deepEqual(footerEvents, [
 		{ channel: HEADROOM_FOOTER_STATE_EVENT, data: { status: "working", tokensSaved: 0, compressionPercent: 0 } },
-		{ channel: HEADROOM_FOOTER_STATE_EVENT, data: { status: "working", tokensSaved: 2345, compressionPercent: 22.4 } },
+		{ channel: HEADROOM_FOOTER_STATE_EVENT, data: { status: "working", tokensSaved: 100, compressionPercent: 10 } },
+	]);
+});
+
+test("/headroom resets footer savings baseline after proxy counters reset", async () => {
+	const stats = [
+		{ tokens: { input: 10_000, saved: 2_000 } },
+		{ tokens: { input: 10_900, saved: 2_100 } },
+		{ tokens: { input: 100, saved: 10 } },
+		{ tokens: { input: 190, saved: 20 } },
+	];
+	const { commands, events, footerEvents, ctx } = createHarness({ stats: async () => stats.shift() ?? stats.at(-1) });
+
+	await commands.get("headroom").handler("wrap", ctx);
+	await events.get("turn_end")({}, ctx);
+	await events.get("turn_end")({}, ctx);
+	await events.get("turn_end")({}, ctx);
+
+	assert.deepEqual(footerEvents, [
+		{ channel: HEADROOM_FOOTER_STATE_EVENT, data: { status: "working", tokensSaved: 0, compressionPercent: 0 } },
+		{ channel: HEADROOM_FOOTER_STATE_EVENT, data: { status: "working", tokensSaved: 100, compressionPercent: 10 } },
+		{ channel: HEADROOM_FOOTER_STATE_EVENT, data: { status: "working", tokensSaved: 0, compressionPercent: 0 } },
+		{ channel: HEADROOM_FOOTER_STATE_EVENT, data: { status: "working", tokensSaved: 10, compressionPercent: 10 } },
+	]);
+});
+
+test("/headroom status resets footer savings baseline after proxy counters reset", async () => {
+	const stats = [
+		{ tokens: { input: 10_000, saved: 2_000 } },
+		{ tokens: { input: 10_900, saved: 2_100 } },
+		{ tokens: { input: 100, saved: 10 } },
+		{ tokens: { input: 190, saved: 20 } },
+	];
+	const { commands, footerEvents, ctx } = createHarness({ stats: async () => stats.shift() ?? stats.at(-1) });
+
+	await commands.get("headroom").handler("wrap", ctx);
+	await commands.get("headroom").handler("status", ctx);
+	await commands.get("headroom").handler("status", ctx);
+	await commands.get("headroom").handler("status", ctx);
+
+	assert.deepEqual(footerEvents, [
+		{ channel: HEADROOM_FOOTER_STATE_EVENT, data: { status: "working", tokensSaved: 0, compressionPercent: 0 } },
+		{ channel: HEADROOM_FOOTER_STATE_EVENT, data: { status: "working", tokensSaved: 100, compressionPercent: 10 } },
+		{ channel: HEADROOM_FOOTER_STATE_EVENT, data: { status: "working", tokensSaved: 0, compressionPercent: 0 } },
+		{ channel: HEADROOM_FOOTER_STATE_EVENT, data: { status: "working", tokensSaved: 10, compressionPercent: 10 } },
 	]);
 });
 
@@ -209,7 +253,7 @@ test("turn_end stats refresh preserves error footer status", async () => {
 		},
 		stats: async () => {
 			if (offline) throw new Error("offline");
-			return { summary: { compression: { total_tokens_removed: 0, avg_compression_pct: 0 } } };
+			return { tokens: { input: 0, saved: 0 }, summary: { compression: { total_tokens_removed: 0, avg_compression_pct: 0 } } };
 		},
 	});
 
@@ -234,7 +278,7 @@ test("in-flight turn_end stats refresh does not publish after stop", async () =>
 	const { commands, events, footerEvents, ctx } = createHarness({
 		stats: async () => {
 			statsCalls++;
-			if (statsCalls === 1) return { summary: { compression: { total_tokens_removed: 0, avg_compression_pct: 0 } } };
+			if (statsCalls === 1) return { tokens: { input: 0, saved: 0 }, summary: { compression: { total_tokens_removed: 0, avg_compression_pct: 0 } } };
 			return turnStats;
 		},
 	});
@@ -243,7 +287,7 @@ test("in-flight turn_end stats refresh does not publish after stop", async () =>
 	const turnEnd = events.get("turn_end")({}, ctx);
 	assert.equal(statsCalls, 2);
 	await commands.get("headroom").handler("stop", ctx);
-	resolveTurnStats({ summary: { compression: { total_tokens_removed: 1234, avg_compression_pct: 17.6 } } });
+	resolveTurnStats({ tokens: { input: 1_000, saved: 200 }, summary: { compression: { total_tokens_removed: 200, avg_compression_pct: 17.6 } } });
 	await turnEnd;
 
 	assert.deepEqual(footerEvents, [
@@ -401,6 +445,31 @@ test("session handoff preserves active Headroom runtime and re-registers provide
 	]);
 	assert.deepEqual(second.selectedModels, [second.ctx.model]);
 	assert.equal(second.statuses.at(-1).value, "✓ Headroom");
+});
+
+test("session handoff resets footer savings baseline while preserving runtime", async () => {
+	const stats = [
+		{ tokens: { input: 10_000, saved: 2_000 } },
+		{ tokens: { input: 10_800, saved: 2_200 } },
+		{ tokens: { input: 11_000, saved: 2_300 } },
+		{ tokens: { input: 11_100, saved: 2_325 } },
+	];
+	const { commands, events, footerEvents, proxies, ctx } = createHarness({ stats: async () => stats.shift() ?? stats.at(-1) });
+
+	await commands.get("headroom").handler("wrap --port 9999", ctx);
+	await events.get("turn_end")({}, ctx);
+	await events.get("session_shutdown")({ reason: "new" });
+	await events.get("session_start")({ reason: "new", previousSessionFile: "old.jsonl" }, ctx);
+	await events.get("turn_end")({}, ctx);
+
+	assert.equal(proxies[0].stopped, false);
+	assert.deepEqual(footerEvents, [
+		{ channel: HEADROOM_FOOTER_STATE_EVENT, data: { status: "working", tokensSaved: 0, compressionPercent: 0 } },
+		{ channel: HEADROOM_FOOTER_STATE_EVENT, data: { status: "working", tokensSaved: 200, compressionPercent: 20 } },
+		{ channel: HEADROOM_FOOTER_STATE_EVENT, data: { status: "not_started" } },
+		{ channel: HEADROOM_FOOTER_STATE_EVENT, data: { status: "working", tokensSaved: 0, compressionPercent: 0 } },
+		{ channel: HEADROOM_FOOTER_STATE_EVENT, data: { status: "working", tokensSaved: 25, compressionPercent: 20 } },
+	]);
 });
 
 test("reload preserves active Headroom runtime and re-registers providers", async () => {
