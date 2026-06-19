@@ -1,10 +1,39 @@
 #!/bin/bash
 
+# Resolve uv. Prefer PATH, but fall back to mypac's mise-managed uv so the
+# globally-installed extension works from other project directories.
+SHIM_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+MYPAC_ROOT="$(cd "$SHIM_DIR/../../.." && pwd)"
+
+resolve_uv() {
+	local mise_bin uv_bin
+
+	uv_bin="$(type -P uv 2>/dev/null || true)"
+	if [ -n "$uv_bin" ] && [ -x "$uv_bin" ]; then
+		echo "$uv_bin"
+		return 0
+	fi
+
+	mise_bin="$(type -P mise 2>/dev/null || true)"
+	if [ -n "$mise_bin" ] && [ -x "$mise_bin" ]; then
+		uv_bin="$("$mise_bin" which -C "$MYPAC_ROOT" uv 2>/dev/null || true)"
+		if [ -n "$uv_bin" ] && [ -x "$uv_bin" ]; then
+			echo "$uv_bin"
+			return 0
+		fi
+	fi
+
+	return 1
+}
+
+UV_BIN="$(resolve_uv)"
+
 # Check uv is available before anything else
-if ! command -v uv >/dev/null 2>&1; then
-    echo "Error: uv is required by Pi's Python capture extension, but uv was not found on PATH." >&2
+if [ -z "$UV_BIN" ]; then
+    echo "Error: uv is required by Pi's Python capture extension, but no executable uv was found on PATH." >&2
     echo "" >&2
     echo "  Install uv with your preferred tool, for example: mise install uv or brew install uv" >&2
+    echo "  Shell functions and aliases named uv are ignored; uv must be an executable." >&2
     echo "  To use system python3 directly, run 'pi config' and disable only the uv extension." >&2
     echo "  To disable all extensions for one run, start Pi with '--no-extensions'." >&2
     echo "" >&2
@@ -74,35 +103,34 @@ done
 # Resolve a Python interpreter for uv. Prefer uv-managed Python to match
 # `uv run python` defaults, while still avoiding shim recursion.
 resolve_uv_python() {
-    local shim_dir candidate candidate_dir
-    shim_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+	local candidate candidate_dir
 
-    candidate="$(uv python find --managed-python 2>/dev/null || true)"
-    if [ -n "$candidate" ] && [ -x "$candidate" ]; then
-        candidate_dir="$(cd "$(dirname "$candidate")" && pwd)"
-        if [ "$candidate_dir" != "$shim_dir" ]; then
-            echo "$candidate"
-            return 0
-        fi
-    fi
+	candidate="$("$UV_BIN" python find --managed-python 2>/dev/null || true)"
+	if [ -n "$candidate" ] && [ -x "$candidate" ]; then
+		candidate_dir="$(cd "$(dirname "$candidate")" && pwd)"
+		if [ "$candidate_dir" != "$SHIM_DIR" ]; then
+			echo "$candidate"
+			return 0
+		fi
+	fi
 
-    while IFS= read -r candidate; do
-        [ -n "$candidate" ] || continue
-        candidate_dir="$(cd "$(dirname "$candidate")" && pwd)"
-        [ "$candidate_dir" = "$shim_dir" ] && continue
-        echo "$candidate"
-        return 0
-    done < <(type -aP python3 2>/dev/null)
+	while IFS= read -r candidate; do
+		[ -n "$candidate" ] || continue
+		candidate_dir="$(cd "$(dirname "$candidate")" && pwd)"
+		[ "$candidate_dir" = "$SHIM_DIR" ] && continue
+		echo "$candidate"
+		return 0
+	done < <(type -aP python3 2>/dev/null)
 
-    while IFS= read -r candidate; do
-        [ -n "$candidate" ] || continue
-        candidate_dir="$(cd "$(dirname "$candidate")" && pwd)"
-        [ "$candidate_dir" = "$shim_dir" ] && continue
-        echo "$candidate"
-        return 0
-    done < <(type -aP python 2>/dev/null)
+	while IFS= read -r candidate; do
+		[ -n "$candidate" ] || continue
+		candidate_dir="$(cd "$(dirname "$candidate")" && pwd)"
+		[ "$candidate_dir" = "$SHIM_DIR" ] && continue
+		echo "$candidate"
+		return 0
+	done < <(type -aP python 2>/dev/null)
 
-    return 1
+	return 1
 }
 
 UV_PYTHON="$(resolve_uv_python)"
@@ -112,4 +140,4 @@ if [ -z "$UV_PYTHON" ]; then
 fi
 
 # Dispatch through uv with an explicit interpreter path to avoid recursion.
-exec uv run --python "$UV_PYTHON" python "$@"
+exec "$UV_BIN" run --python "$UV_PYTHON" python "$@"

@@ -8,7 +8,7 @@ Use `uv_build` for pure Python packages. For extension modules, use `hatchling` 
 [project]
 name = "my-package"
 version = "0.1.0"
-requires-python = ">=3.12"
+requires-python = ">=3.14"
 dependencies = []
 
 [build-system]
