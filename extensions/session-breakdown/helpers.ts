@@ -106,12 +106,15 @@ export interface SessionBreakdownReport {
 	lastError?: string;
 	aborted: boolean;
 	ranges: Map<number, RangeAggregate>;
+	lifetimeAggregate: RangeAggregate | null;
+	lifetimeOldestSessionAt: Date | null;
 }
 
 export interface AnalyzeSessionDirectoryOptions {
 	root?: string;
 	now?: Date;
 	signal?: AbortSignal;
+	lifetime?: boolean;
 }
 
 export function getDefaultSessionRoot(env: NodeJS.ProcessEnv = process.env, homeDir: string = homedir()): string {
@@ -659,7 +662,7 @@ function inferCanonicalRepoPathFromWorktreePath(path: string): string | null {
 	return `${match[1]}/${match[2]}/${match[3]}`;
 }
 
-async function walkSessionFiles(root: string, cutoff: Date, signal?: AbortSignal): Promise<{ files: string[]; unreadableFiles: number; lastError?: string }> {
+async function walkSessionFiles(root: string, cutoff: Date | undefined, signal?: AbortSignal): Promise<{ files: string[]; unreadableFiles: number; lastError?: string }> {
 	const files: string[] = [];
 	let unreadableFiles = 0;
 	let lastError: string | undefined;
@@ -689,13 +692,13 @@ async function walkSessionFiles(root: string, cutoff: Date, signal?: AbortSignal
 
 			const filenameDate = parseSessionStartFromFilename(entry.name);
 			if (filenameDate) {
-				if (localMidnight(filenameDate) >= cutoff) files.push(filePath);
+				if (cutoff === undefined || localMidnight(filenameDate) >= cutoff) files.push(filePath);
 				continue;
 			}
 
 			try {
 				const stats = await stat(filePath);
-				if (localMidnight(new Date(stats.mtimeMs)) >= cutoff) files.push(filePath);
+				if (cutoff === undefined || localMidnight(new Date(stats.mtimeMs)) >= cutoff) files.push(filePath);
 			} catch {
 				unreadableFiles += 1;
 				lastError = `Could not stat ${entry.name}`;
@@ -746,10 +749,37 @@ function createRangeAggregate(days: number, now: Date): RangeAggregate {
 	};
 }
 
-function addSession(range: RangeAggregate, session: ParsedSession): void {
-	const day = range.dayByKey.get(session.dayKey);
-	if (!day) return;
+function createLifetimeAggregate(): RangeAggregate {
+	return {
+		days: [],
+		dayByKey: new Map(),
+		sessions: 0,
+		totalMessages: 0,
+		totalTokens: 0,
+		totalCost: 0,
+		estimatedCost: 0,
+		modelSessions: new Map(),
+		modelMessages: new Map(),
+		modelTokens: new Map(),
+		modelCost: new Map(),
+		cwdSessions: new Map(),
+		cwdMessages: new Map(),
+		cwdTokens: new Map(),
+		cwdCost: new Map(),
+		sessionCosts: [],
+		topCostSessions: [],
+		workflowStats: new Map(),
+		cacheReadTokens: 0,
+		cacheWriteTokens: 0,
+		inputTokens: 0,
+		outputTokens: 0,
+		contextTokensTotal: 0,
+		contextSamples: 0,
+		maxContextTokens: 0,
+	};
+}
 
+function addSessionCore(range: RangeAggregate, session: ParsedSession): void {
 	range.sessions += 1;
 	range.totalMessages += session.messages;
 	range.totalTokens += session.tokens;
@@ -781,17 +811,10 @@ function addSession(range: RangeAggregate, session: ParsedSession): void {
 		range.topCostSessions = range.topCostSessions.slice(0, 5);
 	}
 	addToWorkflowMap(range.workflowStats, inferWorkflowType(session), session);
-	day.sessions += 1;
-	day.messages += session.messages;
-	day.tokens += session.tokens;
-	day.totalCost += session.totalCost;
-	day.estimatedCost += session.estimatedCost;
-
 	for (const model of session.modelsUsed) addToMap(range.modelSessions, model, 1);
 	for (const [model, count] of session.messagesByModel) addToMap(range.modelMessages, model, count);
 	for (const [model, count] of session.tokensByModel) addToMap(range.modelTokens, model, count);
 	for (const [model, count] of session.costByModel) addToMap(range.modelCost, model, count);
-
 	const cwdGroup = session.cwdGroup ?? session.cwd;
 	if (cwdGroup) {
 		addToMap(range.cwdSessions, cwdGroup, 1);
@@ -801,14 +824,34 @@ function addSession(range: RangeAggregate, session: ParsedSession): void {
 	}
 }
 
+function addSessionUnconstrained(range: RangeAggregate, session: ParsedSession): void {
+	addSessionCore(range, session);
+}
+
+function addSession(range: RangeAggregate, session: ParsedSession): void {
+	const day = range.dayByKey.get(session.dayKey);
+	if (!day) return;
+	addSessionCore(range, session);
+	day.sessions += 1;
+	day.messages += session.messages;
+	day.tokens += session.tokens;
+	day.totalCost += session.totalCost;
+	day.estimatedCost += session.estimatedCost;
+}
+
+
 export async function analyzeSessionDirectory(options: AnalyzeSessionDirectoryOptions = {}): Promise<SessionBreakdownReport> {
 	const root = options.root ?? DEFAULT_SESSION_ROOT;
 	const now = options.now ?? new Date();
+	const isLifetime = options.lifetime === true;
 	const maxRangeDays = Math.max(...SESSION_BREAKDOWN_RANGES);
-	const cutoff = addDays(localMidnight(now), -(maxRangeDays - 1));
+	const cutoff = isLifetime ? undefined : addDays(localMidnight(now), -(maxRangeDays - 1));
 	const scanned = await walkSessionFiles(root, cutoff, options.signal);
 	const ranges = new Map<number, RangeAggregate>();
 	for (const days of SESSION_BREAKDOWN_RANGES) ranges.set(days, createRangeAggregate(days, now));
+
+	const lifetimeAggregate = isLifetime ? createLifetimeAggregate() : null;
+	let lifetimeOldestSessionAt: Date | null = null;
 
 	let parsedSessions = 0;
 	let unreadableFiles = scanned.unreadableFiles;
@@ -825,6 +868,12 @@ export async function analyzeSessionDirectory(options: AnalyzeSessionDirectoryOp
 		if (!session) continue;
 		parsedSessions += 1;
 		for (const range of ranges.values()) addSession(range, session);
+		if (lifetimeAggregate) {
+			addSessionUnconstrained(lifetimeAggregate, session);
+			if (!lifetimeOldestSessionAt || session.startedAt < lifetimeOldestSessionAt) {
+				lifetimeOldestSessionAt = session.startedAt;
+			}
+		}
 	}
 
 	return {
@@ -837,6 +886,8 @@ export async function analyzeSessionDirectory(options: AnalyzeSessionDirectoryOp
 		lastError,
 		aborted: options.signal?.aborted ?? false,
 		ranges,
+		lifetimeAggregate,
+		lifetimeOldestSessionAt,
 	};
 }
 
@@ -1029,6 +1080,7 @@ function buildInsights(report: SessionBreakdownReport): string[] {
 }
 
 function hasEstimatedCosts(report: SessionBreakdownReport): boolean {
+	if ((report.lifetimeAggregate?.estimatedCost ?? 0) > 0) return true;
 	return [...report.ranges.values()].some((range) => range.estimatedCost > 0);
 }
 
@@ -1100,8 +1152,8 @@ function formatOutlierSummary(range: RangeAggregate, options: { homeDir?: string
 	return lines;
 }
 
-function formatSessionDrillDown(range: RangeAggregate, color: boolean): string[] {
-	const lines = [colorize("Session drill-down · 7d · top 5 by cost", "bold", color)];
+function formatSessionDrillDown(range: RangeAggregate, color: boolean, label = "Session drill-down · 7d · top 5 by cost"): string[] {
+	const lines = [colorize(label, "bold", color)];
 	if (range.topCostSessions.length === 0) return [...lines, "  none"];
 	lines.push(`${padCell("Cost", 7)} ${padCell("Date", 10)} ${padCell("ID", 16)} ${padCell("Msgs", 5)} ${padCell("Tokens", 7)} ${padCell("Main model", 24)} Title`);
 	for (const session of range.topCostSessions.slice(0, 5)) {
@@ -1112,10 +1164,10 @@ function formatSessionDrillDown(range: RangeAggregate, color: boolean): string[]
 	return lines;
 }
 
-function formatModelDrillDown(range: RangeAggregate, color: boolean): string[] {
+function formatModelDrillDown(range: RangeAggregate, color: boolean, label = "Model drill-down · 30d · top 5 by cost"): string[] {
 	const rows = sortMap(range.modelCost).slice(0, 5);
 	const modelWidth = 32;
-	const lines = [colorize("Model drill-down · 30d · top 5 by cost", "bold", color)];
+	const lines = [colorize(label, "bold", color)];
 	if (rows.length === 0) return [...lines, "  none"];
 	lines.push(`${padCell("Model", modelWidth)} ${padCell("Sessions", 8)} ${padCell("Msgs", 6)} ${padCell("Tokens", 8)} ${padCell("Cost", 8)} ${padCell("$/msg", 8)} $/1M tok`);
 	for (const [model, cost] of rows) {
@@ -1129,9 +1181,9 @@ function formatModelDrillDown(range: RangeAggregate, color: boolean): string[] {
 	return lines;
 }
 
-function formatDirectoryDrillDown(range: RangeAggregate, options: { homeDir?: string; color: boolean }): string[] {
+function formatDirectoryDrillDown(range: RangeAggregate, options: { homeDir?: string; color: boolean; label?: string }): string[] {
 	const rows = sortMap(range.cwdCost).slice(0, 5);
-	const lines = [colorize("Directory drill-down · 30d · top 5 by cost", "bold", options.color)];
+	const lines = [colorize(options.label ?? "Directory drill-down · 30d · top 5 by cost", "bold", options.color)];
 	if (rows.length === 0) return [...lines, "  none"];
 	const overallAverage = range.sessions ? range.totalCost / range.sessions : 0;
 	lines.push(`${padCell("Directory", 44)} ${padCell("Sessions", 8)} ${padCell("Msgs", 6)} ${padCell("Tokens", 8)} ${padCell("Cost", 8)} Avg/session`);
@@ -1347,5 +1399,84 @@ export function formatCompactBreakdownReport(report: SessionBreakdownReport, opt
 		const cacheContext = formatCacheContext(seven, color);
 		if (cacheContext.length > 0) lines.push("", ...cacheContext);
 	}
+	return lines.join("\n");
+}
+
+function buildLifetimeInsights(report: SessionBreakdownReport): string[] {
+	const lifetime = report.lifetimeAggregate;
+	if (!lifetime || lifetime.totalCost === 0) return ["No paid usage found in lifetime sessions."];
+
+	const seven = report.ranges.get(7);
+	const thirty = report.ranges.get(30);
+	const ninety = report.ranges.get(90);
+
+	const insights: string[] = [];
+	if (seven && seven.totalCost > 0) {
+		insights.push(`📅 Last 7d represents ${formatPercent(seven.totalCost / lifetime.totalCost)} of lifetime spend (${formatCost(seven.totalCost)})`);
+	}
+	if (thirty && thirty.totalCost > 0) {
+		insights.push(`📅 Last 30d represents ${formatPercent(thirty.totalCost / lifetime.totalCost)} of lifetime spend (${formatCost(thirty.totalCost)})`);
+	}
+	if (ninety && ninety.totalCost > 0) {
+		insights.push(`📅 Last 90d represents ${formatPercent(ninety.totalCost / lifetime.totalCost)} of lifetime spend (${formatCost(ninety.totalCost)})`);
+	}
+	const topWorkflow = [...lifetime.workflowStats.entries()].sort((a, b) => b[1].totalCost - a[1].totalCost || a[0].localeCompare(b[0]))[0];
+	if (topWorkflow && lifetime.totalCost > 0) {
+		insights.push(`🏆 Top workflow: ${topWorkflow[0]} · ${formatCost(topWorkflow[1].totalCost)} · ${formatPercent(topWorkflow[1].totalCost / lifetime.totalCost)} of lifetime`);
+	}
+	return insights.length > 0 ? insights : ["No relative comparisons available."];
+}
+
+export function formatLifetimeReport(report: SessionBreakdownReport, options: { homeDir?: string; color?: boolean } = {}): string {
+	const color = options.color ?? true;
+	const lifetime = report.lifetimeAggregate;
+	if (!lifetime) return "No lifetime data available. Run with the 'lifetime' argument.";
+
+	const lines = [
+		colorize("Pi session breakdown · Lifetime", "bold", color),
+		`${colorize("Source:", "dim", color)} ${abbreviatePath(report.root, options.homeDir)}`,
+		`Local aggregate stats only · ${formatNumber(report.parsedSessions)} sessions scanned (all time)`,
+	];
+
+	if (report.unreadableFiles > 0 || report.skippedLines > 0) {
+		const parts = [];
+		if (report.unreadableFiles > 0) parts.push(`${report.unreadableFiles} unreadable file(s)`);
+		if (report.skippedLines > 0) parts.push(`${report.skippedLines} malformed JSONL line(s)`);
+		lines.push(colorize(`Warning: skipped ${parts.join(" and ")}.${report.lastError ? ` Last error: ${report.lastError}.` : ""}`, "yellow", color));
+	}
+	const costNote = formatEstimatedCostNote(report);
+	if (costNote) lines.push(colorize(costNote, "dim", color));
+
+	lines.push("", colorize("Lifetime totals", "bold", color));
+	lines.push(`  Sessions:   ${formatNumber(lifetime.sessions)}`);
+	lines.push(`  Messages:   ${formatNumber(lifetime.totalMessages)}`);
+	lines.push(`  Tokens:     ${formatNumber(lifetime.totalTokens)}`);
+	lines.push(`  Cost:       ${formatCost(lifetime.totalCost)}`);
+	if (lifetime.sessions > 0) {
+		lines.push(`  Avg/session: ${formatCost(lifetime.totalCost / lifetime.sessions)}`);
+	}
+	if (report.lifetimeOldestSessionAt) {
+		const daySpan = Math.max(1, Math.round((report.generatedAt.getTime() - report.lifetimeOldestSessionAt.getTime()) / (1000 * 60 * 60 * 24)));
+		lines.push(`  Avg/day:    ${formatCost(lifetime.totalCost / daySpan)} (over ${daySpan.toLocaleString("en-US")}d since ${formatDate(report.lifetimeOldestSessionAt)})`);
+	}
+
+	lines.push("", colorize("Relative insights", "bold", color), ...buildLifetimeInsights(report).map((line) => `  ${line}`));
+
+	if (lifetime.modelCost.size > 0) {
+		lines.push("", ...formatCostBars("Cost by model · lifetime spend share", lifetime.modelCost, lifetime.totalCost, { color }));
+	}
+	if (lifetime.cwdCost.size > 0) {
+		lines.push("", ...formatCostBars("Cost by directory · lifetime spend share", lifetime.cwdCost, lifetime.totalCost, {
+			color,
+			transformKey: (key) => compactPathLabel(key, options.homeDir, 44),
+		}));
+	}
+
+	if (lifetime.topCostSessions.length > 0) {
+		lines.push("", ...formatSessionDrillDown(lifetime, color, "Session drill-down · lifetime · top 5 by cost"));
+	}
+	lines.push("", ...formatModelDrillDown(lifetime, color, "Model drill-down · lifetime · top 5 by cost"));
+	lines.push("", ...formatDirectoryDrillDown(lifetime, { homeDir: options.homeDir, color, label: "Directory drill-down · lifetime · top 5 by cost" }));
+
 	return lines.join("\n");
 }
