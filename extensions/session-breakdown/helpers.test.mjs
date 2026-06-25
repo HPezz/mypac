@@ -8,6 +8,7 @@ import {
 	analyzeSessionDirectory,
 	formatCompactBreakdownReport,
 	formatBreakdownReport,
+	formatLifetimeReport,
 	getDefaultSessionRoot,
 	parseSessionLines,
 	parseSessionStartFromFilename,
@@ -936,6 +937,92 @@ test("formatCompactBreakdownReport displays inferred repo for outliers", async (
 
 		assert.match(stripMarkdownLinks(row ?? ""), /^\$13\.82\s+2026-05-20\s+019e50ce…b09d05\s+2\s+100\s+gpt-5\.5\s+mypac · lwot - issue #265$/);
 		assert.match(row ?? "", /\[issue #265\]\(https:\/\/github\.com\/ladislas\/mypac\/issues\/265\)/);
+	} finally {
+		await rm(root, { recursive: true, force: true });
+	}
+});
+
+test("analyzeSessionDirectory with lifetime:true includes sessions older than 90 days", async () => {
+	const root = await mkdtemp(join(tmpdir(), "session-breakdown-lifetime-"));
+	try {
+		await writeFile(
+			join(root, "2024-01-15T10-00-00-000Z_old-session.jsonl"),
+			jsonl([
+				{ type: "session", timestamp: "2024-01-15T10:00:00.000Z", cwd: "/Users/alice/dev/project" },
+				{ type: "message", provider: "openai-codex", model: "gpt-5.5", usage: { totalTokens: 500, cost: { total: 5 } } },
+			]),
+		);
+		await writeFile(
+			join(root, "2026-05-20T10-00-00-000Z_recent-session.jsonl"),
+			jsonl([
+				{ type: "session", timestamp: "2026-05-20T10:00:00.000Z", cwd: "/Users/alice/dev/project" },
+				{ type: "message", provider: "openai-codex", model: "gpt-5.5", usage: { totalTokens: 100, cost: { total: 1 } } },
+			]),
+		);
+
+		const report = await analyzeSessionDirectory({ root, now: day("2026-05-22T12:00:00.000Z"), lifetime: true });
+
+		assert.equal(report.ranges.get(7)?.sessions, 1);
+		assert.equal(report.ranges.get(90)?.sessions, 1);
+		assert.ok(report.lifetimeAggregate);
+		assert.equal(report.lifetimeAggregate.sessions, 2);
+		assert.equal(report.lifetimeAggregate.totalCost, 6);
+		assert.equal(report.lifetimeOldestSessionAt?.toISOString().slice(0, 10), "2024-01-15");
+		assert.equal(report.scannedFiles, 2);
+	} finally {
+		await rm(root, { recursive: true, force: true });
+	}
+});
+
+test("analyzeSessionDirectory without lifetime flag leaves lifetimeAggregate null and skips old sessions", async () => {
+	const root = await mkdtemp(join(tmpdir(), "session-breakdown-lifetime-"));
+	try {
+		await writeFile(
+			join(root, "2024-01-15T10-00-00-000Z_old-session.jsonl"),
+			jsonl([
+				{ type: "session", timestamp: "2024-01-15T10:00:00.000Z", cwd: "/Users/alice/dev/project" },
+				{ type: "message", provider: "openai-codex", model: "gpt-5.5", usage: { totalTokens: 500, cost: { total: 5 } } },
+			]),
+		);
+
+		const report = await analyzeSessionDirectory({ root, now: day("2026-05-22T12:00:00.000Z") });
+
+		assert.equal(report.lifetimeAggregate, null);
+		assert.equal(report.lifetimeOldestSessionAt, null);
+		assert.equal(report.scannedFiles, 0);
+	} finally {
+		await rm(root, { recursive: true, force: true });
+	}
+});
+
+test("formatLifetimeReport shows lifetime totals and relative sub-range insights", async () => {
+	const root = await mkdtemp(join(tmpdir(), "session-breakdown-lifetime-"));
+	try {
+		await writeFile(
+			join(root, "2024-01-15T10-00-00-000Z_old-session.jsonl"),
+			jsonl([
+				{ type: "session", timestamp: "2024-01-15T10:00:00.000Z", cwd: "/Users/alice/dev/project" },
+				{ type: "message", provider: "openai-codex", model: "gpt-5.5", usage: { totalTokens: 500, cost: { total: 5 } } },
+			]),
+		);
+		await writeFile(
+			join(root, "2026-05-20T10-00-00-000Z_recent-session.jsonl"),
+			jsonl([
+				{ type: "session", timestamp: "2026-05-20T10:00:00.000Z", cwd: "/Users/alice/dev/project" },
+				{ type: "message", provider: "openai-codex", model: "gpt-5.5", usage: { totalTokens: 100, cost: { total: 1 } } },
+			]),
+		);
+
+		const report = await analyzeSessionDirectory({ root, now: day("2026-05-22T12:00:00.000Z"), lifetime: true });
+		const text = formatLifetimeReport(report, { homeDir: "/Users/alice", color: false });
+
+		assert.match(text, /Pi session breakdown · Lifetime/);
+		assert.match(text, /Sessions:\s+2/);
+		assert.match(text, /Cost:\s+\$6\.00/);
+		assert.match(text, /Last 7d represents \d+\.\d+% of lifetime/);
+		assert.match(text, /Last 30d represents \d+\.\d+% of lifetime/);
+		assert.match(text, /Last 90d represents \d+\.\d+% of lifetime/);
+		assert.match(text, /openai-codex\/gpt-5\.5/);
 	} finally {
 		await rm(root, { recursive: true, force: true });
 	}

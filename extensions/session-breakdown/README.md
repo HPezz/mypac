@@ -4,6 +4,14 @@ Registers `/session-breakdown` to summarize local Pi usage from JSONL files unde
 
 The default command output is a compact, colorized report with an overview table, cost insights, model/directory cost bars, an outlier diagnostic summary, and readable top-5 drill-down sections for expensive sessions, model efficiency, directory cost centers, and cache/context metrics when available. Git worktrees are grouped under their canonical repository in directory cost centers. Use `--no-color` to disable ANSI color in the report.
 
+Use `lifetime` to scan **all** session files regardless of age and display an all-time totals report with relative insights comparing sub-ranges (7d, 30d, 90d) to the lifetime total:
+
+```text
+/session-breakdown lifetime
+```
+
+Lifetime mode scans the entire session tree — potentially years of files — so it may take a few seconds longer than the default. The report shows lifetime totals, avg cost/session, avg cost/day, relative insights (e.g. "last 30d = X% of lifetime spend"), and model/directory/session drill-downs over the full history.
+
 Workflow categories use a lightweight privacy-safe heuristic from session file paths and working directories only: names containing `llat`, `lwot`, `grill`, `review`, or `triage` map to those categories; names containing implementation-ish words such as `feature`, `bugfix`, `fix`, `commit`, or `implementation` map to `implementation`; everything else is `other`.
 
 Privacy notes:
