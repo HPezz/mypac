@@ -76,7 +76,7 @@ function createHarness(harnessOptions = {}) {
 	};
 	const runtime = harnessOptions.runtime ?? new HeadroomRuntime(createProxy, { leaseStore: harnessOptions.leaseStore ?? new MemoryLeaseStore() });
 	const ctx = {
-		hasUI: true,
+		hasUI: harnessOptions.hasUI ?? true,
 		model: { provider: "openai-codex", id: "gpt-5" },
 		waitForIdle: async () => {
 			calls.push("waitForIdle");
@@ -94,13 +94,111 @@ function createHarness(harnessOptions = {}) {
 		},
 	};
 
-	registerHeadroomExtension(pi, createProxy, runtime);
+	registerHeadroomExtension(pi, createProxy, runtime, { readGlobalSettings: harnessOptions.readGlobalSettings ?? (async () => harnessOptions.globalSettings ?? {}) });
 	return { commands, events, registered, unregistered, selectedModels, notifications, statuses, proxies, footerEvents, calls, ctx, runtime };
 }
 
 test("/headroom description advertises binary override option", () => {
 	const { commands } = createHarness();
 	assert.match(commands.get("headroom").description, /--bin <headroom>/);
+});
+
+test("session_start auto-starts Headroom in TUI when globally enabled", async () => {
+	const { events, registered, selectedModels, notifications, footerEvents, ctx } = createHarness({ globalSettings: { headroom: { enabled: true } } });
+
+	await events.get("session_start")({}, ctx);
+
+	assert.deepEqual(registered.map((entry) => entry.provider), ["openai-codex", "openai", "anthropic"]);
+	assert.deepEqual(selectedModels, [ctx.model]);
+	assert.deepEqual(notifications, []);
+	assert.equal(footerEvents.length, 1);
+	assert.equal(footerEvents[0].channel, HEADROOM_FOOTER_STATE_EVENT);
+	assert.equal(footerEvents[0].data.status, "working");
+});
+
+test("session_start does not auto-start Headroom without global opt-in", async () => {
+	const { events, registered, notifications, footerEvents, ctx } = createHarness();
+
+	await events.get("session_start")({}, ctx);
+
+	assert.deepEqual(registered, []);
+	assert.deepEqual(notifications, []);
+	assert.deepEqual(footerEvents, []);
+});
+
+test("session_start does not auto-start Headroom without UI", async () => {
+	const { events, registered, notifications, ctx } = createHarness({ hasUI: false, globalSettings: { headroom: { enabled: true } } });
+
+	await events.get("session_start")({}, ctx);
+
+	assert.deepEqual(registered, []);
+	assert.deepEqual(notifications, []);
+});
+
+test("session_start settings read failure is silent", async () => {
+	const { events, registered, notifications, footerEvents, ctx } = createHarness({
+		readGlobalSettings: async () => { throw Object.assign(new Error("permission denied"), { code: "EACCES" }); },
+	});
+
+	await events.get("session_start")({}, ctx);
+
+	assert.deepEqual(registered, []);
+	assert.deepEqual(notifications, []);
+	assert.deepEqual(footerEvents, []);
+});
+
+test("session_start settings JSON parse failure is silent without confirmed opt-in", async () => {
+	const { events, registered, notifications, footerEvents, ctx } = createHarness({
+		readGlobalSettings: async () => { throw new SyntaxError("Unexpected token"); },
+	});
+
+	await events.get("session_start")({}, ctx);
+
+	assert.deepEqual(registered, []);
+	assert.deepEqual(notifications, []);
+	assert.deepEqual(footerEvents, []);
+});
+
+test("session_start opted-in missing binary shows simple error and footer state", async () => {
+	const missingBinary = new Error("spawn headroom ENOENT");
+	missingBinary.code = "ENOENT";
+	const { events, registered, notifications, footerEvents, statuses, ctx } = createHarness({
+		globalSettings: { headroom: { enabled: true } },
+		ensureRunning: async () => ({ ok: false, error: missingBinary }),
+	});
+
+	await events.get("session_start")({}, ctx);
+
+	assert.deepEqual(registered, []);
+	assert.equal(notifications.length, 1);
+	assert.equal(notifications[0].level, "error");
+	assert.match(notifications[0].message, /Headroom is enabled but the `headroom` binary was not found/);
+	assert.deepEqual(footerEvents, [
+		{ channel: HEADROOM_FOOTER_STATE_EVENT, data: { status: "error" } },
+	]);
+	assert.deepEqual(statuses.at(-1), { key: "headroom", value: "❌ Headroom error" });
+});
+
+test("session_start opted-in invalid Headroom env shows error state", async () => {
+	const previousPort = process.env.HEADROOM_PORT;
+	process.env.HEADROOM_PORT = "not-a-port";
+	try {
+		const { events, registered, notifications, footerEvents, statuses, ctx } = createHarness({ globalSettings: { headroom: { enabled: true } } });
+
+		await events.get("session_start")({}, ctx);
+
+		assert.deepEqual(registered, []);
+		assert.equal(notifications.length, 1);
+		assert.equal(notifications[0].level, "error");
+		assert.match(notifications[0].message, /Headroom is enabled but startup options are invalid/);
+		assert.deepEqual(footerEvents, [
+			{ channel: HEADROOM_FOOTER_STATE_EVENT, data: { status: "error" } },
+		]);
+		assert.deepEqual(statuses.at(-1), { key: "headroom", value: "❌ Headroom error" });
+	} finally {
+		if (previousPort === undefined) delete process.env.HEADROOM_PORT;
+		else process.env.HEADROOM_PORT = previousPort;
+	}
 });
 
 test("/headroom stop before wrap is a no-op and stop after wrap unregisters providers", async () => {
@@ -323,7 +421,7 @@ test("/headroom wrap failure with existing manager rolls back stale routing", as
 
 	assert.deepEqual(unregistered, ["openai-codex", "openai", "anthropic"]);
 	assert.deepEqual(selectedModels, [ctx.model, ctx.model]);
-	assert.equal(statuses.at(-1).value, "⚠ Headroom offline");
+	assert.equal(statuses.at(-1).value, "❌ Headroom error");
 });
 
 test("/headroom wrap provider registration failure preserves existing runtime proxy", async () => {
@@ -386,7 +484,7 @@ test("session_start provider restore failure is reported", async () => {
 	await assert.doesNotReject(() => events.get("session_start")({}, ctx));
 
 	assert.ok(notifications.some((notification) => /Failed to restore Headroom routing/.test(notification.message)));
-	assert.ok(statuses.some((status) => status.value === "⚠ Headroom offline"));
+	assert.ok(statuses.some((status) => status.value === "❌ Headroom error"));
 });
 
 test("/headroom wrap rejects same-port mode changes while enabled", async () => {

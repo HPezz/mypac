@@ -34,6 +34,7 @@ test("parses wrap defaults and env overrides", () => {
 		mode: "token",
 		binary: "/opt/my headroom/headroom",
 	});
+	assert.equal(parseHeadroomArgs("wrap --binary=/opt/headroom", {}).binary, "/opt/headroom");
 	assert.deepEqual(parseHeadroomArgs("stop", { HEADROOM_PORT: "9999", HEADROOM_MODE: "cache", HEADROOM_BIN: "hr" }), {
 		action: "stop",
 		port: 9999,
@@ -46,6 +47,46 @@ test("rejects invalid command options", () => {
 	assert.throws(() => parseHeadroomArgs("wrap --mode fast", {}), /--mode/);
 	assert.throws(() => parseHeadroomArgs("wrap --port 99999", {}), /--port/);
 	assert.throws(() => parseHeadroomArgs("wat", {}), /Usage/);
+});
+
+test("rejects invalid env overrides", () => {
+	assert.throws(() => parseHeadroomArgs("wrap", { HEADROOM_PORT: "not-a-port" }), /HEADROOM_PORT/);
+	assert.throws(() => parseHeadroomArgs("wrap", { HEADROOM_MODE: "fast" }), /HEADROOM_MODE/);
+});
+
+test("empty env overrides fall back to defaults", () => {
+	assert.deepEqual(parseHeadroomArgs("wrap", { HEADROOM_PORT: "  ", HEADROOM_MODE: "" }), {
+		action: "wrap",
+		port: 8787,
+		mode: "token",
+		binary: "headroom",
+	});
+});
+
+test("status and stop ignore invalid env overrides", () => {
+	assert.deepEqual(parseHeadroomArgs("status", { HEADROOM_PORT: "not-a-port", HEADROOM_MODE: "fast" }), {
+		action: "status",
+		port: 8787,
+		mode: "token",
+		binary: "headroom",
+	});
+	assert.deepEqual(parseHeadroomArgs("stop", { HEADROOM_PORT: "not-a-port", HEADROOM_MODE: "fast" }), {
+		action: "stop",
+		port: 8787,
+		mode: "token",
+		binary: "headroom",
+	});
+});
+
+test("wrap CLI overrides recover from invalid env overrides", () => {
+	assert.deepEqual(parseHeadroomArgs("wrap --port 9999 --mode cache", { HEADROOM_PORT: "not-a-port", HEADROOM_MODE: "fast" }), {
+		action: "wrap",
+		port: 9999,
+		mode: "cache",
+		binary: "headroom",
+	});
+	assert.throws(() => parseHeadroomArgs("wrap --port 9999", { HEADROOM_PORT: "not-a-port", HEADROOM_MODE: "fast" }), /HEADROOM_MODE/);
+	assert.throws(() => parseHeadroomArgs("wrap --mode cache", { HEADROOM_PORT: "not-a-port", HEADROOM_MODE: "fast" }), /HEADROOM_PORT/);
 });
 
 test("builds proxy spawn args", () => {

@@ -153,6 +153,14 @@ Use it from Pi with:
 /headroom stop
 ```
 
+To auto-start Headroom in TUI sessions, merge this key into your global `~/.pi/agent/settings.json`:
+
+```json
+{ "headroom": { "enabled": true } }
+```
+
+Do not overwrite the rest of your settings. Absent or `false` leaves startup unchanged. Manual `/headroom` commands still work either way.
+
 Uninstall Headroom with:
 
 ```bash
