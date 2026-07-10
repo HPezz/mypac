@@ -1,4 +1,6 @@
-import type { ExtensionAPI, ExtensionCommandContext } from "@earendil-works/pi-coding-agent";
+import { getAgentDir, type ExtensionAPI, type ExtensionCommandContext, type ExtensionContext } from "@earendil-works/pi-coding-agent";
+import { promises as fs } from "node:fs";
+import path from "node:path";
 import { buildProviderOverrides, formatStatus, getInstallGuidance, parseHeadroomArgs, type HeadroomOptions } from "./helpers.ts";
 import { HeadroomProxyManager } from "./proxy.ts";
 import { getProcessHeadroomRuntime, HeadroomRuntime, type CreateHeadroomProxy, type HeadroomProxy } from "./runtime.ts";
@@ -9,7 +11,10 @@ const SUPPORTED_PROVIDERS = ["openai-codex", "openai", "anthropic"] as const;
 const SESSION_HANDOFF_REASONS = new Set(["new", "resume", "fork", "reload"]);
 
 type CommandContext = ExtensionCommandContext;
-type HeadroomContext = Pick<ExtensionCommandContext, "hasUI" | "ui" | "model">;
+type HeadroomContext = Pick<ExtensionContext, "hasUI" | "ui" | "model">;
+interface HeadroomExtensionOptions {
+	readGlobalSettings?: () => Promise<unknown>;
+}
 type HeadroomStatus = "enabled" | "disabled" | "starting" | "error" | "routing_pending";
 type CreateProxy = (options: HeadroomOptions) => HeadroomProxy;
 
@@ -17,12 +22,32 @@ function createManagedProxy(options: HeadroomOptions): HeadroomProxyManager {
 	return new HeadroomProxyManager({ binary: options.binary, port: options.port, mode: options.mode });
 }
 
+async function readGlobalSettings(): Promise<unknown> {
+	try {
+		const raw = await fs.readFile(path.join(getAgentDir(), "settings.json"), "utf8");
+		return JSON.parse(raw);
+	} catch (error) {
+		if ((error as NodeJS.ErrnoException).code === "ENOENT") return {};
+		throw error;
+	}
+}
+
+function isHeadroomAutoStartEnabled(settings: unknown): boolean {
+	return Boolean(
+		settings
+		&& typeof settings === "object"
+		&& (settings as { headroom?: { enabled?: unknown } }).headroom?.enabled === true,
+	);
+}
+
 export function registerHeadroomExtension(
 	pi: ExtensionAPI,
 	createProxy: CreateProxy = createManagedProxy,
 	runtime: HeadroomRuntime = getProcessHeadroomRuntime(createProxy as CreateHeadroomProxy),
+	extensionOptions: HeadroomExtensionOptions = {},
 ): void {
 	runtime.setCreateProxy(createProxy as CreateHeadroomProxy);
+	const readSettings = extensionOptions.readGlobalSettings ?? readGlobalSettings;
 	let providerOverridesRegistered = false;
 	let lastFooterStatus: HeadroomFooterStatus = "not_started";
 	let sessionBaselineStats: HeadroomStatsSnapshot | null = null;
@@ -49,7 +74,7 @@ export function registerHeadroomExtension(
 			return;
 		}
 		if (status === "error") {
-			ctx.ui.setStatus(STATUS_KEY, theme.fg("warning", "⚠") + theme.fg("dim", " Headroom offline"));
+			ctx.ui.setStatus(STATUS_KEY, theme.fg("error", "❌") + theme.fg("dim", " Headroom error"));
 			return;
 		}
 		ctx.ui.setStatus(STATUS_KEY, undefined);
@@ -250,6 +275,65 @@ export function registerHeadroomExtension(
 		);
 	}
 
+	async function handleAutoStart(ctx: ExtensionContext): Promise<void> {
+		if (!ctx.hasUI || runtime.isEnabled) return;
+		let settings: unknown;
+		try {
+			settings = await readSettings();
+		} catch {
+			return;
+		}
+		if (!isHeadroomAutoStartEnabled(settings)) return;
+
+		let options: HeadroomOptions;
+		try {
+			options = parseHeadroomArgs("wrap");
+		} catch (error) {
+			const failureDetail = error instanceof Error ? error.message : String(error);
+			setStatus(ctx, "error");
+			publishFooterState({ status: "error" });
+			notify(ctx, `Headroom is enabled but startup options are invalid: ${failureDetail}`, "error");
+			return;
+		}
+		setStatus(ctx, "starting");
+		const attempt = runtime.prepareWrap(options);
+		const result = await attempt.proxy.ensureRunning((message) => {
+			if (ctx.hasUI) ctx.ui.setStatus(STATUS_KEY, ctx.ui.theme.fg("dim", `⏳ ${message}`));
+		});
+
+		if (!result.ok) {
+			await runtime.abandonFailedWrap(attempt);
+			await removeProviderOverrides();
+			await runtime.clearRoutingState();
+			setStatus(ctx, "error");
+			publishFooterState({ status: "error" });
+			const message = isMissingBinaryError(result.error)
+				? `Headroom is enabled but the \`${options.binary}\` binary was not found. Install it or set headroom.enabled to false.`
+				: `Headroom is enabled but failed to start: ${result.error.message}`;
+			notify(ctx, message, "error");
+			return;
+		}
+
+		try {
+			await applyProviderOverrides(options.port);
+			await runtime.commitWrap(options, attempt);
+		} catch (error) {
+			await runtime.abandonFailedWrap(attempt);
+			await removeProviderOverrides();
+			await runtime.clearRoutingState();
+			setStatus(ctx, "error");
+			publishFooterState({ status: "error" });
+			const failureDetail = error instanceof Error ? error.message : String(error);
+			notify(ctx, `Headroom is enabled but failed to register routing: ${failureDetail}`, "error");
+			return;
+		}
+
+		const routingApplied = await reselectCurrentModel(ctx);
+		setStatus(ctx, routingApplied ? "enabled" : "routing_pending");
+		sessionBaselineStats = null;
+		await publishHeadroomStats(attempt.proxy, "working");
+	}
+
 	pi.registerCommand("headroom", {
 		description: "Route Pi providers through Headroom. Usage: /headroom wrap|stop|status [--port <port>] [--mode token|cache] [--bin <headroom>]",
 		handler: async (args, ctx) => {
@@ -278,7 +362,11 @@ export function registerHeadroomExtension(
 	});
 
 	pi.on("session_start", async (_event, ctx) => {
-		if (!runtime.isEnabled || !runtime.activeOptions || !runtime.activeProxy) return;
+		if (!runtime.isEnabled) {
+			await handleAutoStart(ctx);
+			return;
+		}
+		if (!runtime.activeOptions || !runtime.activeProxy) return;
 		try {
 			await applyProviderOverrides(runtime.activeOptions.port);
 			const routingApplied = await reselectCurrentModel(ctx);

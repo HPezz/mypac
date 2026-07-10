@@ -20,8 +20,24 @@ export const DEFAULT_HEADROOM_BINARY = "headroom";
 export function parseHeadroomArgs(args: string, env: NodeJS.ProcessEnv = process.env): HeadroomOptions {
 	const tokens = tokenizeArgs(args);
 	const action = parseAction(tokens.shift());
-	let port = parsePort(env.HEADROOM_PORT) ?? DEFAULT_HEADROOM_PORT;
-	let mode = parseMode(env.HEADROOM_MODE) ?? DEFAULT_HEADROOM_MODE;
+	let port = DEFAULT_HEADROOM_PORT;
+	let mode = DEFAULT_HEADROOM_MODE;
+	let invalidEnvPort = false;
+	let invalidEnvMode = false;
+	let hasPortOverride = false;
+	let hasModeOverride = false;
+	const envPort = env.HEADROOM_PORT?.trim();
+	if (envPort) {
+		const parsed = parsePort(envPort);
+		if (parsed) port = parsed;
+		else invalidEnvPort = true;
+	}
+	const envMode = env.HEADROOM_MODE?.trim();
+	if (envMode) {
+		const parsed = parseMode(envMode);
+		if (parsed) mode = parsed;
+		else invalidEnvMode = true;
+	}
 	let binary = env.HEADROOM_BIN?.trim() || DEFAULT_HEADROOM_BINARY;
 
 	for (let index = 0; index < tokens.length; index++) {
@@ -31,50 +47,56 @@ export function parseHeadroomArgs(args: string, env: NodeJS.ProcessEnv = process
 			const parsed = parsePort(value);
 			if (!parsed) throw new Error("--port requires a valid port number");
 			port = parsed;
+			hasPortOverride = true;
 			continue;
 		}
 		if (token?.startsWith("--port=")) {
 			const parsed = parsePort(token.slice("--port=".length));
 			if (!parsed) throw new Error("--port requires a valid port number");
 			port = parsed;
+			hasPortOverride = true;
 			continue;
 		}
 		if (token === "--mode") {
 			const parsed = parseMode(tokens[++index]);
 			if (!parsed) throw new Error("--mode must be token or cache");
 			mode = parsed;
+			hasModeOverride = true;
 			continue;
 		}
 		if (token?.startsWith("--mode=")) {
 			const parsed = parseMode(token.slice("--mode=".length));
 			if (!parsed) throw new Error("--mode must be token or cache");
 			mode = parsed;
+			hasModeOverride = true;
 			continue;
 		}
 		if (token === "--bin" || token === "--binary") {
 			const value = tokens[++index]?.trim();
-			if (!value) throw new Error(`${token} requires a binary path or command`);
+			if (!value) throw new Error(`${token} requires binary path or command`);
 			binary = value;
 			continue;
 		}
 		if (token?.startsWith("--bin=")) {
 			const value = token.slice("--bin=".length).trim();
-			if (!value) throw new Error("--bin requires a binary path or command");
+			if (!value) throw new Error("--bin requires binary path or command");
 			binary = value;
 			continue;
 		}
 		if (token?.startsWith("--binary=")) {
 			const value = token.slice("--binary=".length).trim();
-			if (!value) throw new Error("--binary requires a binary path or command");
+			if (!value) throw new Error("--binary requires binary path or command");
 			binary = value;
 			continue;
 		}
 		if (token) throw new Error(`Unknown /headroom option: ${token}`);
 	}
 
+	if (action === "wrap" && invalidEnvPort && !hasPortOverride) throw new Error("HEADROOM_PORT must be a valid port number");
+	if (action === "wrap" && invalidEnvMode && !hasModeOverride) throw new Error("HEADROOM_MODE must be token or cache");
+
 	return { action, port, mode, binary };
 }
-
 export function buildProxyArgs(options: Pick<HeadroomOptions, "port" | "mode">): string[] {
 	return ["proxy", "--port", String(options.port), "--mode", options.mode];
 }
