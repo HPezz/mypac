@@ -45,6 +45,7 @@ Versioned sections should match the Git tags and GitHub releases published for t
 
 ### Changed
 
+- Streamlined the README around package discovery and first use, moving the complete asset catalog and contributor/integration reference material into dedicated documentation. ([#303](https://github.com/ladislas/mypac/issues/303))
 - Promoted `/pac-zoom-out` to a standalone lightweight `pac-zoom-out` skill for mapping unfamiliar code areas. ([#241](https://github.com/ladislas/mypac/issues/241))
 - Improved `/worktree issue` feedback with progress notifications, a prominent next-command code block, and a suggested `pi` launch prompt that starts `/pac-lwot` for the issue. ([#272](https://github.com/ladislas/mypac/issues/272))
 - Taught implementation-oriented prompts to load `pac-tdd` selectively for behavior-changing work, bug fixes, and regression coverage. ([#210](https://github.com/ladislas/mypac/issues/210))
