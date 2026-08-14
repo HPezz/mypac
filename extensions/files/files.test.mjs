@@ -27,10 +27,11 @@ function createFilesCommandHarness() {
 
 // --- public registration seam ---
 
-test("latest file reveal preserves fullscreen search shortcut", () => {
+test("latest file reveal preserves the fork file-reveal shortcut", () => {
 	const { shortcuts } = createFilesCommandHarness();
 
-	assert.equal(shortcuts.get("ctrl+alt+f")?.description, "Reveal the latest file reference in Finder");
+	assert.equal(shortcuts.get("ctrl+shift+e")?.description, "Reveal the latest file reference in Finder");
+	assert.equal(shortcuts.has("ctrl+alt+f"), false);
 	assert.equal(shortcuts.has("ctrl+shift+f"), false);
 });
 
