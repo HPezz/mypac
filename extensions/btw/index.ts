@@ -31,6 +31,7 @@ import {
 	type OverlayHandle,
 	type TUI,
 } from "@earendil-works/pi-tui";
+import { createSynchronizedModelRuntime, synchronizeModelRuntime } from "./model-runtime.ts";
 import {
 	BTW_IMPORT_TYPE,
 	BTW_SIDECHAT_STATE_TYPE,
@@ -102,7 +103,6 @@ type OverlayRuntime = {
 
 type SideSessionRuntime = {
 	session: AgentSession;
-	modelKey: string;
 	unsubscribe: () => void;
 };
 
@@ -138,7 +138,9 @@ function createBtwResourceLoader(ctx: ExtensionContext, appendSystemPrompt: stri
 		getThemes: () => ({ themes: [], diagnostics: [] }),
 		getAgentsFiles: () => ({ agentsFiles: [] }),
 		getSystemPrompt: () => systemPrompt,
+		getSystemPromptSource: () => undefined,
 		getAppendSystemPrompt: () => appendSystemPrompt,
+		getAppendSystemPromptSources: () => [],
 		extendResources: () => {},
 		reload: async () => {},
 	};
@@ -517,11 +519,6 @@ export default function (pi: ExtensionAPI) {
 	let launchAnchor: BtwLaunchAnchor | null = null;
 
 	const mdTheme = getMarkdownTheme();
-
-	function getModelKey(ctx: ExtensionContext): string {
-		const model = ctx.model;
-		return model ? `${model.provider}/${model.id}` : "none";
-	}
 
 	function applyRestoredState(restored: BtwRestoredState<BtwDetails, BtwImportDetails>, state: BtwSidechatState | null): void {
 		thread = restored.thread;
@@ -1079,10 +1076,11 @@ export default function (pi: ExtensionAPI) {
 			return null;
 		}
 
+		const modelRuntime = await createSynchronizedModelRuntime(ctx.modelRegistry, ctx.model.provider);
 		const { session } = await createAgentSession({
 			sessionManager: SessionManager.inMemory(ctx.cwd),
 			model: ctx.model,
-			modelRegistry: ctx.modelRegistry as AgentSession["modelRegistry"],
+			modelRuntime,
 			thinkingLevel: pi.getThinkingLevel() as SessionThinkingLevel,
 			resourceLoader: createBtwResourceLoader(ctx),
 		});
@@ -1146,7 +1144,6 @@ export default function (pi: ExtensionAPI) {
 
 		return {
 			session,
-			modelKey: getModelKey(ctx),
 			unsubscribe,
 		};
 	}
@@ -1156,13 +1153,13 @@ export default function (pi: ExtensionAPI) {
 			return null;
 		}
 
-		const expectedModelKey = getModelKey(ctx);
-		if (activeSideSession && activeSideSession.modelKey === expectedModelKey) {
-			return activeSideSession;
+		if (!activeSideSession) {
+			activeSideSession = await createSideSession(ctx);
+		} else {
+			await synchronizeModelRuntime(ctx.modelRegistry, activeSideSession.session.modelRuntime, ctx.model.provider);
+			await activeSideSession.session.setModel(ctx.model);
 		}
 
-		await disposeSideSession();
-		activeSideSession = await createSideSession(ctx);
 		return activeSideSession;
 	}
 
@@ -1264,15 +1261,11 @@ export default function (pi: ExtensionAPI) {
 			throw new Error("No active model selected.");
 		}
 
-		const auth = await ctx.modelRegistry.getApiKeyAndHeaders(model);
-		if (!auth.ok) {
-			throw new Error(auth.error);
-		}
-
+		const modelRuntime = await createSynchronizedModelRuntime(ctx.modelRegistry, model.provider);
 		const { session } = await createAgentSession({
 			sessionManager: SessionManager.inMemory(ctx.cwd),
 			model,
-			modelRegistry: ctx.modelRegistry as AgentSession["modelRegistry"],
+			modelRuntime,
 			thinkingLevel: "off",
 			tools: [],
 			resourceLoader: createBtwResourceLoader(ctx, [BTW_SUMMARY_PROMPT]),
@@ -1354,14 +1347,6 @@ export default function (pi: ExtensionAPI) {
 		if (!model) {
 			setOverlayStatus("No active model selected.");
 			notify(ctx, "No active model selected.", "error");
-			return;
-		}
-
-		const auth = await ctx.modelRegistry.getApiKeyAndHeaders(model);
-		if (!auth.ok) {
-			const message = auth.error;
-			setOverlayStatus(message);
-			notify(ctx, message, "error");
 			return;
 		}
 

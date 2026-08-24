@@ -3,8 +3,97 @@ import assert from "node:assert/strict";
 import {
 	normalizeQuestions,
 	parseExtractionResult,
+	extractQuestions,
 	formatExtractionFailure,
+	selectExtractionModel,
 } from "./extraction.ts";
+
+// --- selectExtractionModel ---
+
+const currentModel = { provider: "openai", id: "gpt-5.4" };
+const miniModel = { provider: "openai-codex", id: "gpt-5.4-mini" };
+const haikuModel = { provider: "anthropic", id: "claude-haiku-4-5" };
+
+function modelRegistryWith(models) {
+	return {
+		find(provider, id) {
+			return models.find((model) => model.provider === provider && model.id === id);
+		},
+		getAvailable() {
+			return models;
+		},
+		async getApiKeyAndHeaders() {
+			return { ok: true };
+		},
+	};
+}
+
+test("selectExtractionModel prefers the highest-priority available model", async () => {
+	const selected = await selectExtractionModel(
+		currentModel,
+		modelRegistryWith([haikuModel, miniModel]),
+		[],
+	);
+	assert.equal(selected, miniModel);
+});
+
+test("selectExtractionModel restricts candidates to scoped models", async () => {
+	const selected = await selectExtractionModel(
+		currentModel,
+		modelRegistryWith([miniModel, haikuModel]),
+		[{ model: haikuModel }],
+	);
+	assert.equal(selected, haikuModel);
+});
+
+test("selectExtractionModel falls back to current model when candidates are outside scope", async () => {
+	const selected = await selectExtractionModel(
+		currentModel,
+		modelRegistryWith([miniModel, haikuModel]),
+		[{ model: currentModel }],
+	);
+	assert.equal(selected, currentModel);
+});
+
+// --- extractQuestions ---
+
+test("extractQuestions completes through the model registry and forwards cancellation", async () => {
+	const signal = new AbortController().signal;
+	let request;
+	const result = await extractQuestions(
+		{
+			async complete(model, context, options) {
+				request = { model, context, options };
+				return {
+					stopReason: "stop",
+					content: [{ type: "text", text: '{"questions":[{"question":"Choose?"}]}' }],
+				};
+			},
+		},
+		miniModel,
+		"Assistant text",
+		signal,
+	);
+
+	assert.deepEqual(result, { questions: [{ question: "Choose?" }] });
+	assert.equal(request.model, miniModel);
+	assert.equal(request.context.messages[0].content[0].text, "Assistant text");
+	assert.equal(request.options.signal, signal);
+});
+
+test("extractQuestions returns null when completion is aborted", async () => {
+	const result = await extractQuestions(
+		{
+			async complete() {
+				return { stopReason: "aborted", content: [] };
+			},
+		},
+		miniModel,
+		"Assistant text",
+		new AbortController().signal,
+	);
+	assert.equal(result, null);
+});
 
 // --- normalizeQuestions ---
 
