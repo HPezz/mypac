@@ -1,3 +1,4 @@
+import { getAgentDir } from "@earendil-works/pi-coding-agent";
 import { existsSync, readFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
@@ -39,8 +40,12 @@ function loadJson(path: string): any {
 	return {};
 }
 
+export function getAgentAuthPath(agentDir: string = getAgentDir()): string {
+	return join(agentDir, "auth.json");
+}
+
 function loadAgentAuth(): any {
-	return loadJson(join(homedir(), ".pi", "agent", "auth.json"));
+	return loadJson(getAgentAuthPath());
 }
 
 function getClaudeToken(): string | undefined {

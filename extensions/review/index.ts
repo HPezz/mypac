@@ -17,15 +17,15 @@
  * - `/review-start --extra "focus on performance regressions"` - add extra review instruction
  *
  * Project-specific review guidelines:
- * - If a REVIEW_GUIDELINES.md file exists in the same directory as .pi,
- *   its contents are appended to the review prompt.
+ * - In trusted projects, if REVIEW_GUIDELINES.md exists beside Pi's project
+ *   configuration directory, its contents are appended to the review prompt.
  *
  * Note: The extension opens a fresh session branch for the review and
  * provides /review-end to return to the original position.
  */
 
 import type { ExtensionAPI, ExtensionContext, ExtensionCommandContext } from "@earendil-works/pi-coding-agent";
-import { DynamicBorder, BorderedLoader } from "@earendil-works/pi-coding-agent";
+import { CONFIG_DIR_NAME, DynamicBorder, BorderedLoader } from "@earendil-works/pi-coding-agent";
 import {
 	Container,
 	fuzzyFilter,
@@ -133,11 +133,11 @@ async function loadProjectReviewGuidelines(cwd: string): Promise<string | null> 
 	let currentDir = path.resolve(cwd);
 
 	while (true) {
-		const piDir = path.join(currentDir, ".pi");
+		const configDir = path.join(currentDir, CONFIG_DIR_NAME);
 		const guidelinesPath = path.join(currentDir, "REVIEW_GUIDELINES.md");
 
-		const piStats = await fs.stat(piDir).catch(() => null);
-		if (piStats?.isDirectory()) {
+		const configStats = await fs.stat(configDir).catch(() => null);
+		if (configStats?.isDirectory()) {
 			const guidelineStats = await fs.stat(guidelinesPath).catch(() => null);
 			if (guidelineStats?.isFile()) {
 				try {
@@ -611,7 +611,9 @@ export default function reviewExtension(pi: ExtensionAPI, deps: ReviewExtensionD
 			// Persist review state so tree navigation can restore/reset it
 			pi.appendEntry(REVIEW_STATE_TYPE, { active: true, originId: lockedOriginId, targetType: target.type });
 		}
-		const projectGuidelines = await loadProjectReviewGuidelines(ctx.cwd);
+		const projectGuidelines = ctx.isProjectTrusted()
+			? await loadProjectReviewGuidelines(ctx.cwd)
+			: null;
 
 		// Build the prompt: stable content first, dynamic content last.
 		let fullPrompt = `${skillContent}\n\n---\n\nPlease perform a code review with the following focus:\n\n${focusPrompt}`;
