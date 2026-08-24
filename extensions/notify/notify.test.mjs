@@ -3,27 +3,95 @@ import assert from "node:assert/strict";
 import notifyExtension from "./index.ts";
 import { extractLastAssistantText, formatNotification, formatTerminalNotification } from "./helpers.ts";
 
-test("RPC mode uses protocol notifications instead of terminal escape output", async () => {
+function makeRpcCtx() {
+	const notifications = [];
+	return {
+		ctx: {
+			mode: "rpc",
+			hasUI: true,
+			ui: { notify: (message, level) => notifications.push({ message, level }) },
+		},
+		notifications,
+	};
+}
+
+function registerExtension() {
 	const commands = new Map();
 	const events = new Map();
-	const notifications = [];
 	notifyExtension({
 		registerCommand: (name, definition) => commands.set(name, definition.handler),
 		on: (event, handler) => events.set(event, handler),
 	});
-	const ctx = {
-		mode: "rpc",
-		hasUI: true,
-		ui: { notify: (message, level) => notifications.push({ message, level }) },
-	};
+	return { commands, events };
+}
+
+test("RPC mode uses protocol notifications instead of terminal escape output", async () => {
+	const { commands, events } = registerExtension();
+	const { ctx, notifications } = makeRpcCtx();
 
 	await commands.get("notify-test")("", ctx);
-	await events.get("agent_end")({ messages: [{ role: "assistant", content: "Done" }] }, ctx);
+	assert.deepEqual(notifications, [{ message: "Pi test: Ready for input", level: "info" }]);
 
+	await events.get("agent_end")({ messages: [{ role: "assistant", content: "Done" }] }, ctx);
+	assert.deepEqual(notifications.length, 1, "agent_end must not emit a notification");
+
+	await events.get("agent_settled")({}, ctx);
 	assert.deepEqual(notifications, [
 		{ message: "Pi test: Ready for input", level: "info" },
 		{ message: "π: Done", level: "info" },
 	]);
+});
+
+test("agent_settled emits last-staged content when multiple agent_end events fire before settling", async () => {
+	const { events } = registerExtension();
+	const { ctx, notifications } = makeRpcCtx();
+
+	await events.get("agent_end")({ messages: [{ role: "assistant", content: "First attempt" }] }, ctx);
+	await events.get("agent_end")({ messages: [{ role: "assistant", content: "Retried answer" }] }, ctx);
+
+	assert.equal(notifications.length, 0, "no notification before settled");
+
+	await events.get("agent_settled")({}, ctx);
+	assert.equal(notifications.length, 1);
+	assert.equal(notifications[0].message, "π: Retried answer");
+});
+
+test("agent_settled without a preceding agent_end emits a ready-for-input fallback", async () => {
+	const { events } = registerExtension();
+	const { ctx, notifications } = makeRpcCtx();
+
+	await events.get("agent_settled")({}, ctx);
+	assert.deepEqual(notifications, [{ message: "Ready for input", level: "info" }]);
+});
+
+test("agent_start clears stale pending so an interrupted turn does not ghost into the next run", async () => {
+	const { events } = registerExtension();
+	const { ctx, notifications } = makeRpcCtx();
+
+	// Simulated interrupted turn: agent_end fires but agent_settled never does.
+	await events.get("agent_end")({ messages: [{ role: "assistant", content: "Cancelled work" }] }, ctx);
+
+	// Next turn starts: agent_start must clear the stale pending.
+	await events.get("agent_start")({}, ctx);
+
+	await events.get("agent_end")({ messages: [{ role: "assistant", content: "Real answer" }] }, ctx);
+	await events.get("agent_settled")({}, ctx);
+
+	assert.equal(notifications.length, 1, "only one notification — no ghost from the cancelled turn");
+	assert.equal(notifications[0].message, "π: Real answer");
+});
+
+test("pending notification is cleared after agent_settled so a second settled emits only a fallback", async () => {
+	const { events } = registerExtension();
+	const { ctx, notifications } = makeRpcCtx();
+
+	await events.get("agent_end")({ messages: [{ role: "assistant", content: "Done" }] }, ctx);
+	await events.get("agent_settled")({}, ctx);
+	await events.get("agent_settled")({}, ctx);
+
+	assert.equal(notifications.length, 2);
+	assert.equal(notifications[0].message, "π: Done");
+	assert.equal(notifications[1].message, "Ready for input");
 });
 
 test("extracts the last assistant string content", () => {

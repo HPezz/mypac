@@ -51,6 +51,8 @@ function dispatchNotification(
 }
 
 export default function (pi: ExtensionAPI) {
+	let pending: { title: string; body: string } | null = null;
+
 	pi.registerCommand("notify-test", {
 		description: "Send a test terminal notification",
 		handler: async (_args, ctx) => {
@@ -58,9 +60,22 @@ export default function (pi: ExtensionAPI) {
 		},
 	});
 
-	pi.on("agent_end", async (event, ctx) => {
+	// Per the Pi lifecycle diagram, agent_settled always follows agent_end in
+	// the normal flow. We also clear on agent_start so that any stale pending
+	// from an interrupted turn (where agent_settled never fired) cannot leak
+	// into the next run.
+	pi.on("agent_start", async () => {
+		pending = null;
+	});
+
+	pi.on("agent_end", async (event, _ctx) => {
 		const lastText = extractLastAssistantText(event.messages ?? []);
-		const { title, body } = formatNotification(lastText);
-		dispatchNotification(ctx, title, body);
+		pending = formatNotification(lastText);
+	});
+
+	pi.on("agent_settled", async (_event, ctx) => {
+		const notification = pending ?? formatNotification(null);
+		pending = null;
+		dispatchNotification(ctx, notification.title, notification.body);
 	});
 }
