@@ -115,6 +115,8 @@ function getThinkingColor(thinkingLevel?: string): string {
 			return "thinkingHigh";
 		case "xhigh":
 			return "thinkingXhigh";
+		case "max":
+			return "thinkingMax";
 		default:
 			return "accent";
 	}

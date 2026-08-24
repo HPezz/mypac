@@ -40,6 +40,7 @@ Versioned sections should match the Git tags and GitHub releases published for t
 
 ### Fixed
 
+- Restored Pi 0.84.2 fullscreen compatibility for transcript search, file reveal, maximum-thinking footer colors, and bundled themes. ([#325](https://github.com/ladislas/mypac/issues/325))
 - Made project review guidelines respect Pi trust decisions and Pi-owned configuration paths honor default and overridden agent roots without moving mypac todo data. ([#323](https://github.com/ladislas/mypac/issues/323))
 - Made extension UI mode-safe across TUI, RPC, JSON, and print execution while preserving RPC dialogs and notifications. ([#322](https://github.com/ladislas/mypac/issues/322))
 - Fixed Headroom footer savings to show current Pi-session deltas instead of proxy-global totals. ([#309](https://github.com/ladislas/mypac/issues/309))

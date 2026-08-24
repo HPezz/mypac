@@ -112,6 +112,24 @@ test("written thinking level uses current thinking level color", () => {
 	assert.doesNotMatch(lines.join("\n"), /<accent>high<\/accent>/);
 });
 
+test("maximum thinking level uses thinkingMax color", () => {
+	const theme = { fg: (color, text) => `<${color}>${text}</${color}>` };
+	const lines = renderFooterLines(
+		{
+			usage: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, totalCost: 0 },
+			usingSubscription: false,
+			model: { provider: "openai-codex", id: "gpt-5.5", reasoning: true },
+			thinkingLevel: "max",
+			providerUsage: { provider: "Codex", windows: [{ label: "5h", usedPercent: 25 }] },
+		},
+		120,
+		theme,
+	);
+
+	assert.match(lines.join("\n"), /<thinkingMax>max<\/thinkingMax>/);
+	assert.match(lines.join("\n"), /<thinkingMax>Codex<\/thinkingMax>/);
+});
+
 test("headroom indicator renders on provider usage line with savings", () => {
 	const theme = { fg: (_color, text) => text };
 	const lines = renderFooterLines(
