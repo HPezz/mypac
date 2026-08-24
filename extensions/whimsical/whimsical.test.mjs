@@ -1,6 +1,23 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import whimsicalExtension from "./index.ts";
 import { messages, pickRandom } from "./helpers.ts";
+
+test("working messages are TUI-only", async () => {
+  const events = new Map();
+  const messages = [];
+  whimsicalExtension({ on: (event, handler) => events.set(event, handler) });
+  const ctx = {
+    mode: "rpc",
+    hasUI: true,
+    ui: { setWorkingMessage: (message) => messages.push(message) },
+  };
+
+  await events.get("turn_start")({}, ctx);
+  await events.get("turn_end")({}, ctx);
+
+  assert.deepEqual(messages, []);
+});
 
 test("pickRandom returns a non-empty string", () => {
   const result = pickRandom(() => 0);

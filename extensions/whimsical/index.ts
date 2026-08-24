@@ -5,10 +5,10 @@ import { pickRandom } from "./helpers.ts";
 
 export default function (pi: ExtensionAPI) {
   pi.on("turn_start", async (_event, ctx) => {
-    ctx.ui.setWorkingMessage(pickRandom());
+    if (ctx.mode === "tui") ctx.ui.setWorkingMessage(pickRandom());
   });
 
   pi.on("turn_end", async (_event, ctx) => {
-    ctx.ui.setWorkingMessage(); // Reset for next time
+    if (ctx.mode === "tui") ctx.ui.setWorkingMessage(); // Reset for next time
   });
 }

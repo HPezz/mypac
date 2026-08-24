@@ -31,6 +31,7 @@ test("/files reports an interactive-mode requirement through the registered comm
 	assert.equal(typeof handler, "function");
 
 	await handler("", {
+		mode: "print",
 		hasUI: false,
 		cwd: process.cwd(),
 		ui: {
@@ -41,7 +42,28 @@ test("/files reports an interactive-mode requirement through the registered comm
 		sessionManager: { getBranch: () => [] },
 	});
 
-	assert.deepEqual(notifications, [{ message: "Files requires interactive mode", level: "error" }]);
+	assert.deepEqual(notifications, [{ message: "Files requires interactive TUI mode", level: "error" }]);
+});
+
+test("/files does not open custom TUI in RPC mode", async () => {
+	const { commands } = createFilesCommandHarness();
+	const notifications = [];
+	const handler = commands.get("files");
+
+	await handler("", {
+		mode: "rpc",
+		hasUI: true,
+		cwd: process.cwd(),
+		ui: {
+			custom: async () => { throw new Error("custom TUI must not run in RPC mode"); },
+			notify(message, level) {
+				notifications.push({ message, level });
+			},
+		},
+		sessionManager: { getBranch: () => [] },
+	});
+
+	assert.deepEqual(notifications, [{ message: "Files requires interactive TUI mode", level: "error" }]);
 });
 
 // --- sanitizeReference ---
