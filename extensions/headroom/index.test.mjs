@@ -76,6 +76,7 @@ function createHarness(harnessOptions = {}) {
 	};
 	const runtime = harnessOptions.runtime ?? new HeadroomRuntime(createProxy, { leaseStore: harnessOptions.leaseStore ?? new MemoryLeaseStore() });
 	const ctx = {
+		mode: harnessOptions.mode ?? "tui",
 		hasUI: harnessOptions.hasUI ?? true,
 		model: { provider: "openai-codex", id: "gpt-5" },
 		waitForIdle: async () => {
@@ -127,7 +128,16 @@ test("session_start does not auto-start Headroom without global opt-in", async (
 });
 
 test("session_start does not auto-start Headroom without UI", async () => {
-	const { events, registered, notifications, ctx } = createHarness({ hasUI: false, globalSettings: { headroom: { enabled: true } } });
+	const { events, registered, notifications, ctx } = createHarness({ mode: "print", hasUI: false, globalSettings: { headroom: { enabled: true } } });
+
+	await events.get("session_start")({}, ctx);
+
+	assert.deepEqual(registered, []);
+	assert.deepEqual(notifications, []);
+});
+
+test("session_start does not auto-start Headroom in RPC mode", async () => {
+	const { events, registered, notifications, ctx } = createHarness({ mode: "rpc", globalSettings: { headroom: { enabled: true } } });
 
 	await events.get("session_start")({}, ctx);
 

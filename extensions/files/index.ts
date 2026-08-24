@@ -25,8 +25,8 @@ import {
 } from "./components.ts";
 
 async function runFileBrowser(pi: ExtensionAPI, ctx: ExtensionContext): Promise<void> {
-	if (!ctx.hasUI) {
-		ctx.ui.notify("Files requires interactive mode", "error");
+	if (ctx.mode !== "tui") {
+		ctx.ui.notify("Files requires interactive TUI mode", "error");
 		return;
 	}
 

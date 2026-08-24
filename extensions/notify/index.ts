@@ -9,7 +9,7 @@
  * Intentional local adaptation: helper logic lives in ./helpers.ts so message
  * extraction and notification formatting can be tested in isolation.
  */
-import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
+import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
 import { spawn } from "node:child_process";
 import { extractLastAssistantText, formatNotification, formatTerminalNotification } from "./helpers.ts";
 
@@ -34,22 +34,33 @@ function runSoundHook(): void {
 	}
 }
 
-function notify(title: string, body: string): void {
-	process.stdout.write(formatTerminalNotification(title, body));
-	runSoundHook();
+function dispatchNotification(
+	ctx: Pick<ExtensionContext, "mode" | "hasUI" | "ui">,
+	title: string,
+	body: string,
+): void {
+	if (ctx.mode === "tui") {
+		process.stdout.write(formatTerminalNotification(title, body));
+		runSoundHook();
+		return;
+	}
+	if (ctx.hasUI) {
+		ctx.ui.notify(body ? `${title}: ${body}` : title, "info");
+	}
+	// Print and JSON modes have no UI channel; writing OSC bytes would pollute their output.
 }
 
 export default function (pi: ExtensionAPI) {
 	pi.registerCommand("notify-test", {
 		description: "Send a test terminal notification",
-		handler: async () => {
-			notify("Pi test", "Ready for input");
+		handler: async (_args, ctx) => {
+			dispatchNotification(ctx, "Pi test", "Ready for input");
 		},
 	});
 
-	pi.on("agent_end", async (event) => {
+	pi.on("agent_end", async (event, ctx) => {
 		const lastText = extractLastAssistantText(event.messages ?? []);
 		const { title, body } = formatNotification(lastText);
-		notify(title, body);
+		dispatchNotification(ctx, title, body);
 	});
 }

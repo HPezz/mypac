@@ -44,6 +44,7 @@ function createTodoToolHarness(cwd) {
 
 	const ctx = {
 		cwd,
+		mode: "print",
 		hasUI: false,
 		ui: {},
 		sessionManager: {
@@ -55,6 +56,21 @@ function createTodoToolHarness(cwd) {
 	return {
 		execute: (params) => todoTool.execute("tool-call-1", params, undefined, undefined, ctx),
 	};
+}
+
+function createTodosCommandHarness() {
+	let todosCommand;
+	const pi = {
+		on() {},
+		registerTool() {},
+		registerCommand(name, definition) {
+			if (name === "todos") todosCommand = definition.handler;
+		},
+		registerShortcut() {},
+	};
+	todosExtension(pi);
+	assert.ok(todosCommand, "todos command should be registered");
+	return todosCommand;
 }
 
 // ─── Public tool seam ────────────────────────────────────────────────────────
@@ -82,6 +98,27 @@ test("todo tool creates and retrieves todos through the registered tool boundary
 	const fetched = await tool.execute({ action: "get", id: `TODO-${created.details.todo.id}` });
 	assert.equal(fetched.details.action, "get");
 	assert.equal(fetched.details.todo.body.trim(), "Exercise the public tool boundary.");
+});
+
+test("/todos reports through RPC notification without opening custom TUI", async (t) => {
+	const cwd = await mkdtemp(path.join(tmpdir(), "todos-rpc-"));
+	t.after(() => rm(cwd, { recursive: true, force: true }));
+	const handler = createTodosCommandHarness();
+	const notifications = [];
+
+	await handler("", {
+		cwd,
+		mode: "rpc",
+		hasUI: true,
+		sessionManager: { getSessionId: () => "session-1" },
+		ui: {
+			custom: async () => { throw new Error("custom TUI must not run in RPC mode"); },
+			notify: (message, level) => notifications.push({ message, level }),
+		},
+	});
+
+	assert.equal(notifications.length, 1);
+	assert.equal(notifications[0].level, "info");
 });
 
 // ─── ID helpers ───────────────────────────────────────────────────────────────

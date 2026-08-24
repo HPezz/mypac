@@ -86,8 +86,13 @@ function setReviewWidget(ctx: ExtensionContext, active: boolean) {
 		return;
 	}
 
+	const message = "Review session active, return with /review-end";
+	if (ctx.mode !== "tui") {
+		ctx.ui.setWidget("review", [message]);
+		return;
+	}
+
 	ctx.ui.setWidget("review", (_tui, theme) => {
-		const message = "Review session active, return with /review-end";
 		const text = new Text(theme.fg("warning", message), 0, 0);
 		return {
 			render(width: number) {
@@ -264,6 +269,16 @@ export default function reviewExtension(pi: ExtensionAPI, deps: ReviewExtensionD
 	const loadReviewFixFindingsPrompt = deps.loadReviewFixFindingsPrompt ?? defaultLoadReviewFixFindingsPrompt;
 
 	async function promptForOptionalReviewInstruction(ctx: ExtensionContext): Promise<OptionalReviewInstructionResult> {
+		if (ctx.mode !== "tui") {
+			const instruction = await ctx.ui.input(
+				"Optional review instruction",
+				"Leave empty to skip",
+			);
+			return instruction === undefined
+				? { cancelled: true }
+				: { cancelled: false, instruction: instruction.trim() || undefined };
+		}
+
 		return await ctx.ui.custom<OptionalReviewInstructionResult>((tui, theme, _keybindings, done) => {
 			const container = new Container();
 			container.addChild(new DynamicBorder((str: string) => theme.fg("accent", str)));
@@ -333,6 +348,14 @@ export default function reviewExtension(pi: ExtensionAPI, deps: ReviewExtensionD
 			description: preset.description,
 		}));
 		const smartDefaultIndex = items.findIndex((item) => item.value === smartDefault);
+
+		if (ctx.mode !== "tui") {
+			const label = await ctx.ui.select("Select a review preset", items.map((item) => item.label));
+			const value = items.find((item) => item.label === label)?.value;
+			if (value === "uncommitted") return { type: "uncommitted" };
+			if (value === "baseBranch") return showBranchSelector(ctx);
+			return null;
+		}
 
 		const result = await ctx.ui.custom<ReviewPresetValue | null>((tui, theme, _kb, done) => {
 			const container = new Container();
@@ -414,6 +437,11 @@ export default function reviewExtension(pi: ExtensionAPI, deps: ReviewExtensionD
 			if (b === defaultBranch) return 1;
 			return a.localeCompare(b);
 		});
+
+		if (ctx.mode !== "tui") {
+			const branch = await ctx.ui.select("Select base branch", sortedBranches);
+			return branch ? { type: "baseBranch", branch } : null;
+		}
 
 		const items: SelectItem[] = sortedBranches.map((branch) => ({
 			value: branch,
@@ -728,7 +756,7 @@ export default function reviewExtension(pi: ExtensionAPI, deps: ReviewExtensionD
 		const basePrompt = await loadReviewSummaryPrompt();
 		const summaryPrompt = appendExtraReviewInstruction(basePrompt, extraInstruction);
 
-		if (showLoader && ctx.hasUI) {
+		if (showLoader && ctx.mode === "tui") {
 			return ctx.ui.custom<{ cancelled: boolean; error?: string } | null>((tui, theme, _kb, done) => {
 				const loader = new BorderedLoader(tui, theme, "Returning and summarizing review session...");
 				loader.onAbort = () => done(null);

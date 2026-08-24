@@ -1,5 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import answerExtension from "./index.ts";
 import {
 	normalizeQuestions,
 	parseExtractionResult,
@@ -7,6 +8,28 @@ import {
 	formatExtractionFailure,
 	selectExtractionModel,
 } from "./extraction.ts";
+
+test("/answer does not open custom TUI in RPC mode", async () => {
+	let handler;
+	const notifications = [];
+	answerExtension({
+		registerCommand(name, definition) {
+			if (name === "answer") handler = definition.handler;
+		},
+		registerShortcut() {},
+	});
+
+	await handler("", {
+		mode: "rpc",
+		hasUI: true,
+		ui: {
+			custom: async () => { throw new Error("custom TUI must not run in RPC mode"); },
+			notify: (message, level) => notifications.push({ message, level }),
+		},
+	});
+
+	assert.deepEqual(notifications, [{ message: "answer requires interactive TUI mode", level: "error" }]);
+});
 
 // --- selectExtractionModel ---
 

@@ -1,6 +1,30 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import notifyExtension from "./index.ts";
 import { extractLastAssistantText, formatNotification, formatTerminalNotification } from "./helpers.ts";
+
+test("RPC mode uses protocol notifications instead of terminal escape output", async () => {
+	const commands = new Map();
+	const events = new Map();
+	const notifications = [];
+	notifyExtension({
+		registerCommand: (name, definition) => commands.set(name, definition.handler),
+		on: (event, handler) => events.set(event, handler),
+	});
+	const ctx = {
+		mode: "rpc",
+		hasUI: true,
+		ui: { notify: (message, level) => notifications.push({ message, level }) },
+	};
+
+	await commands.get("notify-test")("", ctx);
+	await events.get("agent_end")({ messages: [{ role: "assistant", content: "Done" }] }, ctx);
+
+	assert.deepEqual(notifications, [
+		{ message: "Pi test: Ready for input", level: "info" },
+		{ message: "π: Done", level: "info" },
+	]);
+});
 
 test("extracts the last assistant string content", () => {
 	const text = extractLastAssistantText([

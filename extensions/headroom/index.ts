@@ -11,7 +11,7 @@ const SUPPORTED_PROVIDERS = ["openai-codex", "openai", "anthropic"] as const;
 const SESSION_HANDOFF_REASONS = new Set(["new", "resume", "fork", "reload"]);
 
 type CommandContext = ExtensionCommandContext;
-type HeadroomContext = Pick<ExtensionContext, "hasUI" | "ui" | "model">;
+type HeadroomContext = Pick<ExtensionContext, "mode" | "hasUI" | "ui" | "model">;
 interface HeadroomExtensionOptions {
 	readGlobalSettings?: () => Promise<unknown>;
 }
@@ -85,7 +85,7 @@ export function registerHeadroomExtension(
 	}
 
 	function setWorkingMessage(ctx: HeadroomContext, message: string | undefined): void {
-		if (!ctx.hasUI) return;
+		if (ctx.mode !== "tui") return;
 		ctx.ui.setWorkingMessage(message);
 		ctx.ui.setWorkingVisible(Boolean(message));
 	}
@@ -276,7 +276,7 @@ export function registerHeadroomExtension(
 	}
 
 	async function handleAutoStart(ctx: ExtensionContext): Promise<void> {
-		if (!ctx.hasUI || runtime.isEnabled) return;
+		if (ctx.mode !== "tui" || runtime.isEnabled) return;
 		let settings: unknown;
 		try {
 			settings = await readSettings();

@@ -17,7 +17,7 @@
 import path from "node:path";
 import { existsSync } from "node:fs";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
-import { Text, TUI } from "@earendil-works/pi-tui";
+import { Text, type TUI } from "@earendil-works/pi-tui";
 import type { TodoAction, TodoRecord, TodoToolDetails } from "./types.ts";
 import { TodoParams } from "./types.ts";
 import {
@@ -447,9 +447,15 @@ export default function todosExtension(pi: ExtensionAPI) {
 			const currentSessionId = ctx.sessionManager.getSessionId();
 			const searchTerm = (args ?? "").trim();
 
-			if (!ctx.hasUI) {
+			if (ctx.mode !== "tui") {
 				const text = formatTodoList(todos);
-				console.log(text);
+				if (ctx.mode === "rpc") {
+					ctx.ui.notify(text, "info");
+				} else if (ctx.mode === "print") {
+					console.log(text);
+				} else {
+					pi.sendMessage({ customType: "todos", content: text, display: true }, { triggerTurn: false });
+				}
 				return;
 			}
 

@@ -58,6 +58,7 @@ function createReviewStartHarness(custom) {
 		notifications,
 		sentMessages,
 		ctx: {
+			mode: "tui",
 			hasUI: true,
 			cwd: process.cwd(),
 			sessionManager: {
@@ -122,6 +123,7 @@ test("/review-start can retry after pac-review skill load failure without leavin
 	assert.equal(typeof handler, "function");
 
 	const ctx = {
+		mode: "tui",
 		hasUI: true,
 		cwd: process.cwd(),
 		sessionManager: {
@@ -165,6 +167,24 @@ test("/review-start selector prompts for an optional one-off instruction", async
 	assert.equal(customCalls, 2);
 	assert.equal(sentMessages.length, 1);
 	assert.match(sentMessages[0], /Additional user-provided review instruction:\n\nfocus on performance regressions/);
+});
+
+test("/review-start uses RPC dialogs without opening custom TUI", async () => {
+	const { ctx, handler, sentMessages } = createReviewStartHarness(async () => {
+		throw new Error("custom TUI must not run in RPC mode");
+	});
+	ctx.mode = "rpc";
+	ctx.ui.select = async (label) => {
+		if (label === "Select a review preset") return "Review uncommitted changes";
+		if (label === "Start review in:") return "Current session";
+		throw new Error(`Unexpected select: ${label}`);
+	};
+	ctx.ui.input = async () => "focus on RPC safety";
+
+	await handler("", ctx);
+
+	assert.equal(sentMessages.length, 1);
+	assert.match(sentMessages[0], /Additional user-provided review instruction:\n\nfocus on RPC safety/);
 });
 
 test("/review-start optional instruction prompt skips on empty enter", async () => {
@@ -222,6 +242,7 @@ test("/review-end prompts for an optional one-off instruction before fixing find
 	assert.equal(typeof handler, "function");
 
 	const ctx = {
+		mode: "tui",
 		hasUI: true,
 		sessionManager: {
 			getEntries: () => [],
@@ -297,6 +318,7 @@ test("/review-end reports Markdown prompt load failures as review extension erro
 	assert.equal(typeof handler, "function");
 
 	const ctx = {
+		mode: "tui",
 		hasUI: true,
 		sessionManager: {
 			getEntries: () => [],

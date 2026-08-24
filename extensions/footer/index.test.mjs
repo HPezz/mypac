@@ -19,9 +19,10 @@ function createEventBus() {
 	};
 }
 
-function createHarness() {
+function createHarness(mode = "tui") {
 	const events = new Map();
 	let footerFactory;
+	let footerCalls = 0;
 	let renderRequests = 0;
 	const eventBus = createEventBus();
 	const pi = {
@@ -30,7 +31,8 @@ function createHarness() {
 		getThinkingLevel: () => "medium",
 	};
 	const ctx = {
-		hasUI: true,
+		mode,
+		hasUI: mode === "tui" || mode === "rpc",
 		model: { provider: "openai-codex", id: "gpt-5.5", reasoning: true },
 		modelRegistry: { isUsingOAuth: () => false },
 		getContextUsage: () => undefined,
@@ -41,7 +43,10 @@ function createHarness() {
 			getEntries: () => [],
 		},
 		ui: {
-			setFooter: (factory) => { footerFactory = factory; },
+			setFooter: (factory) => {
+				footerCalls++;
+				footerFactory = factory;
+			},
 		},
 	};
 	const footerData = {
@@ -53,9 +58,9 @@ function createHarness() {
 
 	registerFooterExtension(pi);
 	events.get("session_start")({ type: "session_start" }, ctx);
-	const footer = footerFactory(tui, theme, footerData);
+	const footer = footerFactory?.(tui, theme, footerData);
 
-	return { eventBus, footer, get renderRequests() { return renderRequests; } };
+	return { eventBus, footer, footerCalls, get renderRequests() { return renderRequests; } };
 }
 
 test("footer updates Headroom indicator from shared event bus", () => {
@@ -68,4 +73,11 @@ test("footer updates Headroom indicator from shared event bus", () => {
 	assert.equal(harness.renderRequests, 1);
 	assert.match(harness.footer.render(80).join("\n"), /Headroom ✓ \(1\.2k\/18%\)/);
 	harness.footer.dispose();
+});
+
+test("footer does not install a component factory in RPC mode", () => {
+	const harness = createHarness("rpc");
+
+	assert.equal(harness.footerCalls, 0);
+	assert.equal(harness.footer, undefined);
 });

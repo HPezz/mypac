@@ -21,8 +21,8 @@ import {
 import { QnAComponent } from "./qna-component.ts";
 
 const answerHandler = async (pi: ExtensionAPI, ctx: ExtensionContext) => {
-	if (!ctx.hasUI) {
-		ctx.ui.notify("answer requires interactive mode", "error");
+	if (ctx.mode !== "tui") {
+		ctx.ui.notify("answer requires interactive TUI mode", "error");
 		return;
 	}
 

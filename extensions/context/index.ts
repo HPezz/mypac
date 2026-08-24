@@ -70,7 +70,7 @@ export default function contextExtension(pi: ExtensionAPI) {
 			ensureCaches(ctx);
 			const data = await buildContextViewData(pi, ctx, cachedSkillIndex, cachedLoadedSkills, cachedEffectiveSystemPrompt);
 
-			if (!ctx.hasUI) {
+			if (ctx.mode !== "tui") {
 				pi.sendMessage({ customType: "context", content: buildPlainText(data), display: true }, { triggerTurn: false });
 				return;
 			}

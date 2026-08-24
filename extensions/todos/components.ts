@@ -13,7 +13,7 @@ import {
 	Spacer,
 	type SelectItem,
 	Text,
-	TUI,
+	type TUI,
 	matchesKey,
 	truncateToWidth,
 	visibleWidth,
