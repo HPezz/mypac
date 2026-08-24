@@ -130,6 +130,9 @@ interface SessionParseState {
 	startedAt: Date | null;
 	cwd: string | null;
 	currentModel: string | null;
+	usesUsageLedger: boolean;
+	entryModels: Map<string, string>;
+	usageRecords: Array<{ cause: string; entryId?: string; usage: unknown }>;
 	messages: number;
 	tokens: number;
 	totalCost: number;
@@ -224,7 +227,7 @@ function extractMessageFields(entry: any): { provider?: unknown; model?: unknown
 	const message = entry?.message;
 	return {
 		provider: entry?.provider ?? message?.provider,
-		model: entry?.model ?? message?.model,
+		model: entry?.responseModel ?? message?.responseModel ?? entry?.model ?? message?.model,
 		modelId: entry?.modelId ?? message?.modelId,
 		usage: entry?.usage ?? message?.usage,
 	};
@@ -321,6 +324,32 @@ function estimateMarketCost(model: string, usage: any): number {
 
 	const pricing = match.pricing;
 	return (input * pricing.input + output * pricing.output + cacheRead * (pricing.cacheRead ?? pricing.input) + cacheWrite * (pricing.cacheWrite ?? pricing.input)) / 1_000_000;
+}
+
+function addReportedUsage(state: SessionParseState, key: string, usage: unknown): void {
+	const tokens = extractTokens(usage);
+	const cost = extractCost(usage);
+	const cacheReadTokens = extractCacheReadTokens(usage);
+	const cacheWriteTokens = extractCacheWriteTokens(usage);
+	const inputTokens = extractInputTokens(usage);
+	const outputTokens = extractOutputTokens(usage);
+	const contextTokens = extractContextTokens(usage);
+	const maxContextTokens = extractMaxContextTokens(usage);
+
+	state.tokens += tokens;
+	state.totalCost += cost;
+	state.cacheReadTokens += cacheReadTokens;
+	state.cacheWriteTokens += cacheWriteTokens;
+	state.inputTokens += inputTokens;
+	state.outputTokens += outputTokens;
+	if (contextTokens > 0) {
+		state.contextTokensTotal += contextTokens;
+		state.contextSamples += 1;
+	}
+	state.maxContextTokens = Math.max(state.maxContextTokens, contextTokens, maxContextTokens);
+	addToMap(state.tokensByModel, key, tokens);
+	addToMap(state.costByModel, key, cost);
+	state.modelsUsed.add(key);
 }
 
 function cleanTitle(value: string): string {
@@ -469,6 +498,9 @@ function createSessionParseState(filePath: string): SessionParseState {
 		startedAt: parseSessionStartFromFilename(basename(filePath)),
 		cwd: null,
 		currentModel: null,
+		usesUsageLedger: false,
+		entryModels: new Map(),
+		usageRecords: [],
 		messages: 0,
 		tokens: 0,
 		totalCost: 0,
@@ -498,6 +530,20 @@ function parseSessionLine(state: SessionParseState, line: string): void {
 		return;
 	}
 
+	if (entry?.kind === "header" && entry?.version === 4) {
+		state.usesUsageLedger = true;
+		if (typeof entry.id === "string" && entry.id.trim()) state.sessionId = entry.id.trim();
+		if (!state.startedAt && Number.isSafeInteger(entry.createdAt)) {
+			const date = new Date(entry.createdAt);
+			if (Number.isFinite(date.getTime())) state.startedAt = date;
+		}
+		if (typeof entry.cwd === "string" && entry.cwd.trim()) {
+			state.cwd = entry.cwd.trim();
+			state.repo = inferGitHubRepoFromPath(state.cwd);
+		}
+		return;
+	}
+
 	if (entry?.type === "session") {
 		if (typeof entry.id === "string" && entry.id.trim()) state.sessionId = entry.id.trim();
 		if (!state.startedAt && typeof entry.timestamp === "string") {
@@ -511,7 +557,7 @@ function parseSessionLine(state: SessionParseState, line: string): void {
 		return;
 	}
 
-	if (entry?.type === "session_info") {
+	if (entry?.type === "session_info" || (entry?.kind === "fact" && entry?.fact === "name")) {
 		if (typeof entry.name === "string" && entry.name.trim()) state.title = summarizeUserText(entry.name, inferGitHubRepoFromPath(state.cwd));
 		return;
 	}
@@ -525,20 +571,31 @@ function parseSessionLine(state: SessionParseState, line: string): void {
 		return;
 	}
 
+	if (entry?.kind === "record" && entry?.type === "usage") {
+		state.usageRecords.push({ cause: String(entry.cause ?? "unknown"), entryId: entry.entryId, usage: entry.usage });
+		return;
+	}
+
+	if (!state.usesUsageLedger && (entry?.type === "compaction" || entry?.type === "branch_summary") && entry?.usage) {
+		addReportedUsage(state, "Tools/summaries", entry.usage);
+		return;
+	}
+
 	if (entry?.type !== "message") return;
 	const fields = extractMessageFields(entry);
 	if (!state.firstUserText && entry?.message?.role === "user") state.firstUserText = extractTextContent(entry.message.content);
 	const key = modelKeyFromFields(fields.provider, fields.model, fields.modelId) ?? state.currentModel ?? "unknown";
-	const entryTokens = extractTokens(fields.usage);
-	const reportedCost = extractCost(fields.usage);
-	const estimatedCost = reportedCost > 0 ? 0 : estimateMarketCost(key, fields.usage);
+	if (typeof entry.id === "string") state.entryModels.set(entry.id, key);
+	const entryTokens = state.usesUsageLedger ? 0 : extractTokens(fields.usage);
+	const reportedCost = state.usesUsageLedger ? 0 : extractCost(fields.usage);
+	const estimatedCost = state.usesUsageLedger || reportedCost > 0 ? 0 : estimateMarketCost(key, fields.usage);
 	const entryCost = reportedCost || estimatedCost;
-	const cacheReadTokens = extractCacheReadTokens(fields.usage);
-	const cacheWriteTokens = extractCacheWriteTokens(fields.usage);
-	const inputTokens = extractInputTokens(fields.usage);
-	const outputTokens = extractOutputTokens(fields.usage);
-	const contextTokens = extractContextTokens(fields.usage);
-	const maxContextTokens = extractMaxContextTokens(fields.usage);
+	const cacheReadTokens = state.usesUsageLedger ? 0 : extractCacheReadTokens(fields.usage);
+	const cacheWriteTokens = state.usesUsageLedger ? 0 : extractCacheWriteTokens(fields.usage);
+	const inputTokens = state.usesUsageLedger ? 0 : extractInputTokens(fields.usage);
+	const outputTokens = state.usesUsageLedger ? 0 : extractOutputTokens(fields.usage);
+	const contextTokens = state.usesUsageLedger ? 0 : extractContextTokens(fields.usage);
+	const maxContextTokens = state.usesUsageLedger ? 0 : extractMaxContextTokens(fields.usage);
 
 	state.messages += 1;
 	state.tokens += entryTokens;
@@ -560,6 +617,15 @@ function parseSessionLine(state: SessionParseState, line: string): void {
 }
 
 function finalizeSessionParseState(state: SessionParseState): ParsedSession | null {
+	if (state.usesUsageLedger) {
+		for (const record of state.usageRecords) {
+			const key =
+				record.cause === "assistant" || record.cause === "deferred_fetch"
+					? (record.entryId && state.entryModels.get(record.entryId)) ?? "unknown"
+					: "Tools/summaries";
+			addReportedUsage(state, key, record.usage);
+		}
+	}
 	if (!state.startedAt) return null;
 	return {
 		filePath: state.filePath,

@@ -85,6 +85,97 @@ test("parseSessionLines prefers message modelId when model is missing or blank",
 	assert.equal(parsed.messagesByModel.has("openai-codex"), false);
 });
 
+test("parseSessionLines uses Pi v4 usage records without duplicating embedded usage", () => {
+	const parsed = parseSessionLines(
+		jsonl([
+			{ kind: "header", version: 4, id: "session-v4", createdAt: Date.parse("2026-05-20T10:00:00.000Z"), cwd: "/Users/alice/dev/project" },
+			{
+				kind: "entry",
+				type: "message",
+				id: "assistant-1",
+				message: {
+					role: "assistant",
+					provider: "openai-codex",
+					model: "gpt-requested",
+					responseModel: "gpt-actual",
+					usage: { input: 999, output: 999, cacheRead: 999, cacheWrite: 999, totalTokens: 3_996, cost: { total: 99 } },
+				},
+			},
+			{
+				kind: "record",
+				type: "usage",
+				cause: "assistant",
+				entryId: "assistant-1",
+				usage: { input: 10, output: 5, reasoning: 4, cacheRead: 3, cacheWrite: 2, totalTokens: 20, cost: { total: 0.2 } },
+			},
+			{
+				kind: "record",
+				type: "usage",
+				cause: "tool",
+				entryId: "tool-result-1",
+				usage: { input: 4, output: 1, cacheRead: 1, cacheWrite: 1, totalTokens: 7, cost: { total: 0.07 } },
+			},
+			{
+				kind: "record",
+				type: "usage",
+				cause: "compaction",
+				entryId: "compaction-1",
+				usage: { input: 8, output: 2, cacheRead: 1, cacheWrite: 0, totalTokens: 11, cost: { total: 0.11 } },
+			},
+			{
+				kind: "record",
+				type: "usage",
+				cause: "branch_summary",
+				entryId: "branch-summary-1",
+				usage: { input: 3, output: 1, cacheRead: 1, cacheWrite: 0, totalTokens: 5, cost: { total: 0.05 } },
+			},
+			{
+				kind: "record",
+				type: "usage",
+				cause: "adjustment",
+				usage: { input: -1, output: -1, cacheRead: 0, cacheWrite: 0, totalTokens: -2, cost: { total: -0.02 } },
+			},
+		]),
+		"session.jsonl",
+	);
+
+	assert.ok(parsed);
+	assert.equal(parsed.sessionId, "session-v4");
+	assert.equal(parsed.startedAt.toISOString(), "2026-05-20T10:00:00.000Z");
+	assert.equal(parsed.cwd, "/Users/alice/dev/project");
+	assert.equal(parsed.messages, 1);
+	assert.equal(parsed.tokens, 41);
+	assert.equal(parsed.inputTokens, 24);
+	assert.equal(parsed.outputTokens, 8);
+	assert.equal(parsed.cacheReadTokens, 6);
+	assert.equal(parsed.cacheWriteTokens, 3);
+	assert.equal(parsed.totalCost.toFixed(2), "0.41");
+	assert.equal(parsed.tokensByModel.get("openai-codex/gpt-actual"), 20);
+	assert.equal(parsed.costByModel.get("openai-codex/gpt-actual"), 0.2);
+	assert.equal(parsed.tokensByModel.get("Tools/summaries"), 21);
+	assert.equal(parsed.costByModel.get("Tools/summaries")?.toFixed(2), "0.21");
+});
+
+test("parseSessionLines includes legacy compaction and branch summary usage", () => {
+	const parsed = parseSessionLines(
+		jsonl([
+			{ type: "session", timestamp: "2026-05-20T10:00:00.000Z", cwd: "/Users/alice/dev/project" },
+			{ type: "model_change", provider: "anthropic", modelId: "claude-sonnet-4-5" },
+			{ type: "compaction", usage: { input: 10, output: 2, cacheRead: 3, cacheWrite: 1, totalTokens: 16, cost: { total: 0.16 } } },
+			{ type: "branch_summary", usage: { input: 4, output: 1, cacheRead: 0, cacheWrite: 0, totalTokens: 5, cost: { total: 0.05 } } },
+		]),
+		"2026-05-20T10-00-00-000Z_abc.jsonl",
+	);
+
+	assert.ok(parsed);
+	assert.equal(parsed.messages, 0);
+	assert.equal(parsed.tokens, 21);
+	assert.equal(parsed.totalCost.toFixed(2), "0.21");
+	assert.equal(parsed.tokensByModel.get("Tools/summaries"), 21);
+	assert.equal(parsed.costByModel.get("Tools/summaries")?.toFixed(2), "0.21");
+	assert.equal(parsed.modelsUsed.has("Tools/summaries"), true);
+});
+
 test("parseSessionLines uses current model for provider-only messages", () => {
 	const parsed = parseSessionLines(
 		jsonl([
