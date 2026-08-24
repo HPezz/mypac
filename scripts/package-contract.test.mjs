@@ -11,6 +11,11 @@ const expectedHostDependencies = {
 	typebox: "1.3.7",
 };
 
+test("package has installable consumer metadata", () => {
+	assert.equal(packageJson.name, "mypac");
+	assert.match(packageJson.version, /^\d+\.\d+\.\d+$/);
+});
+
 test("Pi host dependencies have exact development pins", () => {
 	for (const [name, version] of Object.entries(expectedHostDependencies)) {
 		assert.equal(packageJson.devDependencies[name], version, `${name} development version`);

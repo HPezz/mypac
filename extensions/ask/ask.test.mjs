@@ -1,10 +1,54 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import askExtension from "./index.ts";
 import {
+	ASK_MODE_TOOLS,
 	filterAskModeMessages,
 	getAskModeStateFromBranch,
 	handleAskCommand,
 } from "./helpers.ts";
+
+function createAskHarness() {
+	let activeTools = ["read", "bash", "edit", "write", "todo"];
+	const commands = new Map();
+	const messages = [];
+	const pi = {
+		on() {},
+		registerCommand(name, definition) { commands.set(name, definition); },
+		getActiveTools: () => [...activeTools],
+		setActiveTools(tools) {
+			activeTools = [...tools];
+		},
+		appendEntry() {},
+		sendMessage: (message, options) => messages.push({ message, options }),
+		sendUserMessage() {},
+	};
+	askExtension(pi);
+	assert.ok(commands.has("ask"), "/ask command should be registered");
+	const ctx = {
+		ui: {
+			theme: { fg: (_color, text) => text },
+			setStatus() {},
+			notify() {},
+		},
+		sessionManager: { getBranch: () => [] },
+	};
+	return { handler: commands.get("ask").handler, ctx, messages, getActiveTools: () => activeTools };
+}
+
+test("/ask changes tools dynamically and injects no-turn mode markers", async () => {
+	const harness = createAskHarness();
+	await harness.handler("", harness.ctx);
+
+	assert.deepEqual(harness.getActiveTools(), ASK_MODE_TOOLS);
+	assert.deepEqual(harness.messages[0].options, { triggerTurn: false });
+	assert.equal(harness.messages[0].message.customType, "ask-mode-context");
+
+	await harness.handler("", harness.ctx);
+	assert.deepEqual(harness.getActiveTools(), ["read", "bash", "edit", "write", "todo"]);
+	assert.deepEqual(harness.messages[1].options, { triggerTurn: false });
+	assert.equal(harness.messages[1].message.customType, "ask-mode-end");
+});
 
 test("removes ask-mode-context custom messages", () => {
 	const messages = [

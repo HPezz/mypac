@@ -1,5 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import slidedeckExtension from "./index.ts";
 import {
 	buildSlidedeckPrompt,
 	getNextSlidedeckRevisionPath,
@@ -15,6 +16,40 @@ import {
 	renderSlidedeckHtml,
 	resolveAgentDir,
 } from "./helpers.ts";
+
+function createSlidedeckGuardHarness() {
+	const handlers = new Map();
+	const commands = new Map();
+	const pi = {
+		on(event, handler) { handlers.set(event, handler); },
+		registerTool() {},
+		registerCommand(name, definition) { commands.set(name, definition); },
+		appendEntry() {},
+		sendUserMessage() {},
+	};
+	slidedeckExtension(pi);
+	assert.ok(commands.has("pac-slidedeck"), "/pac-slidedeck command should be registered");
+	const ctx = {
+		isIdle: () => true,
+		ui: { notify() {} },
+		sessionManager: {
+			getSessionId: () => "session-123",
+			getBranch: () => [],
+		},
+	};
+	return { command: commands.get("pac-slidedeck").handler, toolCall: handlers.get("tool_call"), ctx };
+}
+
+test("slidedeck guard blocks mutations without terminating the agent", async () => {
+	const harness = createSlidedeckGuardHarness();
+	await harness.command("new deck", harness.ctx);
+
+	const blocked = await harness.toolCall({ toolName: "write", input: { path: "deck.html" } }, harness.ctx);
+	assert.equal(blocked.block, true);
+	assert.match(blocked.reason, /Write is blocked/);
+	assert.equal(blocked.terminate, undefined);
+	assert.equal(await harness.toolCall({ toolName: "read", input: { path: "deck.html" } }, harness.ctx), undefined);
+});
 
 test("buildSlidedeckPrompt uses provided source material at the end", () => {
 	const prompt = buildSlidedeckPrompt("Issue #131: explain the HTML deck workflow", {
