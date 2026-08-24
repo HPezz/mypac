@@ -10,6 +10,7 @@ Versioned sections should match the Git tags and GitHub releases published for t
 
 ### Added
 
+- Added a single clean-install Pi compatibility gate covering effective dependency versions, typechecking, and the complete behavior suite. ([#330](https://github.com/ladislas/mypac/issues/330))
 - Added a clean package-consumer fixture covering peer installation, resource discovery and reload, project trust, malformed-resource isolation, prompt composition, dynamic tools, and recoverable guards. ([#329](https://github.com/ladislas/mypac/issues/329))
 - Added hermetic routing coverage proving Answer and BTW preserve Pi API-key, OAuth, Headroom, scoped-model, custom-provider, cancellation, and teardown behavior. ([#327](https://github.com/ladislas/mypac/issues/327))
 - Added a `/headroom` Pi extension for routing supported providers through a managed or externally detected Headroom proxy.

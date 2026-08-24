@@ -18,8 +18,5 @@ jobs:
 
       - run: npm ci
 
-      - name: Test
-        run: npm test
-
-      - name: Typecheck
-        run: npm run typecheck
+      - name: Pi compatibility gate
+        run: npm run check:pi-compatibility
