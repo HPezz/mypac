@@ -41,6 +41,9 @@
 		"toolOutput": "gray",
 
 		"selectedBg": "darkGray",
+		"scrollbarThumb": "dimGray",
+		"searchMatchBg": "yellow",
+		"searchMatchText": "background",
 		"customMessageBg": "userMsgBg",
 		"customMessageText": "",
 		"customMessageLabel": "accent",
@@ -76,6 +79,7 @@
 		"thinkingMedium": "#5f7e97",
 		"thinkingHigh": "#7e57c2",
 		"thinkingXhigh": "#c792ea",
+		"thinkingMax": "red",
 
 		"bashMode": "green"
 	}

@@ -12,17 +12,27 @@ import {
 
 function createFilesCommandHarness() {
 	const commands = new Map();
+	const shortcuts = new Map();
 	const pi = {
 		registerCommand(name, definition) {
 			commands.set(name, definition.handler);
 		},
-		registerShortcut() {},
+		registerShortcut(key, definition) {
+			shortcuts.set(key, definition);
+		},
 	};
 	filesExtension(pi);
-	return { commands };
+	return { commands, shortcuts };
 }
 
-// --- public command seam ---
+// --- public registration seam ---
+
+test("latest file reveal preserves fullscreen search shortcut", () => {
+	const { shortcuts } = createFilesCommandHarness();
+
+	assert.equal(shortcuts.get("ctrl+alt+f")?.description, "Reveal the latest file reference in Finder");
+	assert.equal(shortcuts.has("ctrl+shift+f"), false);
+});
 
 test("/files reports an interactive-mode requirement through the registered command", async () => {
 	const { commands } = createFilesCommandHarness();
