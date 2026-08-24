@@ -68,7 +68,15 @@ export default function contextExtension(pi: ExtensionAPI) {
 		description: "Show loaded context overview",
 		handler: async (_args, ctx) => {
 			ensureCaches(ctx);
-			const data = await buildContextViewData(pi, ctx, cachedSkillIndex, cachedLoadedSkills, cachedEffectiveSystemPrompt);
+			const systemPromptOptions = ctx.getSystemPromptOptions();
+			const data = await buildContextViewData(
+				pi,
+				ctx,
+				cachedSkillIndex,
+				cachedLoadedSkills,
+				cachedEffectiveSystemPrompt,
+				systemPromptOptions,
+			);
 
 			if (ctx.mode !== "tui") {
 				pi.sendMessage({ customType: "context", content: buildPlainText(data), display: true }, { triggerTurn: false });

@@ -1,13 +1,12 @@
 import {
 	formatSkillsForPrompt,
-	getAgentDir,
 	estimateTokens as estimateMessageTokens,
+	type BuildSystemPromptOptions,
 	type ExtensionAPI,
 	type ExtensionCommandContext,
 	type ExtensionContext,
 	type Skill,
 } from "@earendil-works/pi-coding-agent";
-import { existsSync } from "node:fs";
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
@@ -103,48 +102,6 @@ export function normalizeReadPath(inputPath: string, cwd: string): string {
 	else if (p.startsWith("~/")) p = path.join(os.homedir(), p.slice(2));
 	if (!path.isAbsolute(p)) p = path.resolve(cwd, p);
 	return path.resolve(p);
-}
-
-async function readFileIfExists(filePath: string): Promise<{ path: string; content: string; bytes: number } | null> {
-	if (!existsSync(filePath)) return null;
-	try {
-		const content = await fs.readFile(filePath, "utf8");
-		return { path: filePath, content, bytes: Buffer.byteLength(content) };
-	} catch {
-		return null;
-	}
-}
-
-export async function loadProjectContextFiles(cwd: string): Promise<Array<{ path: string; content: string; tokens: number; bytes: number }>> {
-	const files: Array<{ path: string; content: string; tokens: number; bytes: number }> = [];
-	const seen = new Set<string>();
-
-	const loadFromDir = async (dir: string) => {
-		for (const name of ["AGENTS.md", "CLAUDE.md"]) {
-			const filePath = path.join(dir, name);
-			const file = await readFileIfExists(filePath);
-			if (file && !seen.has(file.path)) {
-				seen.add(file.path);
-				files.push({ ...file, tokens: estimateTokens(file.content) });
-				return;
-			}
-		}
-	};
-
-	await loadFromDir(getAgentDir());
-
-	const stack: string[] = [];
-	let current = path.resolve(cwd);
-	while (true) {
-		stack.push(current);
-		const parent = path.resolve(current, "..");
-		if (parent === current) break;
-		current = parent;
-	}
-	stack.reverse();
-	for (const dir of stack) await loadFromDir(dir);
-
-	return files;
 }
 
 export function normalizeSkillName(name: string): string {
@@ -318,7 +275,7 @@ function ensureSharedInstructionsInPrompt(systemPrompt: string, sharedInstructio
 async function buildSystemBreakdown(
 	cwd: string,
 	systemPrompt: string,
-	agentFiles: Array<{ path: string; content: string; tokens: number }>,
+	agentFiles: Array<{ path: string; content: string }>,
 	skillIndex: SkillIndexEntry[],
 	hasReadTool: boolean,
 	sharedAppendSystemContent: string,
@@ -328,7 +285,7 @@ async function buildSystemBreakdown(
 	const totalTokens = estimateTokens(effectiveSystemPrompt);
 	const agentFileEntries = agentFiles
 		.map((file) => {
-			const promptBlock = `## ${file.path}\n\n${file.content}\n\n`;
+			const promptBlock = `<project_instructions path="${file.path}">\n${file.content}\n</project_instructions>\n\n`;
 			if (!effectiveSystemPrompt.includes(promptBlock)) return null;
 			return {
 				path: shortenPath(file.path, cwd),
@@ -383,6 +340,7 @@ export async function buildContextViewData(
 	skillIndex: SkillIndexEntry[],
 	loadedSkills: Set<string>,
 	effectiveSystemPrompt?: string | null,
+	systemPromptOptions?: BuildSystemPromptOptions,
 ): Promise<ContextViewData> {
 	const commands = pi.getCommands();
 	const extensionFiles = Array.from(
@@ -404,7 +362,7 @@ export async function buildContextViewData(
 		tokens: loadedSkillTokens.get(name) ?? null,
 	}));
 
-	const projectContextFiles = await loadProjectContextFiles(ctx.cwd);
+	const projectContextFiles = systemPromptOptions?.contextFiles ?? [];
 
 	const activeToolNames = pi.getActiveTools();
 	const baseSystemPrompt = effectiveSystemPrompt ?? ctx.getSystemPrompt();
