@@ -41,6 +41,7 @@ Versioned sections should match the Git tags and GitHub releases published for t
 
 ### Fixed
 
+- Corrected Footer and Session Breakdown accounting for Pi 0.84.2 tool, summary, cache, response-model, adjustment, and v4 usage-ledger metadata without duplicate totals. ([#328](https://github.com/ladislas/mypac/issues/328))
 - Restored Pi 0.84.2 fullscreen compatibility for transcript search, file reveal, maximum-thinking footer colors, and bundled themes. ([#325](https://github.com/ladislas/mypac/issues/325))
 - Made project review guidelines respect Pi trust decisions and Pi-owned configuration paths honor default and overridden agent roots without moving mypac todo data. ([#323](https://github.com/ladislas/mypac/issues/323))
 - Made extension UI mode-safe across TUI, RPC, JSON, and print execution while preserving RPC dialogs and notifications. ([#322](https://github.com/ladislas/mypac/issues/322))

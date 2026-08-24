@@ -65,8 +65,12 @@ export function formatTokens(count: number): string {
 export function sumUsageFromEntries(entries: readonly unknown[]): FooterUsageTotals {
 	const totals: FooterUsageTotals = { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, totalCost: 0 };
 	for (const entry of entries as any[]) {
-		if (entry?.type !== "message" || entry.message?.role !== "assistant") continue;
-		const usage = entry.message.usage;
+		const usage =
+			entry?.type === "compaction" || entry?.type === "branch_summary"
+				? entry.usage
+				: entry?.type === "message" && (entry.message?.role === "assistant" || entry.message?.role === "toolResult")
+					? entry.message.usage
+					: undefined;
 		if (!usage) continue;
 		totals.input += Number(usage.input ?? 0) || 0;
 		totals.output += Number(usage.output ?? 0) || 0;

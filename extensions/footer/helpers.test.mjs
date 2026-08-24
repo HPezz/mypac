@@ -32,14 +32,16 @@ test("formatStatusSegment omits write cache when zero", () => {
 	);
 });
 
-test("sumUsageFromEntries totals assistant usage", () => {
+test("sumUsageFromEntries totals assistant, tool, and summary usage once", () => {
 	const totals = sumUsageFromEntries([
 		{ type: "message", message: { role: "user" } },
-		{ type: "message", message: { role: "assistant", usage: { input: 100, output: 20, cacheRead: 30, cacheWrite: 40, cost: { total: 0.2 } } } },
-		{ type: "message", message: { role: "assistant", usage: { input: 200, output: 30, cacheRead: 50, cacheWrite: 60, cost: { total: 0.3 } } } },
+		{ type: "message", message: { role: "assistant", usage: { input: 100, output: 20, reasoning: 10, cacheRead: 30, cacheWrite: 40, cost: { total: 0.2 } } } },
+		{ type: "message", message: { role: "toolResult", usage: { input: 10, output: 2, cacheRead: 3, cacheWrite: 4, cost: { total: 0.02 } } } },
+		{ type: "compaction", usage: { input: 20, output: 3, cacheRead: 4, cacheWrite: 5, cost: { total: 0.03 } } },
+		{ type: "branch_summary", usage: { input: 30, output: 4, cacheRead: 5, cacheWrite: 6, cost: { total: 0.04 } } },
 	]);
 
-	assert.deepEqual(totals, { input: 300, output: 50, cacheRead: 80, cacheWrite: 100, totalCost: 0.5 });
+	assert.deepEqual(totals, { input: 160, output: 29, cacheRead: 42, cacheWrite: 55, totalCost: 0.29 });
 });
 
 test("formatModelName includes provider when available", () => {
