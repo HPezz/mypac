@@ -19,7 +19,7 @@ import {
 	filterAskModeMessages,
 	getAskModeStateFromBranch,
 	handleAskCommand,
-} from "./helpers.js";
+} from "./helpers.ts";
 
 export default function askExtension(pi: ExtensionAPI): void {
 	let askModeEnabled = false;
