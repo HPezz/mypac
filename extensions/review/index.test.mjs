@@ -1,5 +1,8 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { mkdtemp, mkdir, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import path from "node:path";
 import reviewExtension from "./index.ts";
 import { ReviewPromptLoadError } from "./prompts.ts";
 
@@ -20,7 +23,7 @@ function submitCustomInput(factory, inputs) {
 	return result;
 }
 
-function createReviewStartHarness(custom) {
+function createReviewStartHarness(custom, overrides = {}) {
 	const commands = new Map();
 	const notifications = [];
 	const sentMessages = [];
@@ -60,7 +63,8 @@ function createReviewStartHarness(custom) {
 		ctx: {
 			mode: "tui",
 			hasUI: true,
-			cwd: process.cwd(),
+			cwd: overrides.cwd ?? process.cwd(),
+			isProjectTrusted: () => overrides.projectTrusted ?? true,
 			sessionManager: {
 				getEntries: () => [{ id: "msg-1", type: "message", message: { role: "user" } }],
 				getBranch: () => [],
@@ -151,6 +155,28 @@ test("/review-start can retry after pac-review skill load failure without leavin
 		{ message: "Could not load skills/pac-review/SKILL.md", level: "error" },
 		{ message: "Could not load skills/pac-review/SKILL.md", level: "error" },
 	]);
+});
+
+test("/review-start includes project review guidelines only for trusted projects", async () => {
+	const projectDir = await mkdtemp(path.join(tmpdir(), "mypac-review-trust-"));
+	try {
+		await mkdir(path.join(projectDir, ".pi"));
+		await writeFile(path.join(projectDir, "REVIEW_GUIDELINES.md"), "Project-only review rule\n");
+
+		for (const [projectTrusted, expected] of [[true, true], [false, false]]) {
+			const { ctx, handler, sentMessages } = createReviewStartHarness(
+				async () => ({ cancelled: false }),
+				{ cwd: projectDir, projectTrusted },
+			);
+
+			await handler("uncommitted", ctx);
+
+			assert.equal(sentMessages.length, 1);
+			assert.equal(sentMessages[0].includes("Project-only review rule"), expected);
+		}
+	} finally {
+		await rm(projectDir, { recursive: true, force: true });
+	}
 });
 
 test("/review-start selector prompts for an optional one-off instruction", async () => {

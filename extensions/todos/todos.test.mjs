@@ -18,6 +18,7 @@ import {
 	serializeTodoForAgent,
 	serializeTodoListForAgent,
 	buildRefinePrompt,
+	getTodosDir,
 	getTodoPath,
 	getLockPath,
 } from "./helpers.ts";
@@ -318,6 +319,16 @@ test("buildRefinePrompt includes todo id and title", () => {
 });
 
 // ─── getTodoPath / getLockPath ────────────────────────────────────────────────
+
+test("getTodosDir preserves the mypac-owned .pi/todos default", () => {
+	const previous = process.env.PI_TODO_PATH;
+	delete process.env.PI_TODO_PATH;
+	try {
+		assert.equal(getTodosDir("/workspace"), path.resolve("/workspace/.pi/todos"));
+	} finally {
+		if (previous !== undefined) process.env.PI_TODO_PATH = previous;
+	}
+});
 
 test("getTodoPath builds correct file path", () => {
 	assert.ok(getTodoPath("/todos", "deadbeef").endsWith("deadbeef.md"));
