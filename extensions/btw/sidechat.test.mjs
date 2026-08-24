@@ -16,6 +16,7 @@ import {
 	resolveImportTarget,
 	restorePersistedState,
 } from "./sidechat.ts";
+import { synchronizeModelRuntime } from "./model-runtime.ts";
 
 const require = createRequire(import.meta.url);
 
@@ -75,6 +76,13 @@ function readJsonl(file) {
 		.map((line) => JSON.parse(line));
 }
 
+function assertNoBtwMainSessionEntries(file, beforeText) {
+	const before = beforeText.trim().split("\n").filter(Boolean).map((line) => JSON.parse(line));
+	const after = readJsonl(file);
+	assert.deepEqual(after.slice(0, before.length), before);
+	assert.ok(after.slice(before.length).every((entry) => entry.type === "thinking_level_change"));
+}
+
 function runBtw({ projectDir, sessionDir, agentDir }, sessionFile) {
 	execFileSync(
 		piCommand,
@@ -104,6 +112,93 @@ function runBtw({ projectDir, sessionDir, agentDir }, sessionFile) {
 		},
 	);
 }
+
+test("synchronizeModelRuntime mirrors registrations, removals, and runtime-only auth", async () => {
+	const nativeProvider = { id: "native-provider" };
+	const config = { baseUrl: "https://proxy.example" };
+	const source = {
+		getRegisteredProviderIds: () => ["native-provider", "configured-provider"],
+		getRegisteredNativeProvider: (id) => id === "native-provider" ? nativeProvider : undefined,
+		getRegisteredProviderConfig: (id) => id === "configured-provider" ? config : undefined,
+		getProviderAuth: async (id) => id === "configured-provider"
+			? { auth: { apiKey: "runtime-key" }, source: "runtime" }
+			: undefined,
+	};
+	const events = [];
+	const target = {
+		getRegisteredProviderIds: () => ["stale-provider"],
+		unregisterProvider: (id) => events.push(["unregister", id]),
+		registerNativeProvider: (provider) => events.push(["native", provider]),
+		registerProvider: (id, providerConfig) => events.push(["config", id, providerConfig]),
+		refresh: async (options) => events.push(["refresh", options]),
+		getAuth: async () => undefined,
+		setRuntimeApiKey: async (id, key) => events.push(["auth", id, key]),
+	};
+
+	await synchronizeModelRuntime(source, target, "configured-provider");
+
+	assert.deepEqual(events, [
+		["unregister", "stale-provider"],
+		["unregister", "native-provider"],
+		["native", nativeProvider],
+		["unregister", "configured-provider"],
+		["config", "configured-provider", config],
+		["refresh", { providers: ["stale-provider", "native-provider", "configured-provider"], allowNetwork: false }],
+		["auth", "configured-provider", "runtime-key"],
+	]);
+});
+
+test("synchronizeModelRuntime updates and removes mirrored runtime-only authentication", async () => {
+	let sourceKey = "first-key";
+	let targetKey;
+	const events = [];
+	const source = {
+		getRegisteredProviderIds: () => [],
+		getRegisteredNativeProvider: () => undefined,
+		getRegisteredProviderConfig: () => undefined,
+		getProviderAuth: async () => sourceKey ? { auth: { apiKey: sourceKey }, source: "runtime" } : undefined,
+	};
+	const target = {
+		getRegisteredProviderIds: () => [],
+		unregisterProvider() {},
+		registerNativeProvider() {},
+		registerProvider() {},
+		refresh: async () => {},
+		getAuth: async () => targetKey ? { auth: { apiKey: targetKey }, source: "runtime" } : undefined,
+		setRuntimeApiKey: async (_id, key) => { targetKey = key; events.push(["set", key]); },
+		removeRuntimeApiKey: async () => { targetKey = undefined; events.push(["remove"]); },
+	};
+
+	await synchronizeModelRuntime(source, target, "configured-provider");
+	sourceKey = "second-key";
+	await synchronizeModelRuntime(source, target, "configured-provider");
+	sourceKey = undefined;
+	await synchronizeModelRuntime(source, target, "configured-provider");
+
+	assert.deepEqual(events, [["set", "first-key"], ["set", "second-key"], ["remove"]]);
+});
+
+test("synchronizeModelRuntime preserves child authentication resolved from shared storage", async () => {
+	let mirrored = false;
+	const source = {
+		getRegisteredProviderIds: () => [],
+		getRegisteredNativeProvider: () => undefined,
+		getRegisteredProviderConfig: () => undefined,
+		getProviderAuth: async () => ({ auth: { apiKey: "source-key" }, source: "runtime" }),
+	};
+	const target = {
+		getRegisteredProviderIds: () => [],
+		unregisterProvider() {},
+		registerNativeProvider() {},
+		registerProvider() {},
+		refresh: async () => {},
+		getAuth: async () => ({ auth: { apiKey: "stored-key" }, source: "stored" }),
+		setRuntimeApiKey: async () => { mirrored = true; },
+	};
+
+	await synchronizeModelRuntime(source, target, "configured-provider");
+	assert.equal(mirrored, false);
+});
 
 test("helper logic keeps sidechats hidden and import resolution anchored", () => {
 	const location = getBtwSidechatLocation("/tmp/sessions", "main-session-id");
@@ -149,7 +244,7 @@ test("helper logic keeps sidechats hidden and import resolution anchored", () =>
 	assert.equal(restored.state?.mainSessionId, "abc");
 });
 
-test("/btw writes hidden sidechat metadata without touching the main session file", (t) => {
+test("/btw writes metadata only to the hidden sidechat", (t) => {
 	const workspace = makeWorkspace(t);
 	const mainSession = createMainSession(workspace);
 	const before = readFileSync(mainSession.file, "utf8");
@@ -163,7 +258,7 @@ test("/btw writes hidden sidechat metadata without touching the main session fil
 	assert.ok(entries.some((entry) => entry.customType === BTW_SIDECHAT_STATE_TYPE));
 	assert.ok(entries.some((entry) => entry.customType === "btw-thread-reset"));
 	assert.ok(entries.some((entry) => entry.customType === BTW_SIDECHAT_STATE_TYPE && entry.data.anchor));
-	assert.equal(readFileSync(mainSession.file, "utf8"), before);
+	assertNoBtwMainSessionEntries(mainSession.file, before);
 });
 
 test("legacy inline BTW entries are ignored on first restore", (t) => {
@@ -185,7 +280,7 @@ test("legacy inline BTW entries are ignored on first restore", (t) => {
 	const entries = readJsonl(sidechat);
 	assert.ok(!entries.some((entry) => entry.customType === "btw-thread-entry"));
 	assert.ok(!entries.some((entry) => entry.customType === BTW_IMPORT_TYPE));
-	assert.equal(readFileSync(mainSession.file, "utf8"), before);
+	assertNoBtwMainSessionEntries(mainSession.file, before);
 });
 
 test("sidechats are reused per main session id and isolated between sessions", (t) => {

@@ -10,14 +10,11 @@
  * 4. Submits the compiled answers when done
  */
 
-import { complete, type UserMessage } from "@earendil-works/pi-ai";
 import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
 import { BorderedLoader } from "@earendil-works/pi-coding-agent";
 import {
-	formatExtractionFailure,
-	parseExtractionResult,
+	extractQuestions,
 	selectExtractionModel,
-	SYSTEM_PROMPT,
 	type ExtractionFailure,
 	type ExtractionResult,
 } from "./extraction.ts";
@@ -64,41 +61,19 @@ const answerHandler = async (pi: ExtensionAPI, ctx: ExtensionContext) => {
 	}
 
 	// Select the best model for extraction (prefer GPT-5.4 mini, then haiku)
-	const extractionModel = await selectExtractionModel(ctx.model, ctx.modelRegistry);
+	const extractionModel = await selectExtractionModel(ctx.model, ctx.modelRegistry, ctx.scopedModels);
 
 	// Run extraction with loader UI
 	const extractionResult = await ctx.ui.custom<ExtractionResult | ExtractionFailure | null>((tui, theme, _kb, done) => {
 		const loader = new BorderedLoader(tui, theme, `Extracting questions using ${extractionModel.id}...`);
 		loader.onAbort = () => done(null);
 
-		const doExtract = async () => {
-			const auth = await ctx.modelRegistry.getApiKeyAndHeaders(extractionModel);
-			if (!auth.ok) {
-				throw new Error(auth.error);
-			}
-			const userMessage: UserMessage = {
-				role: "user",
-				content: [{ type: "text", text: lastAssistantText! }],
-				timestamp: Date.now(),
-			};
-
-			const response = await complete(
-				extractionModel,
-				{ systemPrompt: SYSTEM_PROMPT, messages: [userMessage] },
-				{ apiKey: auth.apiKey, headers: auth.headers, signal: loader.signal },
-			);
-
-			if (response.stopReason === "aborted") {
-				return null;
-			}
-
-			const responseText = response.content
-				.filter((c): c is { type: "text"; text: string } => c.type === "text")
-				.map((c) => c.text)
-				.join("\n");
-
-			return parseExtractionResult(responseText) ?? { error: formatExtractionFailure(responseText) };
-		};
+		const doExtract = () => extractQuestions(
+			ctx.modelRegistry,
+			extractionModel,
+			lastAssistantText!,
+			loader.signal,
+		);
 
 		doExtract()
 			.then(done)

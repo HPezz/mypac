@@ -1,4 +1,4 @@
-import type { Model, Api } from "@earendil-works/pi-ai";
+import type { Model, Api, UserMessage } from "@earendil-works/pi-ai";
 import type { ModelRegistry } from "@earendil-works/pi-coding-agent";
 
 // Structured output format for question extraction
@@ -62,20 +62,51 @@ const EXTRACTION_MODEL_CANDIDATES = [
 export async function selectExtractionModel(
 	currentModel: Model<Api>,
 	modelRegistry: ModelRegistry,
+	scopedModels: readonly { model: Model<Api> }[] = [],
 ): Promise<Model<Api>> {
-	for (const candidate of EXTRACTION_MODEL_CANDIDATES) {
-		const model = modelRegistry.find(candidate.provider, candidate.id);
-		if (!model) {
-			continue;
-		}
+	const availableModels = scopedModels.length > 0
+		? scopedModels.map(({ model }) => model)
+		: modelRegistry.getAvailable();
 
-		const auth = await modelRegistry.getApiKeyAndHeaders(model);
-		if (auth.ok) {
+	for (const candidate of EXTRACTION_MODEL_CANDIDATES) {
+		const model = availableModels.find(
+			(available) => available.provider === candidate.provider && available.id === candidate.id,
+		);
+		if (model) {
 			return model;
 		}
 	}
 
 	return currentModel;
+}
+
+export async function extractQuestions(
+	modelRegistry: ModelRegistry,
+	model: Model<Api>,
+	text: string,
+	signal: AbortSignal,
+): Promise<ExtractionResult | ExtractionFailure | null> {
+	const userMessage: UserMessage = {
+		role: "user",
+		content: [{ type: "text", text }],
+		timestamp: Date.now(),
+	};
+	const response = await modelRegistry.complete(
+		model,
+		{ systemPrompt: SYSTEM_PROMPT, messages: [userMessage] },
+		{ signal },
+	);
+
+	if (response.stopReason === "aborted") {
+		return null;
+	}
+
+	const responseText = response.content
+		.filter((part): part is { type: "text"; text: string } => part.type === "text")
+		.map((part) => part.text)
+		.join("\n");
+
+	return parseExtractionResult(responseText) ?? { error: formatExtractionFailure(responseText) };
 }
 
 /**

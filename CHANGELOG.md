@@ -45,6 +45,7 @@ Versioned sections should match the Git tags and GitHub releases published for t
 
 ### Changed
 
+- Upgraded the development and peer dependency baseline to Pi 0.84.2, migrating Answer model completion and BTW child runtimes to the canonical model runtime APIs. ([#321](https://github.com/ladislas/mypac/issues/321))
 - Streamlined the README around package discovery and first use, moving the complete asset catalog and contributor/integration reference material into dedicated documentation. ([#303](https://github.com/ladislas/mypac/issues/303))
 - Promoted `/pac-zoom-out` to a standalone lightweight `pac-zoom-out` skill for mapping unfamiliar code areas. ([#241](https://github.com/ladislas/mypac/issues/241))
 - Improved `/worktree issue` feedback with progress notifications, a prominent next-command code block, and a suggested `pi` launch prompt that starts `/pac-lwot` for the issue. ([#272](https://github.com/ladislas/mypac/issues/272))
