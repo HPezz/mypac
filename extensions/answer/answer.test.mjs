@@ -1,6 +1,13 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { ModelRegistry, ModelRuntime } from "@earendil-works/pi-coding-agent";
 import answerExtension from "./index.ts";
+import {
+	createCredentials,
+	createModelServer,
+	fakeOpenAiCodexCredential,
+	HANG_RESPONSE,
+} from "../../scripts/test-support/model-routing.mjs";
 import {
 	normalizeQuestions,
 	parseExtractionResult,
@@ -78,6 +85,11 @@ test("selectExtractionModel falls back to current model when candidates are outs
 	assert.equal(selected, currentModel);
 });
 
+test("selectExtractionModel falls back to current model when preferred models are missing", async () => {
+	const selected = await selectExtractionModel(currentModel, modelRegistryWith([]), []);
+	assert.equal(selected, currentModel);
+});
+
 // --- extractQuestions ---
 
 test("extractQuestions completes through the model registry and forwards cancellation", async () => {
@@ -116,6 +128,119 @@ test("extractQuestions returns null when completion is aborted", async () => {
 		new AbortController().signal,
 	);
 	assert.equal(result, null);
+});
+
+test("extractQuestions uses built-in API-key auth and Headroom-style provider overrides", async (t) => {
+	const server = await createModelServer(t, ['{"questions":[{"question":"API key?"}]}']);
+	const credentials = await createCredentials({
+		openai: { type: "api_key", key: "test-api-key" },
+	});
+	const runtime = await ModelRuntime.create({ credentials, allowModelNetwork: false });
+	runtime.registerProvider("openai", {
+		baseUrl: `${server.baseUrl}/v1`,
+		headers: { "x-headroom-route": "active" },
+	});
+	const model = runtime.getModel("openai", "gpt-5.4-mini");
+	assert.ok(model);
+
+	const result = await extractQuestions(
+		new ModelRegistry(runtime),
+		model,
+		"Do you use the active route?",
+		new AbortController().signal,
+	);
+
+	assert.deepEqual(result, { questions: [{ question: "API key?" }] });
+	assert.equal(server.requests[0].url, "/v1/responses");
+	assert.equal(server.requests[0].headers.authorization, "Bearer test-api-key");
+	assert.equal(server.requests[0].headers["x-headroom-route"], "active");
+});
+
+test("extractQuestions uses built-in OAuth auth and active provider overrides", async (t) => {
+	const server = await createModelServer(t, ['{"questions":[{"question":"OAuth?"}]}']);
+	const credential = fakeOpenAiCodexCredential();
+	const credentials = await createCredentials({ "openai-codex": credential });
+	const runtime = await ModelRuntime.create({ credentials, allowModelNetwork: false });
+	runtime.registerProvider("openai-codex", {
+		baseUrl: `${server.baseUrl}/backend-api`,
+		headers: { "x-active-runtime": "yes" },
+	});
+	const model = runtime.getModel("openai-codex", "gpt-5.4-mini");
+	assert.ok(model);
+
+	const originalWebSocket = globalThis.WebSocket;
+	globalThis.WebSocket = undefined;
+	let result;
+	try {
+		result = await extractQuestions(
+			new ModelRegistry(runtime),
+			model,
+			"Does OAuth survive?",
+			new AbortController().signal,
+		);
+	} finally {
+		globalThis.WebSocket = originalWebSocket;
+	}
+
+	assert.deepEqual(result, { questions: [{ question: "OAuth?" }] });
+	assert.equal(server.requests[0].url, "/backend-api/codex/responses");
+	assert.equal(server.requests[0].headers.authorization, `Bearer ${credential.access}`);
+	assert.equal(server.requests[0].headers["chatgpt-account-id"], "test-account");
+	assert.equal(server.requests[0].headers["x-active-runtime"], "yes");
+});
+
+test("extractQuestions honors extension custom-provider registration and removal", async (t) => {
+	const server = await createModelServer(t, ['{"questions":[{"question":"Custom?"}]}']);
+	const runtime = await ModelRuntime.create({ allowModelNetwork: false });
+	runtime.registerProvider("answer-provider", {
+		name: "Answer Provider",
+		baseUrl: `${server.baseUrl}/v1`,
+		apiKey: "answer-provider-key",
+		api: "openai-responses",
+		models: [{
+			id: "answer-model",
+			name: "Answer Model",
+			reasoning: false,
+			input: ["text"],
+			cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+			contextWindow: 128_000,
+			maxTokens: 4_096,
+		}],
+	});
+	const registry = new ModelRegistry(runtime);
+	const model = registry.find("answer-provider", "answer-model");
+	assert.ok(model);
+
+	const result = await extractQuestions(
+		registry,
+		model,
+		"Does the custom provider work?",
+		new AbortController().signal,
+	);
+
+	assert.deepEqual(result, { questions: [{ question: "Custom?" }] });
+	assert.equal(server.requests[0].headers.authorization, "Bearer answer-provider-key");
+	runtime.unregisterProvider("answer-provider");
+	assert.equal(registry.find("answer-provider", "answer-model"), undefined);
+});
+
+test("extractQuestions forwards cancellation through the active runtime", async (t) => {
+	const server = await createModelServer(t, [HANG_RESPONSE]);
+	const credentials = await createCredentials({
+		openai: { type: "api_key", key: "test-api-key" },
+	});
+	const runtime = await ModelRuntime.create({ credentials, allowModelNetwork: false });
+	runtime.registerProvider("openai", { baseUrl: `${server.baseUrl}/v1` });
+	const model = runtime.getModel("openai", "gpt-5.4-mini");
+	assert.ok(model);
+	const controller = new AbortController();
+
+	const extraction = extractQuestions(new ModelRegistry(runtime), model, "Wait", controller.signal);
+	await server.requestReceived;
+	controller.abort();
+
+	assert.equal(await extraction, null);
+	assert.equal(server.requests.length, 1);
 });
 
 // --- normalizeQuestions ---

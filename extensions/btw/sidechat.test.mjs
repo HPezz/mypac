@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { mkdtempSync, mkdirSync, readFileSync, existsSync, rmSync } from "node:fs";
+import { mkdtempSync, mkdirSync, readFileSync, existsSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { execFileSync } from "node:child_process";
@@ -16,7 +16,13 @@ import {
 	resolveImportTarget,
 	restorePersistedState,
 } from "./sidechat.ts";
-import { synchronizeModelRuntime } from "./model-runtime.ts";
+import { createSynchronizedModelRuntime, synchronizeModelRuntime } from "./model-runtime.ts";
+import {
+	createCredentials,
+	createModelServer,
+	fakeOpenAiCodexCredential,
+	HANG_RESPONSE,
+} from "../../scripts/test-support/model-routing.mjs";
 
 const require = createRequire(import.meta.url);
 
@@ -34,10 +40,28 @@ const piAgentDir = existsSync(localAgentDir)
 			"pi-coding-agent",
 		);
 
-const { SessionManager } = require(path.join(piAgentDir, "dist", "index.js"));
+const {
+	createAgentSession,
+	ModelRegistry,
+	ModelRuntime,
+	SessionManager,
+} = require(path.join(piAgentDir, "dist", "index.js"));
 const extensionPath = path.resolve("extensions/btw/index.ts");
 const localPiBin = fileURLToPath(new URL("../../node_modules/.bin/pi", import.meta.url));
 const piCommand = existsSync(localPiBin) ? localPiBin : "pi";
+
+async function createIsolatedChildRuntime(t, registry, provider) {
+	const agentDir = mkdtempSync(path.join(tmpdir(), "btw-model-runtime-"));
+	t.after(() => rmSync(agentDir, { recursive: true, force: true }));
+	const previousAgentDir = process.env.PI_CODING_AGENT_DIR;
+	process.env.PI_CODING_AGENT_DIR = agentDir;
+	try {
+		return await createSynchronizedModelRuntime(registry, provider);
+	} finally {
+		if (previousAgentDir === undefined) delete process.env.PI_CODING_AGENT_DIR;
+		else process.env.PI_CODING_AGENT_DIR = previousAgentDir;
+	}
+}
 
 function makeWorkspace(t) {
 	const root = mkdtempSync(path.join(tmpdir(), "btw-sidechat-"));
@@ -198,6 +222,151 @@ test("synchronizeModelRuntime preserves child authentication resolved from share
 
 	await synchronizeModelRuntime(source, target, "configured-provider");
 	assert.equal(mirrored, false);
+});
+
+test("BTW sidechat sessions use built-in API-key auth and Headroom-style routing", async (t) => {
+	const server = await createModelServer(t, ["sidechat response"]);
+	const credentials = await createCredentials({
+		openai: { type: "api_key", key: "sidechat-key" },
+	});
+	const sourceRuntime = await ModelRuntime.create({ credentials, allowModelNetwork: false });
+	sourceRuntime.registerProvider("openai", {
+		baseUrl: `${server.baseUrl}/v1`,
+		headers: { "x-headroom-route": "sidechat" },
+	});
+	const model = sourceRuntime.getModel("openai", "gpt-5.4-mini");
+	assert.ok(model);
+	const childRuntime = await createIsolatedChildRuntime(t, new ModelRegistry(sourceRuntime), model.provider);
+	const { session } = await createAgentSession({
+		model,
+		modelRuntime: childRuntime,
+		sessionManager: SessionManager.inMemory(),
+		noTools: "all",
+	});
+	t.after(() => session.dispose());
+
+	await session.prompt("Use the active sidechat route", { source: "extension" });
+
+	assert.equal(server.requests[0].url, "/v1/responses");
+	assert.equal(server.requests[0].headers.authorization, "Bearer sidechat-key");
+	assert.equal(server.requests[0].headers["x-headroom-route"], "sidechat");
+	assert.equal(session.messages.at(-1).content[0].text, "sidechat response");
+});
+
+test("BTW summary sessions use built-in OAuth auth and active routing", async (t) => {
+	const server = await createModelServer(t, ["summary response"]);
+	const credential = fakeOpenAiCodexCredential("summary-account");
+	const agentDir = mkdtempSync(path.join(tmpdir(), "btw-oauth-runtime-"));
+	t.after(() => rmSync(agentDir, { recursive: true, force: true }));
+	writeFileSync(path.join(agentDir, "auth.json"), JSON.stringify({ "openai-codex": credential }));
+	const previousAgentDir = process.env.PI_CODING_AGENT_DIR;
+	process.env.PI_CODING_AGENT_DIR = agentDir;
+	let sourceRuntime;
+	let childRuntime;
+	let model;
+	try {
+		sourceRuntime = await ModelRuntime.create({ allowModelNetwork: false });
+		sourceRuntime.registerProvider("openai-codex", {
+			baseUrl: `${server.baseUrl}/backend-api`,
+			headers: { "x-active-runtime": "summary" },
+		});
+		model = sourceRuntime.getModel("openai-codex", "gpt-5.4-mini");
+		assert.ok(model);
+		childRuntime = await createSynchronizedModelRuntime(new ModelRegistry(sourceRuntime), model.provider);
+	} finally {
+		if (previousAgentDir === undefined) delete process.env.PI_CODING_AGENT_DIR;
+		else process.env.PI_CODING_AGENT_DIR = previousAgentDir;
+	}
+	const { session } = await createAgentSession({
+		model,
+		modelRuntime: childRuntime,
+		sessionManager: SessionManager.inMemory(),
+		noTools: "all",
+	});
+	t.after(() => session.dispose());
+
+	const originalWebSocket = globalThis.WebSocket;
+	globalThis.WebSocket = undefined;
+	try {
+		await session.prompt("Summarize this sidechat", { source: "extension" });
+	} finally {
+		globalThis.WebSocket = originalWebSocket;
+	}
+
+	assert.equal(server.requests[0].url, "/backend-api/codex/responses");
+	assert.equal(server.requests[0].headers.authorization, `Bearer ${credential.access}`);
+	assert.equal(server.requests[0].headers["chatgpt-account-id"], "summary-account");
+	assert.equal(server.requests[0].headers["x-active-runtime"], "summary");
+	assert.equal(session.messages.at(-1).content[0].text, "summary response");
+});
+
+test("BTW child runtimes mirror custom-provider registration and teardown", async (t) => {
+	const server = await createModelServer(t, ["custom response"]);
+	const sourceRuntime = await ModelRuntime.create({ allowModelNetwork: false });
+	sourceRuntime.registerProvider("extension-provider", {
+		name: "Extension Provider",
+		baseUrl: `${server.baseUrl}/v1`,
+		apiKey: "extension-key",
+		api: "openai-responses",
+		models: [{
+			id: "extension-model",
+			name: "Extension Model",
+			reasoning: false,
+			input: ["text"],
+			cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+			contextWindow: 128_000,
+			maxTokens: 4_096,
+		}],
+	});
+	const registry = new ModelRegistry(sourceRuntime);
+	const childRuntime = await createIsolatedChildRuntime(t, registry, "extension-provider");
+	const model = childRuntime.getModel("extension-provider", "extension-model");
+	assert.ok(model);
+	const { session } = await createAgentSession({
+		model,
+		modelRuntime: childRuntime,
+		sessionManager: SessionManager.inMemory(),
+		noTools: "all",
+	});
+	t.after(() => session.dispose());
+
+	await session.prompt("Use the extension provider", { source: "extension" });
+	assert.equal(server.requests[0].headers.authorization, "Bearer extension-key");
+
+	sourceRuntime.unregisterProvider("extension-provider");
+	await synchronizeModelRuntime(registry, childRuntime, "extension-provider");
+	assert.equal(childRuntime.getProvider("extension-provider"), undefined);
+	assert.equal(childRuntime.getModel("extension-provider", "extension-model"), undefined);
+
+	const replacementRuntime = await createIsolatedChildRuntime(t, registry, "extension-provider");
+	assert.equal(replacementRuntime.getProvider("extension-provider"), undefined);
+});
+
+test("BTW child-session cancellation aborts the active provider request", async (t) => {
+	const server = await createModelServer(t, [HANG_RESPONSE]);
+	const credentials = await createCredentials({
+		openai: { type: "api_key", key: "cancel-key" },
+	});
+	const sourceRuntime = await ModelRuntime.create({ credentials, allowModelNetwork: false });
+	sourceRuntime.registerProvider("openai", { baseUrl: `${server.baseUrl}/v1` });
+	const model = sourceRuntime.getModel("openai", "gpt-5.4-mini");
+	assert.ok(model);
+	const childRuntime = await createIsolatedChildRuntime(t, new ModelRegistry(sourceRuntime), model.provider);
+	const { session } = await createAgentSession({
+		model,
+		modelRuntime: childRuntime,
+		sessionManager: SessionManager.inMemory(),
+		noTools: "all",
+	});
+	t.after(() => session.dispose());
+
+	const prompt = session.prompt("Wait for cancellation", { source: "extension" });
+	await server.requestReceived;
+	await session.abort();
+	await prompt;
+
+	assert.equal(server.requests.length, 1);
+	assert.equal(session.messages.at(-1).stopReason, "aborted");
 });
 
 test("helper logic keeps sidechats hidden and import resolution anchored", () => {

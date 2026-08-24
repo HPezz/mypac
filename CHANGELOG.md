@@ -10,6 +10,7 @@ Versioned sections should match the Git tags and GitHub releases published for t
 
 ### Added
 
+- Added hermetic routing coverage proving Answer and BTW preserve Pi API-key, OAuth, Headroom, scoped-model, custom-provider, cancellation, and teardown behavior. ([#327](https://github.com/ladislas/mypac/issues/327))
 - Added a `/headroom` Pi extension for routing supported providers through a managed or externally detected Headroom proxy.
 - Added cost-focused `/session-breakdown` stats with a compact colorized default report, trend insights, model/directory cost bars, an outlier diagnostic summary, top-5 session/model/directory drill-downs, worktree-aware directory grouping, and cache/context metrics when available. ([#280](https://github.com/ladislas/mypac/issues/280))
 - Added a `/persona` Pi extension and `personas/` prompt-content directory for enabling reusable runtime personas, starting with the preserved Rick persona. ([#37](https://github.com/ladislas/mypac/issues/37))
