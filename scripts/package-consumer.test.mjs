@@ -25,7 +25,7 @@ const expectedSkills = [
 ];
 const expectedPrompts = [
 	"pac-caveman", "pac-diagnose", "pac-explore", "pac-fix-copilot-review", "pac-grill-me",
-	"pac-grill-with-docs", "pac-handoff", "pac-hello-world", "pac-improve-architecture", "pac-ldit",
+	"pac-grill-with-docs", "pac-handoff", "pac-hello-world", "pac-improve-architecture",
 	"pac-llat", "pac-lwot", "pac-to-issues", "pac-to-prd", "pac-triage", "pac-upstream-checkpoints",
 	"pac-zoom-out",
 ];
