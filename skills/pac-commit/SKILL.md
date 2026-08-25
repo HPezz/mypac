@@ -10,7 +10,7 @@ metadata:
 
 # Create atomic git commits
 
-Use this skill whenever the user asks to create commits directly in normal conversation, not only when they invoke `/commit`.
+Use this skill whenever the user asks to create commits directly in normal conversation.
 
 ## Repository commit policy
 
