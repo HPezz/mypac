@@ -74,7 +74,6 @@ Prompts are the slash-command entry points you type in Pi.
 | [`/pac-handoff`](../prompts/pac-handoff.md) | Prepare a session handoff |
 | [`/pac-hello-world`](../prompts/pac-hello-world.md) | Confirm that the package is loaded |
 | [`/pac-improve-architecture`](../prompts/pac-improve-architecture.md) | Explore architecture-deepening opportunities |
-| [`/pac-ldit`](../prompts/pac-ldit.md) | Continue an already agreed implementation plan |
 | [`/pac-llat`](../prompts/pac-llat.md) | Explore and plan a target before implementation |
 | [`/pac-lwot`](../prompts/pac-lwot.md) | Execute work from available context |
 | [`/pac-to-issues`](../prompts/pac-to-issues.md) | Split a plan or PRD into implementation issues |
