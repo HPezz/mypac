@@ -42,8 +42,8 @@
 
 		"selectedBg": "darkGray",
 		"scrollbarThumb": "dimGray",
-		"searchMatchBg": "yellow",
-		"searchMatchText": "background",
+		"searchMatchBg": "darkGray",
+		"searchMatchText": "yellow",
 		"customMessageBg": "userMsgBg",
 		"customMessageText": "",
 		"customMessageLabel": "accent",

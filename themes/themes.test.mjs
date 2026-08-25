@@ -14,5 +14,9 @@ for (const file of THEME_FILES) {
 		for (const role of FULLSCREEN_COLOR_ROLES) {
 			assert.equal(typeof theme.colors[role], "string", `${role} must be explicit`);
 		}
+
+		const resolveColor = (value) => theme.vars?.[value] ?? value;
+		assert.equal(resolveColor(theme.colors.searchMatchBg), resolveColor(theme.colors.selectedBg), "other matches use the selected background");
+		assert.equal(resolveColor(theme.colors.searchMatchText), resolveColor(theme.colors.warning), "current match reverses to the warning background");
 	});
 }

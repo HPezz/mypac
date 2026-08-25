@@ -11,7 +11,7 @@
     "accent": "aqua", "border": "bg2", "borderAccent": "aqua", "borderMuted": "bg1",
     "success": "green", "error": "red", "warning": "yellow", "muted": "bg3", "dim": "bg2",
     "text": "", "thinkingText": "bg3",
-    "selectedBg": "#3c3836", "scrollbarThumb": "bg3", "searchMatchBg": "yellow", "searchMatchText": "bg0",
+    "selectedBg": "#3c3836", "scrollbarThumb": "bg3", "searchMatchBg": "bg1", "searchMatchText": "yellow",
     "userMessageBg": "#3c3836", "userMessageText": "",
     "customMessageBg": "#3c3836", "customMessageText": "", "customMessageLabel": "aqua",
     "toolPendingBg": "#282828", "toolSuccessBg": "#2a3028", "toolErrorBg": "#302828",
