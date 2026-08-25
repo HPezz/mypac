@@ -74,8 +74,8 @@
 		"syntaxPunctuation": "foreground",
 
 		"thinkingOff": "darkGray",
-		"thinkingMinimal": "#234d70",
-		"thinkingLow": "#1d3b53",
+		"thinkingMinimal": "blue",
+		"thinkingLow": "cyan",
 		"thinkingMedium": "#5f7e97",
 		"thinkingHigh": "#7e57c2",
 		"thinkingXhigh": "#c792ea",

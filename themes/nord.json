@@ -23,7 +23,7 @@
     "syntaxComment": "nord3", "syntaxKeyword": "nord9", "syntaxFunction": "nord8",
     "syntaxVariable": "nord4", "syntaxString": "nord14", "syntaxNumber": "nord15",
     "syntaxType": "nord7", "syntaxOperator": "nord9", "syntaxPunctuation": "nord3",
-    "thinkingOff": "nord2", "thinkingMinimal": "nord3", "thinkingLow": "nord10",
+    "thinkingOff": "nord2", "thinkingMinimal": "nord9", "thinkingLow": "nord8",
     "thinkingMedium": "nord8", "thinkingHigh": "nord15", "thinkingXhigh": "nord11", "thinkingMax": "nord12",
     "bashMode": "nord12"
   }

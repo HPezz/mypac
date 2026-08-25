@@ -23,7 +23,7 @@
     "syntaxComment": "bg3", "syntaxKeyword": "red", "syntaxFunction": "green",
     "syntaxVariable": "blue", "syntaxString": "green", "syntaxNumber": "purple",
     "syntaxType": "yellow", "syntaxOperator": "orange", "syntaxPunctuation": "fg4",
-    "thinkingOff": "bg2", "thinkingMinimal": "bg3", "thinkingLow": "blue",
+    "thinkingOff": "bg2", "thinkingMinimal": "fg4", "thinkingLow": "aqua",
     "thinkingMedium": "aqua", "thinkingHigh": "purple", "thinkingXhigh": "red", "thinkingMax": "orange",
     "bashMode": "orange"
   }
