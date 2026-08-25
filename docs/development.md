@@ -41,7 +41,10 @@ mise install     # install repo-managed tools
 mise run hooks   # install Git hooks
 mise run lint    # run repository linters
 mise run lint:fix
+npm run check:pi-compatibility # verify pinned Pi versions, types, and behavior
 ```
+
+CI runs the Pi compatibility gate after `npm ci`, so its version, type, and behavior checks execute against a clean dependency installation. Run the same command locally before upgrading Pi dependencies.
 
 The Git hooks lint Markdown and YAML. They also reject merges or pushes to `main` when incoming commits contain `fixup!` subjects. Fix the reported problem rather than bypassing hooks.
 
