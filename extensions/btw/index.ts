@@ -31,7 +31,7 @@ import {
 	type OverlayHandle,
 	type TUI,
 } from "@earendil-works/pi-tui";
-import { createSynchronizedModelRuntime, synchronizeModelRuntime } from "./model-runtime.ts";
+import { createSynchronizedModelRuntime, setSideSessionModel, synchronizeModelRuntime } from "./model-runtime.ts";
 import {
 	BTW_IMPORT_TYPE,
 	BTW_SIDECHAT_STATE_TYPE,
@@ -1157,7 +1157,7 @@ export default function (pi: ExtensionAPI) {
 			activeSideSession = await createSideSession(ctx);
 		} else {
 			await synchronizeModelRuntime(ctx.modelRegistry, activeSideSession.session.modelRuntime, ctx.model.provider);
-			await activeSideSession.session.setModel(ctx.model);
+			await setSideSessionModel(activeSideSession.session, ctx.model);
 		}
 
 		return activeSideSession;
