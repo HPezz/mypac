@@ -22,7 +22,7 @@ Process:
    - `/pac-llat`, `/pac-explore`, `/pac-grill-with-docs`, `/pac-to-prd`, or `/pac-to-issues` when the request needs more planning instead of coding.
 6. Implement the smallest slice that satisfies the request. Keep changes surgical and directly tied to the target. Avoid unrelated refactors.
 7. Verify with the smallest relevant checks. Report what changed, what was verified, and any remaining follow-up.
-8. For meaningful completed slices, create atomic commits according to `skills/pac-commit/SKILL.md` when asked or when the implementation workflow calls for it. If the work originated from a GitHub issue, include `closes #<issue-number>` in the resolving commit body. Do not guess issue numbers.
+8. As meaningful implementation slices are completed and verified, create atomic commits according to `skills/pac-commit/SKILL.md`. Do not wait until the end or combine unrelated work. If the work originated from a GitHub issue, include `closes #<issue-number>` in the resolving commit body. Do not guess issue numbers.
 
 Use GitHub context and linked artifacts as supporting material, not permission to expand scope.
 

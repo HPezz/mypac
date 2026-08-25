@@ -80,6 +80,18 @@ When structure allows it:
 
 The test: could a focused change be understood and implemented by reading a small number of clearly named files? If not, simplify the structure.
 
+## 6. Repository Execution Hygiene
+
+**Treat repository mutations as execution and protect shared history by default.**
+
+- Read-only exploration does not require changing branches or creating commits.
+- Before the first repository mutation, inspect repository status and the current branch.
+- Do not implement directly on the default branch. Create or switch to an appropriate working branch using repository conventions. Ask only when the correct branch or scope is materially ambiguous.
+- During authorized implementation, create atomic commits as coherent, verified slices complete. Do not defer all commits until the end or combine unrelated work.
+- Preserve unrelated pre-existing changes. Scope diffs carefully and stage commit file lists explicitly.
+- Do not push, merge, force-push, or rewrite history without explicit user authorization. Repository rules may impose stronger restrictions.
+- Follow repository-specific branch, commit, and verification procedures when they are available.
+
 ---
 
 **These guidelines are working if:** fewer unnecessary changes in diffs, fewer rewrites due to overcomplication, clarifying questions come before implementation rather than after mistakes, and changes stay local to a small, clearly named surface area.
