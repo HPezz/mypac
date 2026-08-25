@@ -96,10 +96,14 @@ export function registerHeadroomExtension(
 
 	async function reselectCurrentModel(ctx: HeadroomContext): Promise<boolean> {
 		if (!ctx.model) return true;
+		const thinkingLevel = pi.getThinkingLevel();
 		let failureDetail = "setModel returned false";
 		try {
 			const selected = await pi.setModel(ctx.model);
-			if (selected) return true;
+			if (selected) {
+				pi.setThinkingLevel(thinkingLevel);
+				return true;
+			}
 		} catch (error) {
 			failureDetail = error instanceof Error ? error.message : String(error);
 		}

@@ -1,4 +1,13 @@
-import { ModelRuntime, type ModelRegistry } from "@earendil-works/pi-coding-agent";
+import { ModelRuntime, type AgentSession, type ModelRegistry } from "@earendil-works/pi-coding-agent";
+
+export async function setSideSessionModel(
+	session: Pick<AgentSession, "thinkingLevel" | "setModel" | "setThinkingLevel">,
+	model: Parameters<AgentSession["setModel"]>[0],
+): Promise<void> {
+	const thinkingLevel = session.thinkingLevel;
+	await session.setModel(model);
+	session.setThinkingLevel(thinkingLevel);
+}
 
 const mirroredRuntimeKeys = new WeakMap<ModelRuntime, Map<string, string>>();
 

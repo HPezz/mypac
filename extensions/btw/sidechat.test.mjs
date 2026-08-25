@@ -16,7 +16,11 @@ import {
 	resolveImportTarget,
 	restorePersistedState,
 } from "./sidechat.ts";
-import { createSynchronizedModelRuntime, synchronizeModelRuntime } from "./model-runtime.ts";
+import {
+	createSynchronizedModelRuntime,
+	setSideSessionModel,
+	synchronizeModelRuntime,
+} from "./model-runtime.ts";
 import {
 	createCredentials,
 	createModelServer,
@@ -222,6 +226,29 @@ test("synchronizeModelRuntime preserves child authentication resolved from share
 
 	await synchronizeModelRuntime(source, target, "configured-provider");
 	assert.equal(mirrored, false);
+});
+
+test("BTW preserves side-session thinking while synchronizing its model", async () => {
+	const calls = [];
+	const session = {
+		thinkingLevel: "xhigh",
+		async setModel(model) {
+			calls.push(["model", model.id]);
+			this.thinkingLevel = "medium";
+		},
+		setThinkingLevel(level) {
+			calls.push(["thinking", level]);
+			this.thinkingLevel = level;
+		},
+	};
+
+	await setSideSessionModel(session, { id: "review-model" });
+
+	assert.equal(session.thinkingLevel, "xhigh");
+	assert.deepEqual(calls, [
+		["model", "review-model"],
+		["thinking", "xhigh"],
+	]);
 });
 
 test("BTW sidechat sessions use built-in API-key auth and Headroom-style routing", async (t) => {

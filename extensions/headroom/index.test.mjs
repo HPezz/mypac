@@ -29,6 +29,7 @@ function createHarness(harnessOptions = {}) {
 	const registered = [];
 	const unregistered = [];
 	const selectedModels = [];
+	const selectedThinkingLevels = [];
 	const notifications = [];
 	const statuses = [];
 	const calls = [];
@@ -49,6 +50,8 @@ function createHarness(harnessOptions = {}) {
 			harnessOptions.unregisterProvider?.(provider);
 			unregistered.push(provider);
 		},
+		getThinkingLevel: () => harnessOptions.thinkingLevel ?? "high",
+		setThinkingLevel: (level) => selectedThinkingLevels.push(level),
 		setModel: async (model) => {
 			selectedModels.push(model);
 			return harnessOptions.setModelResult ?? true;
@@ -96,7 +99,7 @@ function createHarness(harnessOptions = {}) {
 	};
 
 	registerHeadroomExtension(pi, createProxy, runtime, { readGlobalSettings: harnessOptions.readGlobalSettings ?? (async () => harnessOptions.globalSettings ?? {}) });
-	return { commands, events, registered, unregistered, selectedModels, notifications, statuses, proxies, footerEvents, calls, ctx, runtime };
+	return { commands, events, registered, unregistered, selectedModels, selectedThinkingLevels, notifications, statuses, proxies, footerEvents, calls, ctx, runtime };
 }
 
 test("/headroom description advertises binary override option", () => {
@@ -115,6 +118,17 @@ test("session_start auto-starts Headroom in TUI when globally enabled", async ()
 	assert.equal(footerEvents.length, 1);
 	assert.equal(footerEvents[0].channel, HEADROOM_FOOTER_STATE_EVENT);
 	assert.equal(footerEvents[0].data.status, "working");
+});
+
+test("session_start preserves thinking when reselecting the current model", async () => {
+	const { events, selectedThinkingLevels, ctx } = createHarness({
+		thinkingLevel: "xhigh",
+		globalSettings: { headroom: { enabled: true } },
+	});
+
+	await events.get("session_start")({}, ctx);
+
+	assert.deepEqual(selectedThinkingLevels, ["xhigh"]);
 });
 
 test("session_start does not auto-start Headroom without global opt-in", async () => {

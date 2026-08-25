@@ -54,6 +54,7 @@ Versioned sections should match the Git tags and GitHub releases published for t
 
 ### Changed
 
+- Upgraded development and peer dependency baseline to Pi 0.84.3, adopting session-scoped model defaults while preserving caller thinking across `/commit`, Headroom routing refreshes, and BTW side-session model synchronization. ([#345](https://github.com/ladislas/mypac/issues/345))
 - Made `/context` use Pi's structured system-prompt inputs for context-file attribution, including overrides, nested projects, worktrees, and reloaded resources. ([#324](https://github.com/ladislas/mypac/issues/324))
 - Upgraded the development and peer dependency baseline to Pi 0.84.2, migrating Answer model completion and BTW child runtimes to the canonical model runtime APIs. ([#321](https://github.com/ladislas/mypac/issues/321))
 - Streamlined the README around package discovery and first use, moving the complete asset catalog and contributor/integration reference material into dedicated documentation. ([#303](https://github.com/ladislas/mypac/issues/303))

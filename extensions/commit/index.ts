@@ -9,6 +9,7 @@ type ModelRef = {
 
 type CommitFlowState = {
 	previousModel?: ModelRef;
+	previousThinkingLevel: ReturnType<ExtensionAPI["getThinkingLevel"]>;
 };
 
 type CommitExtensionDeps = {
@@ -75,6 +76,7 @@ export default function commitExtension(pi: ExtensionAPI, deps: CommitExtensionD
 			const previousModel = ctx.model
 				? { provider: ctx.model.provider, id: ctx.model.id }
 				: undefined;
+			const previousThinkingLevel = pi.getThinkingLevel();
 			let selectedModel = previousModel;
 			let switchedModel = false;
 
@@ -124,7 +126,7 @@ export default function commitExtension(pi: ExtensionAPI, deps: CommitExtensionD
 				ctx.ui.notify(parts.join(" | "), "info");
 			}
 
-			commitFlow = { previousModel };
+			commitFlow = { previousModel, previousThinkingLevel };
 			pi.sendUserMessage(buildCommitPrompt({ ...options, scopedFiles, skillContent: skillResult.content }));
 		},
 	});
@@ -145,24 +147,22 @@ export default function commitExtension(pi: ExtensionAPI, deps: CommitExtensionD
 			? { provider: ctx.model.provider, id: ctx.model.id }
 			: undefined;
 
-		if (sameModel(currentModel, flow.previousModel)) {
-			ctx.ui.notify(`Restored model: ${formatModel(flow.previousModel)}`, "info");
-			return;
+		if (!sameModel(currentModel, flow.previousModel)) {
+			const restoreTarget = ctx.modelRegistry.find(flow.previousModel.provider, flow.previousModel.id);
+			if (!restoreTarget) {
+				ctx.ui.notify(`Commit flow finished, but could not find previous model: ${formatModel(flow.previousModel)}`, "warning");
+				return;
+			}
+
+			const restored = await pi.setModel(restoreTarget);
+			if (!restored) {
+				ctx.ui.notify(`Commit flow finished, but failed to restore model: ${formatModel(flow.previousModel)}`, "warning");
+				return;
+			}
 		}
 
-		const restoreTarget = ctx.modelRegistry.find(flow.previousModel.provider, flow.previousModel.id);
-		if (!restoreTarget) {
-			ctx.ui.notify(`Commit flow finished, but could not find previous model: ${formatModel(flow.previousModel)}`, "warning");
-			return;
-		}
-
-		const restored = await pi.setModel(restoreTarget);
-		if (restored) {
-			ctx.ui.notify(`Restored model: ${formatModel(flow.previousModel)}`, "info");
-			return;
-		}
-
-		ctx.ui.notify(`Commit flow finished, but failed to restore model: ${formatModel(flow.previousModel)}`, "warning");
+		pi.setThinkingLevel(flow.previousThinkingLevel);
+		ctx.ui.notify(`Restored model: ${formatModel(flow.previousModel)}`, "info");
 	});
 
 	pi.on("session_shutdown", async (_event, ctx) => {
@@ -175,15 +175,13 @@ export default function commitExtension(pi: ExtensionAPI, deps: CommitExtensionD
 		const currentModel = ctx.model
 			? { provider: ctx.model.provider, id: ctx.model.id }
 			: undefined;
-		if (sameModel(currentModel, flow.previousModel)) {
-			return;
+		if (!sameModel(currentModel, flow.previousModel)) {
+			const restoreTarget = ctx.modelRegistry.find(flow.previousModel.provider, flow.previousModel.id);
+			if (!restoreTarget || !(await pi.setModel(restoreTarget))) {
+				return;
+			}
 		}
 
-		const restoreTarget = ctx.modelRegistry.find(flow.previousModel.provider, flow.previousModel.id);
-		if (!restoreTarget) {
-			return;
-		}
-
-		await pi.setModel(restoreTarget);
+		pi.setThinkingLevel(flow.previousThinkingLevel);
 	});
 }
