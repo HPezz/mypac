@@ -46,6 +46,21 @@ npm run check:pi-compatibility # verify pinned Pi versions, types, and behavior
 
 CI runs the Pi compatibility gate after `npm ci`, so its version, type, and behavior checks execute against a clean dependency installation. Run the same command locally before upgrading Pi dependencies.
 
+## Pi upgrade checklist
+
+Use this checklist whenever changing the pinned Pi version:
+
+1. Record the old pin, target pin, and exact repository commit being audited.
+2. List every intervening stable Pi release. Review each release changelog and inspect versioned documentation, types, examples, or source where the changelog does not establish impact.
+3. Maintain a release ledger that classifies every release, including releases with no applicable mypac changes.
+4. Map relevant changes to affected extensions, skills, prompts, themes, package metadata, and tests. Classify each response as migration, replacement, improvement, verification only, or not applicable.
+5. Create capability-based implementation issues with explicit dependencies for the agreed work. Keep the upgrade branch pinned to exact Pi and TypeBox versions.
+6. Install dependencies cleanly and run `npm run check:pi-compatibility`. Add focused regression coverage for every compatibility defect found.
+7. Run focused manual checks for behavior that automation cannot approve: regular and fullscreen rendering, themes, overlays, scrolling, focus, resize, shortcuts, provider routing, notifications, reload, session replacement, trust, and shutdown.
+8. Record the effective dependency versions, automated result, test environment, manual observations, follow-up issues, and exact implementation commit.
+9. Compare the audited commit with current `main`. Review intervening changes and rerun affected automated or manual checks when runtime, dependency, configuration, or test behavior changed.
+10. Obtain explicit human approval before merging or declaring the upgrade complete.
+
 The Git hooks lint Markdown and YAML. They also reject merges or pushes to `main` when incoming commits contain `fixup!` subjects. Fix the reported problem rather than bypassing hooks.
 
 ## Repository resources
