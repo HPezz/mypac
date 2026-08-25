@@ -116,6 +116,12 @@ test("shared append-system extension inserts shared instructions before append-s
 
 	assert.ok(result.systemPrompt.includes(`<shared_append_system_instructions path="${sharedAppendSystemPath}">`));
 	assert.ok(result.systemPrompt.indexOf("<shared_append_system_context>") < result.systemPrompt.indexOf(append));
+	assert.match(result.systemPrompt, /repository execution hygiene/i);
+	assert.match(result.systemPrompt, /before the first repository mutation/i);
+	assert.match(result.systemPrompt, /default branch/i);
+	assert.match(result.systemPrompt, /atomic commits/i);
+	assert.match(result.systemPrompt, /unrelated pre-existing changes/i);
+	assert.match(result.systemPrompt, /push, merge, force-push, or rewrite history/i);
 	assert.ok(result.systemPrompt.endsWith(VERBOSITY_STEERING_PROMPT));
 });
 

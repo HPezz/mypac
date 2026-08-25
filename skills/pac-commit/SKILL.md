@@ -10,7 +10,7 @@ metadata:
 
 # Create atomic git commits
 
-Use this skill whenever the user asks to create commits directly in normal conversation.
+Use this skill whenever creating or planning commits, including incremental commits made during an authorized implementation workflow.
 
 ## Repository commit policy
 
@@ -187,8 +187,8 @@ Use `git commit --fixup` when a small correction clearly belongs inside an earli
 
 3. Verify branch safety.
 
-   - If the current branch is `main`, pause and ask before proceeding.
-   - Follow the repository branch naming convention if a new branch is needed.
+   - Do not commit on the default branch. Create or switch to an appropriate branch following repository conventions.
+   - Ask only when the correct branch or scope is materially ambiguous.
 
 4. Decide commit grouping.
 
