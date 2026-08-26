@@ -92,6 +92,10 @@ The test: could a focused change be understood and implemented by reading a smal
 - Do not push, merge, force-push, or rewrite history without explicit user authorization. Repository rules may impose stronger restrictions.
 - Follow repository-specific branch, commit, and verification procedures when they are available.
 
+## 7. Browser Screenshots
+
+- When using `agent_browser` to take a screenshot, do not supply a screenshot path unless the user explicitly requests a specific output path; otherwise let `AGENT_BROWSER_SCREENSHOT_DIR` choose the destination.
+
 ---
 
 **These guidelines are working if:** fewer unnecessary changes in diffs, fewer rewrites due to overcomplication, clarifying questions come before implementation rather than after mistakes, and changes stay local to a small, clearly named surface area.

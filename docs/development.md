@@ -4,7 +4,7 @@ This guide covers contributor setup and repository maintenance. For package usag
 
 ## Prerequisites
 
-The repository uses Node.js, [`mise`](https://mise.jdx.dev/), and Git. On macOS, install mise with:
+The repository uses Node.js, [Pi](https://github.com/earendil-works/pi), [`mise`](https://mise.jdx.dev/), and Git. On macOS, install mise with:
 
 ```sh
 brew install mise
@@ -18,12 +18,15 @@ From a fresh clone, run:
 ./scripts/install.sh
 ```
 
-The script:
+The script checks for mise and delegates to `mise run bootstrap`, which:
 
-1. installs Node dependencies with `npm ci`;
-2. trusts the repository's mise configuration;
-3. installs repo-managed tools; and
-4. installs Git hooks.
+1. verifies Pi is available;
+2. installs Node dependencies with `npm ci`;
+3. installs checkout-local mise tools;
+4. installs Git hooks; and
+5. runs `mise run sync` to reconcile the pinned global environment.
+
+Current mise behavior auto-trusts the active configuration for explicit `mise run` and `mise install` commands, so no separate pre-trust step is required.
 
 Launch Pi with the local package loaded:
 
@@ -36,12 +39,24 @@ If Pi was already running when package files changed, use `/reload` or restart i
 ## Tooling
 
 ```sh
-mise trust       # trust repository tool configuration
-mise install     # install repo-managed tools
+mise install     # install checkout-local development tools
+mise run sync    # reconcile the checked-in global environment
 mise run hooks   # install Git hooks
 mise run lint    # run repository linters
 mise run lint:fix
 npm run check:pi-compatibility # verify pinned Pi versions, types, and behavior
+```
+
+Global desired state lives in [`.mise/global-environment`](../.mise/global-environment). Change its exact package specification, commit it, and rerun `mise run sync` to apply an upgrade or downgrade. Removing a declaration stops future reconciliation but does not uninstall the existing global component.
+
+Responsibility is intentionally split between native managers:
+
+```text
+mise  → globally required CLI tools, including Python CLIs through pipx
+uv    → mypac Python workflows and mise's pipx installation backend
+Pi    → globally required Pi packages
+npm   → mypac checkout dependencies
+mypac → desired-state declaration and thin orchestration
 ```
 
 CI runs the Pi compatibility gate after `npm ci`, so its version, type, and behavior checks execute against a clean dependency installation. Run the same command locally before upgrading Pi dependencies.
@@ -118,19 +133,16 @@ Please set up the `mypac` repository on this machine.
 Important:
 - Ask for missing values before acting, especially the clone location and
   permission to install prerequisites.
-- Do not replace existing entries in ~/.pi/agent/settings.json. Only append the
-  cloned repository path to its packages array when missing.
 - Stop and explain any authentication, permission, or missing-tool problem.
 
 Tasks:
 1. Confirm where to clone https://github.com/ladislas/mypac.git, then clone it.
 2. Read README.md and follow the documented repository setup.
-3. Ensure ~/.pi/agent/settings.json includes the cloned repository path.
-4. From the repository root, run ./scripts/install.sh.
-5. Explain how to launch Pi with mise run pi.
-6. Ask me to validate the package with /pac-hello-world.
-7. Explain whether Pi must be reloaded or restarted.
-8. Summarize changes, verification, and follow-up steps.
+3. From the repository root, run ./scripts/install.sh.
+4. Explain how to launch Pi with mise run pi.
+5. Ask me to validate the package with /pac-hello-world.
+6. Explain whether Pi must be reloaded or restarted.
+7. Summarize changes, verification, and follow-up steps.
 
 If mise is missing and I approve installation on macOS, use:
 brew install mise

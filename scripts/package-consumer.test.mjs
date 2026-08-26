@@ -194,6 +194,8 @@ test("installed persona and append-system resources compose into the system prom
 
 	const sharedPath = path.join(packageDir, "shared", "SHARED_APPEND_SYSTEM.md");
 	const sharedContent = await readFile(sharedPath, "utf8");
+	assert.match(sharedContent, /do not supply a screenshot path/i);
+	assert.match(sharedContent, /explicitly requests a specific output path/i);
 	const sharedBlock = appendHelpers.formatSharedAppendSystemPrompt(sharedContent, sharedPath);
 	const appendPrompt = "Consumer append-system prompt";
 	const composed = appendHelpers.insertSharedAppendSystemPrompt(`Pi base\n\n${appendPrompt}`, sharedBlock, appendPrompt);

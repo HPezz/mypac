@@ -122,6 +122,8 @@ test("shared append-system extension inserts shared instructions before append-s
 	assert.match(result.systemPrompt, /atomic commits/i);
 	assert.match(result.systemPrompt, /unrelated pre-existing changes/i);
 	assert.match(result.systemPrompt, /push, merge, force-push, or rewrite history/i);
+	assert.match(result.systemPrompt, /do not supply a screenshot path/i);
+	assert.match(result.systemPrompt, /explicitly requests a specific output path/i);
 	assert.ok(result.systemPrompt.endsWith(VERBOSITY_STEERING_PROMPT));
 });
 
