@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-#MISE description="Launch pi (shared mypac resources should be configured in ~/.pi/agent/settings.json)"
+#MISE description="Launch Pi"
 set -euo pipefail
 
 if (($# == 0)); then

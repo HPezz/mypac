@@ -15,9 +15,9 @@ See the complete [asset catalog](docs/catalog.md).
 
 ## Quick start
 
-### 1. Clone and set up the repository
+### 1. Clone and set up the environment
 
-Install [`mise`](https://mise.jdx.dev/) first if needed, then run:
+Install [`mise`](https://mise.jdx.dev/) and [Pi](https://github.com/earendil-works/pi) first, then run:
 
 ```sh
 git clone https://github.com/ladislas/mypac.git
@@ -25,23 +25,17 @@ cd mypac
 ./scripts/install.sh
 ```
 
-The setup script installs Node dependencies, repo-managed tools, and Git hooks.
+The setup installs checkout dependencies and Git hooks, registers mypac with Pi, and reconciles the pinned global tools and Pi packages declared in [`.mise/global-environment`](.mise/global-environment).
 
-### 2. Load mypac as a Pi package
+After pulling changes, reapply the declared global environment with:
 
-Add the cloned repository path to the `packages` array in `~/.pi/agent/settings.json`:
-
-```json
-{
-  "packages": [
-    "/path/to/mypac"
-  ]
-}
+```sh
+mise run sync
 ```
 
-If `packages` already contains entries, append the path instead of replacing them. Restart Pi or use `/reload` after changing package settings.
+Sync installs declared versions but never automatically removes components deleted from the declaration. Use the relevant native package manager when intentional cleanup is needed.
 
-### 3. Try a workflow
+### 2. Try a workflow
 
 ```text
 /pac-hello-world
