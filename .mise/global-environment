@@ -3,3 +3,4 @@ mise uv@0.12.6
 mise pipx:headroom-ai[extras=all]@0.36.4
 mise npm:agent-browser@0.34.0
 pi npm:pi-agent-browser-native@0.5.0
+pi npm:pi-codex-search@0.1.6
