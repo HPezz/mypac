@@ -10,6 +10,7 @@ Versioned sections should match the Git tags and GitHub releases published for t
 
 ### Added
 
+- Added a deterministic repository-edit evaluation scenario, fixed two-profile smoke matrix, strict external verifier, and complete maintainer workflow documentation. ([#380](https://github.com/ladislas/mypac/issues/380))
 - Added schema-versioned canonical evaluation results and deterministic self-contained HTML comparison reports with offline regeneration, partial-evidence warnings, and lightweight human-review placeholders. ([#379](https://github.com/ladislas/mypac/issues/379))
 - Added a manifest-driven local Pi evaluation runner with dry-run matrix previews, disposable repository clones, fresh pinned-configuration sessions, external verification, and retained normalized evidence. ([#377](https://github.com/ladislas/mypac/issues/377))
 - Added Codex subscription-backed web search with source citations through the pinned `pi-codex-search` Pi package. ([#319](https://github.com/ladislas/mypac/issues/319))
