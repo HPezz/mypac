@@ -10,6 +10,7 @@ Versioned sections should match the Git tags and GitHub releases published for t
 
 ### Added
 
+- Added a manifest-driven local Pi evaluation runner with dry-run matrix previews, disposable repository clones, fresh pinned-configuration sessions, external verification, and retained normalized evidence. ([#377](https://github.com/ladislas/mypac/issues/377))
 - Added Codex subscription-backed web search with source citations through the pinned `pi-codex-search` Pi package. ([#319](https://github.com/ladislas/mypac/issues/319))
 - Added pinned bootstrap and sync workflows for mypac's global CLI tools, Pi packages, browser payload, and default screenshot directory. ([#352](https://github.com/ladislas/mypac/issues/352))
 - Added a single clean-install Pi compatibility gate covering effective dependency versions, typechecking, and the complete behavior suite. ([#330](https://github.com/ladislas/mypac/issues/330))

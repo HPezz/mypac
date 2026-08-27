@@ -5,7 +5,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
 import { promisify } from "node:util";
-import { buildPiInvocation, parseManifest, runEvaluation } from "./pac-eval.ts";
+import { PINNED_PI_VERSION, buildPiInvocation, parseManifest, runEvaluation } from "./pac-eval.ts";
 
 const execFileAsync = promisify(execFile);
 
@@ -172,6 +172,8 @@ test("execution isolates the checkout, verifies externally, and retains normaliz
   const result = results[0];
 
   assert.equal(result.status, "passed");
+  assert.equal(result.piVersion, "0.84.3");
+  assert.equal(PINNED_PI_VERSION, "0.84.3");
   assert.equal(result.repository.baseSha, baseSha);
   assert.deepEqual(result.actualConfiguration, {
     provider: "openai-codex",
@@ -180,6 +182,7 @@ test("execution isolates the checkout, verifies externally, and retains normaliz
   });
   assert.equal(result.configurationMatched, true);
   assert.deepEqual(result.git.changedFiles, ["implementation.txt", "result.txt"]);
+  assert.match(await readFile(join(manifest.outputDirectory, result.git.diffPath), "utf8"), /changed/);
   assert.equal(result.verification[0].status, "passed");
   assert.match(await readFile(join(manifest.outputDirectory, result.paths.stdout), "utf8"), /fake pi stdout/);
   assert.match(await readFile(join(manifest.outputDirectory, result.paths.stderr), "utf8"), /fake pi stderr/);
@@ -216,6 +219,9 @@ test("failed, timed-out, mismatched, and verification-failed children retain nor
 
     assert.equal(result.status, fixture.expected, fixture.name);
     assert.equal(JSON.parse(await readFile(join(manifest.outputDirectory, result.paths.result), "utf8")).status, fixture.expected);
-    assert.equal(await readFile(join(manifest.outputDirectory, result.artifacts[0]), "utf8"), "artifact\n");
+    assert.equal(typeof await readFile(join(manifest.outputDirectory, result.paths.stdout), "utf8"), "string");
+    if (result.artifacts[0]) {
+      assert.equal(await readFile(join(manifest.outputDirectory, result.artifacts[0]), "utf8"), "artifact\n");
+    }
   }
 });

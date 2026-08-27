@@ -1,5 +1,6 @@
 #!/usr/bin/env -S node --experimental-strip-types
 import { spawn } from "node:child_process";
+import { readFileSync } from "node:fs";
 import { cp, mkdir, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import { homedir } from "node:os";
 import { dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
@@ -73,6 +74,7 @@ export interface RunResult {
   scenarioId: string;
   profileId: string;
   status: "passed" | "child_failed" | "timed_out" | "configuration_mismatch" | "verification_failed" | "runner_error";
+  piVersion: string;
   requestedConfiguration: { model: string; thinking: string };
   actualConfiguration: { provider: string; model: string; thinking: string } | null;
   configurationMatched: boolean;
@@ -246,7 +248,9 @@ export function previewManifest(manifest: EvalManifest) {
   };
 }
 
-const PINNED_PI_CLI = fileURLToPath(new URL("../node_modules/@earendil-works/pi-coding-agent/dist/bundle/cli.js", import.meta.url));
+const PINNED_PI_PACKAGE_URL = new URL("../node_modules/@earendil-works/pi-coding-agent/package.json", import.meta.url);
+const PINNED_PI_CLI = fileURLToPath(new URL("./dist/bundle/cli.js", PINNED_PI_PACKAGE_URL));
+export const PINNED_PI_VERSION = (JSON.parse(readFileSync(PINNED_PI_PACKAGE_URL, "utf8")) as { version: string }).version;
 const SAFE_PI_TOOLS = "read,edit,write,grep,find,ls";
 
 export function buildPiInvocation(
@@ -457,7 +461,9 @@ async function executeRun(
     }
 
     gitStatus = (await git(repositoryDirectory, ["status", "--porcelain=v1"])).stdout;
+    await git(repositoryDirectory, ["add", "--intent-to-add", "--all"]);
     diff = (await git(repositoryDirectory, ["diff", "--binary", "HEAD"])).stdout;
+    await git(repositoryDirectory, ["reset", "--quiet"]);
     commits = (await git(repositoryDirectory, ["log", "--format=%H%x09%s", `${baseSha}..HEAD`])).stdout;
     await writeFile(join(runDirectory, "git-status.txt"), gitStatus);
     await writeFile(join(runDirectory, "diff.patch"), diff);
@@ -495,6 +501,7 @@ async function executeRun(
     scenarioId: scenario.id,
     profileId: profile.id,
     status,
+    piVersion: PINNED_PI_VERSION,
     requestedConfiguration: { model: profile.model, thinking: profile.thinking },
     actualConfiguration: actual,
     configurationMatched,
@@ -565,7 +572,9 @@ async function main(args: string[]): Promise<void> {
     process.stdout.write(`${JSON.stringify(previewManifest(manifest), null, 2)}\n`);
     return;
   }
-  throw new Error("Execution is not implemented yet; use --dry-run");
+  process.stderr.write(`Evaluation plan:\n${JSON.stringify(previewManifest(manifest), null, 2)}\n`);
+  const results = await runEvaluation(manifest);
+  process.stdout.write(`${JSON.stringify({ evaluationId: manifest.id, outputDirectory: manifest.outputDirectory, results }, null, 2)}\n`);
 }
 
 if (process.argv[1] && fileURLToPath(import.meta.url) === resolve(process.argv[1])) {
