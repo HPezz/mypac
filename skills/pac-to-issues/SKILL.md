@@ -132,7 +132,7 @@ gh api graphql \
   -f query='mutation($issueId:ID!, $blockingIssueId:ID!) {
     addBlockedBy(input:{issueId:$issueId, blockingIssueId:$blockingIssueId}) {
       issue { number }
-      blockedByEdge { node { number } }
+      blockingIssue { number }
     }
   }' \
   -f issueId=<new-issue-node-id> \
