@@ -5,6 +5,7 @@ import { cp, mkdir, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import { homedir } from "node:os";
 import { dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
+import { parsePiSessionLines } from "../lib/pi-session-telemetry.ts";
 
 const THINKING_LEVELS = new Set(["off", "minimal", "low", "medium", "high", "xhigh", "max"]);
 const BUILT_IN_TOOLS = new Set(["read", "bash", "powershell", "edit", "write", "grep", "find", "ls"]);
@@ -76,6 +77,19 @@ export interface ProcessResult {
   durationMs: number;
 }
 
+export interface RunSessionTelemetry {
+  sessions: Array<{ file: string; id: string | null; startedAt: string | null; cwd: string | null }>;
+  messages: number | null;
+  assistantTurns: number | null;
+  tokens: { input: number | null; output: number | null; cacheRead: number | null; cacheWrite: number | null; total: number | null };
+  cost: { reported: number | null; estimated: number | null; total: number | null; currency: "USD" };
+  context: { samples: number[]; peak: number | null; max: number | null };
+  modelsUsed: string[];
+  thinkingLevelsUsed: string[];
+  actualConfiguration: { provider: string | null; model: string | null; thinking: string | null };
+  malformedLines: number;
+}
+
 export interface RunResult {
   schemaVersion: 1;
   evaluationId: string;
@@ -88,6 +102,7 @@ export interface RunResult {
   package: { source: string; ref: string; sha: string } | null;
   actualConfiguration: { provider: string; model: string; thinking: string } | null;
   configurationMatched: boolean;
+  telemetry: RunSessionTelemetry;
   repository: { source: string; ref: string; baseSha: string };
   child: Omit<ProcessResult, "stdout" | "stderr">;
   verification: Array<{ command: string[]; status: "passed" | "failed" | "timed_out"; exitCode: number | null; durationMs: number }>;
@@ -440,31 +455,63 @@ async function findFiles(directory: string): Promise<string[]> {
   return files;
 }
 
-async function actualConfiguration(sessionDirectory: string): Promise<RunResult["actualConfiguration"]> {
-  let provider: string | undefined;
-  let model: string | undefined;
-  let thinking: string | undefined;
-  for (const path of await findFiles(sessionDirectory)) {
-    if (!path.endsWith(".jsonl")) continue;
-    for (const line of (await readFile(path, "utf8")).split("\n")) {
-      if (!line.trim()) continue;
-      let entry: JsonObject;
-      try { entry = object(JSON.parse(line), "session entry"); } catch { continue; }
-      if (entry.type === "model_change" && typeof entry.provider === "string" && typeof entry.modelId === "string") {
-        provider = entry.provider;
-        model = entry.modelId;
-      }
-      if (entry.type === "thinking_level_change" && typeof entry.thinkingLevel === "string") thinking = entry.thinkingLevel;
-      if (entry.type === "message") {
-        const message = typeof entry.message === "object" && entry.message !== null ? entry.message as JsonObject : undefined;
-        if (message?.role === "assistant" && typeof message.provider === "string" && typeof message.model === "string") {
-          provider = message.provider;
-          model = message.model;
-        }
-      }
-    }
-  }
-  return provider && model && thinking ? { provider, model, thinking } : null;
+export async function collectRunSessionTelemetry(sessionDirectory: string): Promise<RunSessionTelemetry> {
+  const paths = (await findFiles(sessionDirectory)).filter((path) => path.endsWith(".jsonl")).sort();
+  const sessions = (await Promise.all(paths.map(async (path) => {
+    try { return parsePiSessionLines(await readFile(path, "utf8"), path); }
+    catch { return null; }
+  }))).filter((session) => session !== null);
+  const hasSessions = sessions.length > 0;
+  const available = (key: keyof (typeof sessions)[number]["availability"]) => sessions.some((session) => session.availability[key]);
+  const sum = (select: (session: (typeof sessions)[number]) => number) => sessions.reduce((total, session) => total + select(session), 0);
+  const contextSamples = sessions.flatMap((session) => session.contextTokenSamples);
+  const modelsUsed = [...new Set(sessions.flatMap((session) => [...session.modelsUsed]))].sort();
+  const thinkingLevelsUsed = [...new Set(sessions.flatMap((session) => [...session.thinkingLevelsUsed]))].sort();
+  const actualConfiguration = sessions.reduce<RunSessionTelemetry["actualConfiguration"]>(
+    (actual, session) => ({
+      provider: session.actualConfiguration.provider ?? actual.provider,
+      model: session.actualConfiguration.model ?? actual.model,
+      thinking: session.actualConfiguration.thinking ?? actual.thinking,
+    }),
+    { provider: null, model: null, thinking: null },
+  );
+  const reportedAvailable = available("reportedCost");
+  const estimatedAvailable = sessions.some((session) => session.estimatedCost > 0) || available("totalTokens");
+  const reportedCost = sum((session) => session.totalCost - session.estimatedCost);
+  const estimatedCost = sum((session) => session.estimatedCost);
+
+  return {
+    sessions: sessions.map((session) => ({
+      file: relative(sessionDirectory, session.filePath),
+      id: session.sessionId,
+      startedAt: session.startedAt?.toISOString() ?? null,
+      cwd: session.cwd,
+    })),
+    messages: hasSessions ? sum((session) => session.messages) : null,
+    assistantTurns: hasSessions ? sum((session) => session.assistantTurns) : null,
+    tokens: {
+      input: available("inputTokens") ? sum((session) => session.inputTokens) : null,
+      output: available("outputTokens") ? sum((session) => session.outputTokens) : null,
+      cacheRead: available("cacheReadTokens") ? sum((session) => session.cacheReadTokens) : null,
+      cacheWrite: available("cacheWriteTokens") ? sum((session) => session.cacheWriteTokens) : null,
+      total: available("totalTokens") ? sum((session) => session.tokens) : null,
+    },
+    cost: {
+      reported: reportedAvailable ? reportedCost : null,
+      estimated: estimatedAvailable ? estimatedCost : null,
+      total: reportedAvailable || estimatedAvailable ? reportedCost + estimatedCost : null,
+      currency: "USD",
+    },
+    context: {
+      samples: contextSamples,
+      peak: contextSamples.length > 0 ? Math.max(...contextSamples) : null,
+      max: available("maxContext") ? Math.max(...sessions.map((session) => session.maxContextTokens)) : null,
+    },
+    modelsUsed,
+    thinkingLevelsUsed,
+    actualConfiguration,
+    malformedLines: sum((session) => session.skippedLines),
+  };
 }
 
 function changedFiles(status: string): string[] {
@@ -507,7 +554,6 @@ async function executeRun(
   let diff = "";
   let commits = "";
   let artifacts: string[] = [];
-  let actual: RunResult["actualConfiguration"] = null;
 
   try {
     await cloneAt(manifest.repository.path, baseSha, repositoryDirectory);
@@ -527,7 +573,6 @@ async function executeRun(
     });
     await writeFile(join(runDirectory, "stdout.log"), child.stdout);
     await writeFile(join(runDirectory, "stderr.log"), child.stderr);
-    actual = await actualConfiguration(sessionDirectory);
 
     for (const [index, check] of (scenario.verify ?? []).entries()) {
       const outcome = await runProcess(check.command, check.args ?? [], {
@@ -568,6 +613,12 @@ async function executeRun(
     await writeFile(join(runDirectory, "stderr.log"), `${child.stderr}${error}\n`);
   }
 
+  const telemetry = await collectRunSessionTelemetry(sessionDirectory);
+  const parsedActual = telemetry.actualConfiguration;
+  const actual: RunResult["actualConfiguration"] = parsedActual.provider && parsedActual.model && parsedActual.thinking
+    ? { provider: parsedActual.provider, model: parsedActual.model, thinking: parsedActual.thinking }
+    : null;
+
   const requested = profile.model.split("/");
   const requestedProvider = requested.shift()!;
   const configurationMatched = actual !== null
@@ -597,6 +648,7 @@ async function executeRun(
       : null,
     actualConfiguration: actual,
     configurationMatched,
+    telemetry,
     repository: { source: manifest.repository.path, ref: manifest.repository.ref, baseSha },
     child: {
       exitCode: child.exitCode,
