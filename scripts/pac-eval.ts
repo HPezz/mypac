@@ -5,6 +5,11 @@ import { cp, mkdir, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import { homedir } from "node:os";
 import { dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
+import {
+  buildCanonicalEvaluationResult,
+  regenerateEvaluationReport,
+  writeEvaluationOutputs,
+} from "../lib/pac-eval-results.ts";
 import { parsePiSessionLines } from "../lib/pi-session-telemetry.ts";
 
 const THINKING_LEVELS = new Set(["off", "minimal", "low", "medium", "high", "xhigh", "max"]);
@@ -106,7 +111,13 @@ export interface RunResult {
   repository: { source: string; ref: string; baseSha: string };
   child: Omit<ProcessResult, "stdout" | "stderr">;
   verification: Array<{ command: string[]; status: "passed" | "failed" | "timed_out"; exitCode: number | null; durationMs: number }>;
-  git: { status: string; changedFiles: string[]; diffPath: string; commitsPath: string };
+  git: {
+    status: string;
+    changedFiles: string[];
+    commits: Array<{ sha: string; subject: string }>;
+    diffPath: string;
+    commitsPath: string;
+  };
   artifacts: string[];
   paths: { stdout: string; stderr: string; sessionDirectory: string; result: string };
   startedAt: string;
@@ -521,6 +532,15 @@ function changedFiles(status: string): string[] {
   }).sort();
 }
 
+function commitSummary(log: string): Array<{ sha: string; subject: string }> {
+  return log.split("\n").filter(Boolean).map((line) => {
+    const separator = line.indexOf("\t");
+    return separator === -1
+      ? { sha: line, subject: "" }
+      : { sha: line.slice(0, separator), subject: line.slice(separator + 1) };
+  });
+}
+
 function inside(path: string, parent: string): boolean {
   const rel = relative(resolve(parent), resolve(path));
   return rel === "" || (!rel.startsWith(`..${sep}`) && rel !== "..");
@@ -660,6 +680,7 @@ async function executeRun(
     git: {
       status: gitStatus,
       changedFiles: changedFiles(gitStatus),
+      commits: commitSummary(commits),
       diffPath: join(runRelative, "diff.patch"),
       commitsPath: join(runRelative, "commits.txt"),
     },
@@ -704,6 +725,7 @@ export async function runEvaluation(
   for (const matrixRun of expandMatrix(manifest)) {
     results.push(await executeRun(manifest, matrixRun, baseSha, packageShas.get(matrixRun.profile.id), dependencies));
   }
+  await writeEvaluationOutputs(manifest.outputDirectory, buildCanonicalEvaluationResult(manifest, results));
   return results;
 }
 
@@ -719,8 +741,13 @@ async function loadManifest(path: string): Promise<EvalManifest> {
 }
 
 async function main(args: string[]): Promise<void> {
+  if (args[0] === "--report") {
+    if (!args[1] || args.length > 3) throw new Error("Usage: pac-eval --report <results.json> [report.html]");
+    await regenerateEvaluationReport(resolve(args[1]), args[2] ? resolve(args[2]) : undefined);
+    return;
+  }
   const manifestPath = args.find((arg) => !arg.startsWith("-"));
-  if (!manifestPath) throw new Error("Usage: pac-eval <manifest.json> [--dry-run]");
+  if (!manifestPath) throw new Error("Usage: pac-eval <manifest.json> [--dry-run] | pac-eval --report <results.json> [report.html]");
   const manifest = await loadManifest(manifestPath);
   if (args.includes("--dry-run")) {
     process.stdout.write(`${JSON.stringify(previewManifest(manifest), null, 2)}\n`);

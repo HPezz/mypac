@@ -5,7 +5,7 @@ import type { EvalManifest, EvalProfile, EvalScenario, RunResult } from "../scri
 export const EVALUATION_RESULT_SCHEMA_VERSION = 1 as const;
 
 export interface ArtifactReference {
-  kind: "artifact" | "commits" | "diff" | "result" | "stderr" | "stdout";
+  kind: "artifact" | "commits" | "diff" | "result" | "sessions" | "stderr" | "stdout";
   path: string;
 }
 
@@ -21,6 +21,7 @@ export interface CanonicalRunResult extends Omit<RunResult, "schemaVersion" | "a
 }
 
 export interface CanonicalEvaluationResult {
+  $schema: "https://github.com/ladislas/mypac/schemas/pac-eval-result.schema.json";
   schemaVersion: typeof EVALUATION_RESULT_SCHEMA_VERSION;
   evaluation: { id: string; piVersion: string; startedAt: string; finishedAt: string; durationMs: number };
   repository: { source: string; ref: string; sha: string };
@@ -58,6 +59,7 @@ function retainedArtifacts(run: RunResult): ArtifactReference[] {
     { kind: "commits", path: run.git.commitsPath },
     { kind: "diff", path: run.git.diffPath },
     { kind: "result", path: run.paths.result },
+    { kind: "sessions", path: run.paths.sessionDirectory },
     { kind: "stderr", path: run.paths.stderr },
     { kind: "stdout", path: run.paths.stdout },
   ];
@@ -137,6 +139,7 @@ export function buildCanonicalEvaluationResult(manifest: EvalManifest, inputRuns
   const firstRun = canonicalRuns[0];
   const resolvedPackageSha = new Map(canonicalRuns.map((run) => [run.profileId, run.package?.sha ?? null]));
   return {
+    $schema: "https://github.com/ladislas/mypac/schemas/pac-eval-result.schema.json",
     schemaVersion: EVALUATION_RESULT_SCHEMA_VERSION,
     evaluation: {
       id: manifest.id,
@@ -228,13 +231,20 @@ export function renderEvaluationReport(result: CanonicalEvaluationResult): strin
     const runs = result.runs.filter((run) => run.scenarioId === scenario.id);
     return `<section><h2>${escapeHtml(scenario.id)}</h2><p>${escapeHtml(scenario.prompt)}</p><div class="comparison">${runs.map(runCard).join("\n")}</div></section>`;
   }).join("\n");
-  const matrix = result.matrix.runs.map((run) => `<li>${escapeHtml(run.scenarioId)} × ${escapeHtml(run.profileId)}</li>`).join("");
+  const matrixRuns = result.matrix.runs.map((run) => `<li>${escapeHtml(run.scenarioId)} × ${escapeHtml(run.profileId)}</li>`).join("");
+  const matrixScenarios = result.matrix.scenarios.map((scenario) => `<li><strong>${escapeHtml(scenario.id)}</strong> · timeout ${scenario.timeoutMs === undefined ? "default" : escapeHtml(formatDuration(scenario.timeoutMs))} · verification ${scenario.verify?.length ?? 0} · requested artifacts ${scenario.artifacts?.length ?? 0}</li>`).join("");
+  const matrixProfiles = result.matrix.profiles.map((profile) => {
+    const packageRef = profile.package
+      ? `${profile.package.path} @ ${profile.package.ref} (${profile.resolvedPackageSha ?? "unresolved"})`
+      : "none";
+    return `<li><strong>${escapeHtml(profile.id)}</strong> · ${escapeHtml(profile.model)} · ${escapeHtml(profile.thinking)} · workflow ${escapeHtml(profile.workflow ?? "none")} · tools ${escapeHtml((profile.execution?.tools ?? []).join(", ") || "runner defaults")} · package ${escapeHtml(packageRef)}</li>`;
+  }).join("");
   return `<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${escapeHtml(result.evaluation.id)} evaluation comparison</title>
 <style>
 :root{color-scheme:light dark;font-family:ui-sans-serif,system-ui,sans-serif;line-height:1.45;--panel:#f5f5f5;--border:#bbb;--warning:#7a3e00}body{max-width:1500px;margin:auto;padding:2rem}header.meta{border-bottom:2px solid var(--border);margin-bottom:2rem}.comparison{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:1rem}.run-card{border:1px solid var(--border);border-radius:8px;padding:1rem;background:var(--panel);min-width:0}.run-card header{display:flex;align-items:center;justify-content:space-between;gap:1rem}.run-card h3{margin:0}.status{font-weight:700;padding:.2rem .5rem;border-radius:1rem;border:1px solid}.status-passed{color:#176b32}.status-timed_out,.status-child_failed,.status-runner_error,.status-verification_failed,.status-configuration_mismatch{color:#9b1c1c}dl{display:grid;grid-template-columns:minmax(9rem,1fr) 2fr;gap:.35rem 1rem}dt{font-weight:700}dd{margin:0;overflow-wrap:anywhere}.warnings{color:var(--warning)}details{margin-top:1rem}summary{cursor:pointer;font-weight:700}.review-grid{display:grid;gap:.6rem;margin-top:.6rem}.review-grid label{display:grid;font-weight:600}.review-grid textarea{min-height:3rem}.muted{opacity:.7;font-size:.9rem}code,pre{overflow-wrap:anywhere;white-space:pre-wrap}@media(prefers-color-scheme:dark){:root{--panel:#20242a;--border:#666;--warning:#ffc078}}@media print{body{max-width:none}.comparison{grid-template-columns:repeat(2,1fr)}details{display:block}summary{display:none}}
 </style></head><body>
-<header class="meta"><h1>${escapeHtml(result.evaluation.id)}</h1><p>Schema v${result.schemaVersion} · Pi ${escapeHtml(result.evaluation.piVersion)} · ${escapeHtml(formatDuration(result.evaluation.durationMs))}</p><p><strong>Repository:</strong> ${escapeHtml(result.repository.source)} @ ${escapeHtml(result.repository.ref)} (<code>${escapeHtml(result.repository.sha)}</code>)</p><details><summary>Exact evaluation matrix (${result.matrix.runs.length} runs)</summary><ul>${matrix}</ul></details></header>
+<header class="meta"><h1>${escapeHtml(result.evaluation.id)}</h1><p>Schema v${result.schemaVersion} · Pi ${escapeHtml(result.evaluation.piVersion)} · ${escapeHtml(result.evaluation.startedAt)}–${escapeHtml(result.evaluation.finishedAt)} · ${escapeHtml(formatDuration(result.evaluation.durationMs))}</p><p><strong>Repository:</strong> ${escapeHtml(result.repository.source)} @ ${escapeHtml(result.repository.ref)} (<code>${escapeHtml(result.repository.sha)}</code>)</p><details><summary>Exact evaluation matrix (${result.matrix.runs.length} runs)</summary><h3>Scenarios</h3><ul>${matrixScenarios}</ul><h3>Profiles</h3><ul>${matrixProfiles}</ul><h3>Expanded runs</h3><ol>${matrixRuns}</ol></details></header>
 <main>${scenarioSections}</main>
 <footer><p>Generated only from <code>results.json</code>. No child session or network access is required.</p></footer></body></html>\n`;
 }

@@ -1,0 +1,327 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/ladislas/mypac/schemas/pac-eval-result.schema.json",
+  "title": "mypac canonical evaluation result",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["$schema", "schemaVersion", "evaluation", "repository", "matrix", "runs", "humanReview", "warnings"],
+  "properties": {
+    "$schema": { "const": "https://github.com/ladislas/mypac/schemas/pac-eval-result.schema.json" },
+    "schemaVersion": { "const": 1 },
+    "evaluation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "piVersion", "startedAt", "finishedAt", "durationMs"],
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "piVersion": { "type": "string", "minLength": 1 },
+        "startedAt": { "type": "string", "format": "date-time" },
+        "finishedAt": { "type": "string", "format": "date-time" },
+        "durationMs": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "repository": { "$ref": "#/$defs/resolvedSource" },
+    "matrix": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["scenarios", "profiles", "runs"],
+      "properties": {
+        "scenarios": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/scenario" } },
+        "profiles": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/profile" } },
+        "runs": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/matrixRun" } }
+      }
+    },
+    "runs": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/run" } },
+    "humanReview": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["dimensions", "persistence"],
+      "properties": {
+        "dimensions": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+        "persistence": { "const": "external" }
+      }
+    },
+    "warnings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["scenarioId", "profileId", "message"],
+        "properties": {
+          "scenarioId": { "$ref": "#/$defs/id" },
+          "profileId": { "$ref": "#/$defs/id" },
+          "message": { "type": "string" }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "id": { "type": "string", "pattern": "^[a-z0-9][a-z0-9._-]*$" },
+    "nullableNumber": { "type": ["number", "null"] },
+    "nullableInteger": { "type": ["integer", "null"] },
+    "stringArray": { "type": "array", "items": { "type": "string" } },
+    "resolvedSource": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["source", "ref", "sha"],
+      "properties": {
+        "source": { "type": "string", "minLength": 1 },
+        "ref": { "type": "string", "minLength": 1 },
+        "sha": { "type": "string", "minLength": 1 }
+      }
+    },
+    "scenario": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "prompt"],
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "prompt": { "type": "string", "minLength": 1 },
+        "timeoutMs": { "type": "integer", "minimum": 1 },
+        "verify": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["command"],
+            "properties": {
+              "command": { "type": "string", "minLength": 1 },
+              "args": { "$ref": "#/$defs/stringArray" },
+              "timeoutMs": { "type": "integer", "minimum": 1 }
+            }
+          }
+        },
+        "artifacts": { "$ref": "#/$defs/stringArray" }
+      }
+    },
+    "resources": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "prompts": { "$ref": "#/$defs/stringArray" },
+        "skills": { "$ref": "#/$defs/stringArray" },
+        "extensions": { "$ref": "#/$defs/stringArray" }
+      }
+    },
+    "profile": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "model", "thinking", "resolvedPackageSha"],
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "model": { "type": "string", "minLength": 1 },
+        "thinking": { "type": "string", "minLength": 1 },
+        "workflow": { "type": "string", "minLength": 1 },
+        "execution": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["tools"],
+          "properties": { "tools": { "$ref": "#/$defs/stringArray" } }
+        },
+        "package": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["path", "ref"],
+          "properties": {
+            "path": { "type": "string", "minLength": 1 },
+            "ref": { "type": "string", "minLength": 1 },
+            "resources": { "$ref": "#/$defs/resources" }
+          }
+        },
+        "resolvedPackageSha": { "type": ["string", "null"] }
+      }
+    },
+    "matrixRun": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["scenarioId", "profileId"],
+      "properties": {
+        "scenarioId": { "$ref": "#/$defs/id" },
+        "profileId": { "$ref": "#/$defs/id" }
+      }
+    },
+    "configuration": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["provider", "model", "thinking"],
+      "properties": {
+        "provider": { "type": "string" },
+        "model": { "type": "string" },
+        "thinking": { "type": "string" }
+      }
+    },
+    "telemetry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["sessions", "messages", "assistantTurns", "tokens", "cost", "context", "modelsUsed", "thinkingLevelsUsed", "actualConfiguration", "malformedLines"],
+      "properties": {
+        "sessions": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["file", "id", "startedAt", "cwd"],
+            "properties": {
+              "file": { "type": "string" },
+              "id": { "type": ["string", "null"] },
+              "startedAt": { "type": ["string", "null"] },
+              "cwd": { "type": ["string", "null"] }
+            }
+          }
+        },
+        "messages": { "$ref": "#/$defs/nullableInteger" },
+        "assistantTurns": { "$ref": "#/$defs/nullableInteger" },
+        "tokens": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["input", "output", "cacheRead", "cacheWrite", "total"],
+          "properties": {
+            "input": { "$ref": "#/$defs/nullableInteger" },
+            "output": { "$ref": "#/$defs/nullableInteger" },
+            "cacheRead": { "$ref": "#/$defs/nullableInteger" },
+            "cacheWrite": { "$ref": "#/$defs/nullableInteger" },
+            "total": { "$ref": "#/$defs/nullableInteger" }
+          }
+        },
+        "cost": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["reported", "estimated", "total", "currency"],
+          "properties": {
+            "reported": { "$ref": "#/$defs/nullableNumber" },
+            "estimated": { "$ref": "#/$defs/nullableNumber" },
+            "total": { "$ref": "#/$defs/nullableNumber" },
+            "currency": { "const": "USD" }
+          }
+        },
+        "context": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["samples", "peak", "max"],
+          "properties": {
+            "samples": { "type": "array", "items": { "type": "integer" } },
+            "peak": { "$ref": "#/$defs/nullableInteger" },
+            "max": { "$ref": "#/$defs/nullableInteger" }
+          }
+        },
+        "modelsUsed": { "$ref": "#/$defs/stringArray" },
+        "thinkingLevelsUsed": { "$ref": "#/$defs/stringArray" },
+        "actualConfiguration": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["provider", "model", "thinking"],
+          "properties": {
+            "provider": { "type": ["string", "null"] },
+            "model": { "type": ["string", "null"] },
+            "thinking": { "type": ["string", "null"] }
+          }
+        },
+        "malformedLines": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "run": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["evaluationId", "scenarioId", "profileId", "status", "piVersion", "requestedConfiguration", "executionPolicy", "package", "actualConfiguration", "configurationMatched", "telemetry", "availability", "repository", "child", "verification", "git", "retainedArtifacts", "startedAt", "finishedAt", "warnings"],
+      "properties": {
+        "evaluationId": { "$ref": "#/$defs/id" },
+        "scenarioId": { "$ref": "#/$defs/id" },
+        "profileId": { "$ref": "#/$defs/id" },
+        "status": { "enum": ["passed", "child_failed", "timed_out", "configuration_mismatch", "verification_failed", "runner_error"] },
+        "piVersion": { "type": "string" },
+        "requestedConfiguration": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["model", "thinking"],
+          "properties": { "model": { "type": "string" }, "thinking": { "type": "string" } }
+        },
+        "executionPolicy": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["tools", "packageResources"],
+          "properties": { "tools": { "$ref": "#/$defs/stringArray" }, "packageResources": { "$ref": "#/$defs/resources" } }
+        },
+        "package": { "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/resolvedSource" }] },
+        "actualConfiguration": { "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/configuration" }] },
+        "configurationMatched": { "type": "boolean" },
+        "telemetry": { "$ref": "#/$defs/telemetry" },
+        "availability": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["telemetryComplete", "pricing"],
+          "properties": {
+            "telemetryComplete": { "type": "boolean" },
+            "pricing": { "enum": ["reported", "estimated", "mixed", "unknown"] }
+          }
+        },
+        "repository": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["source", "ref", "baseSha"],
+          "properties": { "source": { "type": "string" }, "ref": { "type": "string" }, "baseSha": { "type": "string" } }
+        },
+        "child": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["exitCode", "signal", "timedOut", "durationMs"],
+          "properties": {
+            "exitCode": { "$ref": "#/$defs/nullableInteger" },
+            "signal": { "type": ["string", "null"] },
+            "timedOut": { "type": "boolean" },
+            "durationMs": { "type": "integer", "minimum": 0 }
+          }
+        },
+        "verification": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["command", "status", "exitCode", "durationMs"],
+            "properties": {
+              "command": { "$ref": "#/$defs/stringArray" },
+              "status": { "enum": ["passed", "failed", "timed_out"] },
+              "exitCode": { "$ref": "#/$defs/nullableInteger" },
+              "durationMs": { "type": "integer", "minimum": 0 }
+            }
+          }
+        },
+        "git": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["status", "changedFiles", "commits", "diffPath", "commitsPath"],
+          "properties": {
+            "status": { "type": "string" },
+            "changedFiles": { "$ref": "#/$defs/stringArray" },
+            "commits": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["sha", "subject"],
+                "properties": { "sha": { "type": "string" }, "subject": { "type": "string" } }
+              }
+            },
+            "diffPath": { "type": "string" },
+            "commitsPath": { "type": "string" }
+          }
+        },
+        "retainedArtifacts": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["kind", "path"],
+            "properties": {
+              "kind": { "enum": ["artifact", "commits", "diff", "result", "sessions", "stderr", "stdout"] },
+              "path": { "type": "string", "minLength": 1 }
+            }
+          }
+        },
+        "startedAt": { "type": "string", "format": "date-time" },
+        "finishedAt": { "type": "string", "format": "date-time" },
+        "error": { "type": "string" },
+        "warnings": { "$ref": "#/$defs/stringArray" }
+      }
+    }
+  }
+}

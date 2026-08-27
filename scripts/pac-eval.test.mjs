@@ -332,6 +332,20 @@ test("execution isolates the checkout, verifies externally, and retains normaliz
   assert.doesNotMatch(stdout, new RegExp(`"home":"${process.env.HOME}"`));
   assert.match(await readFile(join(manifest.outputDirectory, result.paths.stderr), "utf8"), /fake pi stderr/);
   assert.equal(await readFile(join(manifest.outputDirectory, result.artifacts[0]), "utf8"), "artifact\n");
+  const canonicalPath = join(manifest.outputDirectory, "results.json");
+  const reportPath = join(manifest.outputDirectory, "report.html");
+  const canonical = JSON.parse(await readFile(canonicalPath, "utf8"));
+  assert.equal(canonical.schemaVersion, 1);
+  assert.deepEqual(canonical.matrix.runs, [{ scenarioId: "narrow-change", profileId: "control" }]);
+  assert.equal(canonical.runs[0].status, "passed");
+  assert.equal(canonical.runs[0].telemetry.sessions[0].cwd, ".");
+  assert.match(await readFile(reportPath, "utf8"), /narrow-change/);
+
+  const regeneratedPath = join(manifest.outputDirectory, "report-regenerated.html");
+  await execFileAsync(process.execPath, [
+    "--experimental-strip-types", "scripts/pac-eval.ts", "--report", canonicalPath, regeneratedPath,
+  ], { cwd: process.cwd() });
+  assert.equal(await readFile(regeneratedPath, "utf8"), await readFile(reportPath, "utf8"));
   await assert.rejects(access(join(repository, "implementation.txt")));
   const retainedRunDirectory = join(manifest.outputDirectory, "runs", "narrow-change", "control");
   await assert.rejects(access(join(retainedRunDirectory, "repository")));
