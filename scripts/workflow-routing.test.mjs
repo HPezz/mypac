@@ -31,6 +31,23 @@ test("pac-llat starts with the target and expands context only when classificati
 	assert.match(prompt, /\*\*Provided arguments\*\*: \$@\s*$/);
 });
 
+test("pac-lwot gates execution before loading implementation context", async () => {
+	const prompt = await readRepoFile("prompts", "pac-lwot.md");
+	const targetResolution = prompt.search(/resolve the target/i);
+	const executionGate = prompt.search(/execution (?:is|required|necessity)/i);
+	const repositoryPreparation = prompt.search(/repository (?:rules|state|context)/i);
+
+	assert.ok(targetResolution >= 0, "target resolution should be explicit");
+	assert.ok(executionGate > targetResolution, "execution gate should follow target resolution");
+	assert.ok(repositoryPreparation > executionGate, "repository preparation should follow the execution gate");
+	assert.match(prompt, /smallest authoritative artifact/i);
+	assert.match(prompt, /no (?:work|execution).*stop/i);
+	assert.match(prompt, /do not.*README\.md.*(?:startup|by default)/i);
+	assert.match(prompt, /repository-specific.*rules.*before mutation/i);
+	assert.match(prompt, /implementation skills.*only after.*execution/i);
+	assert.match(prompt, /pac-commit.*only when.*commit/i);
+});
+
 test("workflow-only skills stay out of model context but explicit prompts still load them", async () => {
 	const { skills, diagnostics } = loadSkillsFromDir({
 		dir: path.join(repoRoot, "skills"),

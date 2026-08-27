@@ -5,24 +5,26 @@ argument-hint: "[note | issue/PR URL | PRD | todo ID | free text]"
 
 Let's work on that.
 
-Use this prompt when the user wants execution from available context. The target may be conversation history, a GitHub issue or PR, a todo, a PRD, a URL, a note, or a concrete request.
-
-If the user is still exploring, debating scope, asking whether something is worth doing, or asking for options, recommend `/pac-llat` instead of starting implementation.
+Use this prompt when the user wants execution from the available context. The target may be conversation history, a GitHub issue or PR, a todo, a PRD, a URL, a note, or a concrete request. If the user is still exploring, debating scope, asking whether something is worth doing, or asking for options, recommend `/pac-llat` instead of starting implementation.
 
 Process:
 
-1. Resolve the target. Prefer explicit arguments, then current conversation context. For GitHub issues/PRs, read the relevant GitHub context. For todos, read the todo before editing.
-2. Check repository state and branch. Do not work directly on `main`; create or switch to a properly named branch when needed.
-3. State the goal, assumptions, and any ambiguity. If intent or scope is unclear, ask before editing.
-4. Give a short implementation plan and verification plan before making changes.
-5. Load specialized skills only when relevant:
-   - `skills/pac-tdd/SKILL.md` for behavior-changing implementation, bug fixes, or regression coverage.
+1. Resolve the target. Prefer explicit arguments, then current conversation context. Start with the smallest authoritative artifact needed to understand the request and its current state. For a GitHub issue or PR, read that target first with enough state and resolution metadata to recognize an obvious completed or merged result. For a todo, read the todo first.
+2. Before repository preparation, decide whether execution is required. Keep this execution gate progressive and cheap:
+   - If authoritative evidence shows no work is needed or no execution is required, report the evidence concisely and stop.
+   - Do not create or switch branches, load implementation or commit skills, inspect broad comments or history, or search source files merely to double-check an obvious no-op.
+   - If the target is ambiguous, perform only the smallest targeted follow-up read needed to decide whether to continue or stop.
+   - Do not read `README.md` as startup context or by default. Read it only when it materially contributes to executing confirmed work.
+3. Once execution is confirmed, inspect repository rules and state. Repository-specific execution rules such as `AGENTS.md` must be read and followed before mutation. Do not work directly on `main`; create or switch to a properly named branch when needed.
+4. State the goal, assumptions, and any ambiguity. If intent or scope is unclear, ask before editing. Give a short implementation and verification plan before making changes.
+5. Load specialized implementation skills only after execution is confirmed and when they become relevant:
+   - `skills/pac-tdd/SKILL.md` for behavior-changing implementation, bug fixes, or regression coverage, before implementation begins.
    - `skills/pac-pi-prompt/SKILL.md` when creating or updating prompts.
    - `skills/pac-pi-extension/SKILL.md` when touching extension code.
    - `/pac-llat`, `/pac-explore`, `/pac-grill-with-docs`, `/pac-to-prd`, or `/pac-to-issues` when the request needs more planning instead of coding.
 6. Implement the smallest slice that satisfies the request. Keep changes surgical and directly tied to the target. Avoid unrelated refactors.
 7. Verify with the smallest relevant checks. Report what changed, what was verified, and any remaining follow-up.
-8. As meaningful implementation slices are completed and verified, create atomic commits according to `skills/pac-commit/SKILL.md`. Do not wait until the end or combine unrelated work. If the work originated from a GitHub issue, include `closes #<issue-number>` in the resolving commit body. Do not guess issue numbers.
+8. Load and follow `skills/pac-commit/SKILL.md` only when a verified implementation slice is actually ready to commit. Create atomic commits as meaningful slices are completed; do not wait until the end or combine unrelated work. If the work originated from a GitHub issue, include `closes #<issue-number>` in the resolving commit body. Do not guess issue numbers.
 
 Use GitHub context and linked artifacts as supporting material, not permission to expand scope.
 
