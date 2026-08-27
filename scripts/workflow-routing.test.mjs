@@ -81,3 +81,13 @@ test("shared guidance requires progressive context disclosure", async () => {
 	assert.match(shared, /smallest authoritative artifact/i);
 	assert.match(shared, /materially needed for the next decision/i);
 });
+
+test("shared guidance prefers structured GitHub tooling over browser automation", async () => {
+	const shared = await readRepoFile("shared", "SHARED_APPEND_SYSTEM.md");
+
+	assert.match(shared, /structured, purpose-built tools over browser automation/i);
+	assert.match(shared, /GitHub issues.*pull requests.*comments.*checks/i);
+	assert.match(shared, /do not use `agent_browser` merely to read or inspect/i);
+	assert.match(shared, /rendered browser or UI behavior/i);
+	assert.match(shared, /unavailable through structured tooling/i);
+});

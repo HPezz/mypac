@@ -57,6 +57,7 @@ Versioned sections should match the Git tags and GitHub releases published for t
 
 ### Changed
 
+- Preferred structured GitHub and repository tooling over browser automation when direct APIs or local data provide the required information. ([#362](https://github.com/ladislas/mypac/issues/362))
 - Made `/pac-llat` a progressive-context router and kept workflow-only planning skills out of automatic model context. ([#359](https://github.com/ladislas/mypac/issues/359))
 - Upgraded the pinned Headroom installation to 0.36.5.
 - Made safe Git execution hygiene—branch checks, atomic slice commits, unrelated-change isolation, and explicit authorization for history operations—the default for natural-language implementation. ([#349](https://github.com/ladislas/mypac/issues/349))
