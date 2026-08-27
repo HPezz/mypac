@@ -4,6 +4,8 @@ Behavioral guidelines to reduce common LLM coding mistakes. These shared system-
 
 **Tradeoff:** These guidelines bias toward caution over speed. For trivial tasks, use judgment.
 
+Prefer progressive context disclosure. Start with the smallest authoritative artifact that can answer the current question. Do not load skills, repository documentation, linked artifacts, or broad codebase context unless materially needed for the next decision.
+
 ## 1. Think Before Coding
 
 **Don't assume. Don't hide confusion. Surface tradeoffs.**

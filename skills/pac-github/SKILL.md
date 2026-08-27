@@ -1,6 +1,6 @@
 ---
 name: pac-github
-description: "Interact with GitHub using the `gh` CLI. Use when working with GitHub issues, pull requests, workflow runs, or API queries."
+description: "Handle non-trivial GitHub operations with `gh`, including advanced API queries, CI investigation, reviews, labels, comments, and state changes. Use when GitHub-specific instructions materially help; a simple known-target issue or PR read does not require this skill."
 license: MIT
 compatibility: Git repository; gh CLI required.
 metadata:
@@ -10,7 +10,7 @@ metadata:
 
 # GitHub Skill
 
-Use the `gh` CLI to interact with GitHub. Always specify `--repo owner/repo` when not in a git directory, or use URLs directly.
+Use `gh` for non-trivial GitHub operations where specialized instructions add value. A simple read of a known issue or PR does not require loading this skill. Always specify `--repo owner/repo` when not in a git directory, or use URLs directly.
 
 ## Pull Requests
 

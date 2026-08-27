@@ -1,5 +1,6 @@
 ---
 name: pac-to-prd
+disable-model-invocation: true
 description: "Synthesize current context into a structured PRD draft or publishable PRD artifact using a shared template. Use when the user wants a PRD from conversation context, a GitHub issue, or a saved draft path."
 license: MIT
 compatibility: Pi coding agent

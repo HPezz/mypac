@@ -1,5 +1,6 @@
 ---
 name: pac-to-issues
+disable-model-invocation: true
 description: "Break a plan, PRD, or discussion into independently-grabbable GitHub issues using tracer-bullet vertical slices. Use when the user wants to convert a plan into issues, decompose a PRD into tickets, or create a set of linked implementation issues with explicit dependencies."
 license: MIT
 compatibility: Git repository; gh CLI required.

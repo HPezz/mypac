@@ -1,16 +1,18 @@
 ---
-description: "Analyze and plan work without implementing"
+description: "Classify work and route it to the next workflow"
 argument-hint: "[idea | issue/PR URL | PRD | todo ID | free text]"
 ---
 
 Let's look at that.
 
-Use this prompt for exploration, reframing, planning, and deciding the next workflow. Do not edit files, create commits, run mutating commands, post GitHub comments, or otherwise implement unless the user explicitly switches to execution.
+Use this prompt as a lightweight assessment router: classify the target, recommend the next workflow, and stop before implementation. Do not edit files, create commits, run mutating commands, or post GitHub changes.
+
+Start with the provided target only and use the smallest authoritative artifact that can support the next decision. For a GitHub issue or PR URL, read that target first. Do not read issue comments, linked artifacts, `README.md`, `AGENTS.md`, `CONTEXT.md`, or broad code areas by default. Do not load another workflow skill merely because `/pac-llat` may recommend that workflow. Perform additional targeted reads only when the current artifact is materially insufficient to classify the work safely.
 
 Process:
 
-1. Resolve the target from the provided argument, current conversation, linked issue/PR, PRD, todo, URL, or artifact. If the target is unclear, ask one concise clarifying question.
-2. Summarize the goal, current context, assumptions, and known constraints.
+1. Resolve the target from the provided argument or current conversation. If it is unclear, ask one concise clarifying question.
+2. Summarize the goal, assumptions, and known constraints from the authoritative target.
 3. Decide whether the work is:
    - simple and ready for implementation,
    - ambiguous and needs exploration,
@@ -25,9 +27,9 @@ Process:
    - `/pac-to-prd` for larger product/design artifacts,
    - `/pac-to-issues` for decomposing agreed plans,
    - `/pac-lwot` when the user wants implementation.
-5. If the work is ready, produce a short implementation-ready brief: goal, files likely involved, risks, verification, and open questions.
+5. If the work is ready, produce a short implementation-ready brief: goal, likely files only when known from the target, risks, verification, and open questions. Do not explore the codebase merely to populate speculative details.
 6. Stop before implementation and ask what the user wants next.
 
-Keep the response concise. Prefer questions and recommendations over speculative coding.
+Keep the response concise. A well-specified target should be classified after its initial read.
 
 **Provided arguments**: $@
