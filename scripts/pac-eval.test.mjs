@@ -5,9 +5,75 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
 import { promisify } from "node:util";
-import { PINNED_PI_VERSION, buildPiInvocation, parseManifest, runEvaluation } from "./pac-eval.ts";
+import { PINNED_PI_VERSION, buildPiInvocation, collectRunSessionTelemetry, parseManifest, runEvaluation } from "./pac-eval.ts";
 
 const execFileAsync = promisify(execFile);
+
+test("collectRunSessionTelemetry represents complete and unavailable Pi telemetry explicitly", async () => {
+  const directory = await mkdtemp(join(tmpdir(), "pac-eval-telemetry-"));
+  await writeFile(join(directory, "session.jsonl"), [
+    JSON.stringify({ type: "session", id: "eval-session", timestamp: "2026-01-01T00:00:00.000Z", cwd: "/tmp/repo" }),
+    JSON.stringify({ type: "model_change", provider: "openai-codex", modelId: "gpt-requested" }),
+    JSON.stringify({ type: "thinking_level_change", thinkingLevel: "high" }),
+    JSON.stringify({ type: "message", message: { role: "user", content: "work" } }),
+    JSON.stringify({ type: "message", message: { role: "assistant", provider: "openai-codex", model: "gpt-actual", usage: {
+      input: 10, output: 5, cacheRead: 3, cacheWrite: 2, totalTokens: 20,
+      contextTokens: 15, maxContextTokens: 100, cost: { total: 0.2 },
+    } } }),
+  ].join("\n"));
+
+  assert.deepEqual(await collectRunSessionTelemetry(directory), {
+    sessions: [{ file: "session.jsonl", id: "eval-session", startedAt: "2026-01-01T00:00:00.000Z", cwd: "/tmp/repo" }],
+    messages: 2,
+    assistantTurns: 1,
+    tokens: { input: 10, output: 5, cacheRead: 3, cacheWrite: 2, total: 20 },
+    cost: { reported: 0.2, estimated: null, total: 0.2, currency: "USD" },
+    context: { samples: [15], peak: 15, max: 100 },
+    modelsUsed: ["openai-codex/gpt-actual", "openai-codex/gpt-requested"],
+    thinkingLevelsUsed: ["high"],
+    actualConfiguration: { provider: "openai-codex", model: "gpt-actual", thinking: "high" },
+    malformedLines: 0,
+  });
+
+  const supportedDirectory = join(directory, "supported-estimate");
+  await mkdir(supportedDirectory);
+  await writeFile(join(supportedDirectory, "session.jsonl"), [
+    JSON.stringify({ type: "session", timestamp: "2026-01-01T00:00:00.000Z" }),
+    JSON.stringify({ type: "message", message: { role: "assistant", provider: "github-copilot", model: "claude-sonnet", usage: { input: 1_000_000, output: 100_000 } } }),
+  ].join("\n"));
+  assert.deepEqual((await collectRunSessionTelemetry(supportedDirectory)).cost, {
+    reported: null, estimated: 4.5, total: 4.5, currency: "USD",
+  });
+
+  const unsupportedDirectory = join(directory, "unsupported-estimate");
+  await mkdir(unsupportedDirectory);
+  await writeFile(join(unsupportedDirectory, "session.jsonl"), [
+    JSON.stringify({ type: "session", timestamp: "2026-01-01T00:00:00.000Z" }),
+    JSON.stringify({ type: "message", message: { role: "assistant", provider: "unknown-provider", model: "unknown-model", usage: { input: 10, output: 5, totalTokens: 15 } } }),
+  ].join("\n"));
+  assert.deepEqual((await collectRunSessionTelemetry(unsupportedDirectory)).cost, {
+    reported: null, estimated: null, total: null, currency: "USD",
+  });
+
+  const noUsageDirectory = join(directory, "no-usage");
+  await mkdir(noUsageDirectory);
+  await writeFile(join(noUsageDirectory, "session.jsonl"), JSON.stringify({
+    type: "session", timestamp: "2026-01-01T00:00:00.000Z",
+  }));
+  assert.deepEqual((await collectRunSessionTelemetry(noUsageDirectory)).cost, {
+    reported: null, estimated: null, total: null, currency: "USD",
+  });
+
+  assert.deepEqual(await collectRunSessionTelemetry(join(directory, "missing")), {
+    sessions: [], messages: null, assistantTurns: null,
+    tokens: { input: null, output: null, cacheRead: null, cacheWrite: null, total: null },
+    cost: { reported: null, estimated: null, total: null, currency: "USD" },
+    context: { samples: [], peak: null, max: null },
+    modelsUsed: [], thinkingLevelsUsed: [],
+    actualConfiguration: { provider: null, model: null, thinking: null },
+    malformedLines: 0,
+  });
+});
 
 async function writeManifest(directory, manifest) {
   const path = join(directory, "evaluation.json");
@@ -198,6 +264,8 @@ await writeFile(join(sessionDir, "session.jsonl"), [
   JSON.stringify({ type: "session", version: 3, id: "fixture", timestamp: "2026-01-01T00:00:00.000Z", cwd: process.cwd() }),
   JSON.stringify({ type: "model_change", id: "1", parentId: null, timestamp: "2026-01-01T00:00:00.000Z", provider, modelId: model }),
   JSON.stringify({ type: "thinking_level_change", id: "2", parentId: "1", timestamp: "2026-01-01T00:00:00.000Z", thinkingLevel: thinking }),
+  JSON.stringify({ type: "message", id: "3", message: { role: "user", content: "fixture prompt" } }),
+  JSON.stringify({ type: "message", id: "4", message: { role: "assistant", provider, model, usage: { input: 10, output: 5, cacheRead: 3, cacheWrite: 2, totalTokens: 20, contextTokens: 15, maxContextTokens: 100, cost: { total: 0.2 } } } }),
 ].join("\\n") + "\\n");
 await writeFile("implementation.txt", "changed\\n");
 await writeFile("result.txt", "artifact\\n");
@@ -249,6 +317,12 @@ test("execution isolates the checkout, verifies externally, and retains normaliz
     thinking: "medium",
   });
   assert.equal(result.configurationMatched, true);
+  assert.deepEqual(result.telemetry.actualConfiguration, result.actualConfiguration);
+  assert.equal(result.telemetry.messages, 2);
+  assert.equal(result.telemetry.assistantTurns, 1);
+  assert.deepEqual(result.telemetry.tokens, { input: 10, output: 5, cacheRead: 3, cacheWrite: 2, total: 20 });
+  assert.deepEqual(result.telemetry.cost, { reported: 0.2, estimated: null, total: 0.2, currency: "USD" });
+  assert.deepEqual(result.telemetry.context, { samples: [15], peak: 15, max: 100 });
   assert.deepEqual(result.git.changedFiles, ["implementation.txt", "result.txt"]);
   assert.match(await readFile(join(manifest.outputDirectory, result.git.diffPath), "utf8"), /changed/);
   assert.equal(result.verification[0].status, "passed");
@@ -293,6 +367,12 @@ test("failed, timed-out, mismatched, and verification-failed children retain nor
 
     assert.equal(result.status, fixture.expected, fixture.name);
     assert.equal(JSON.parse(await readFile(join(manifest.outputDirectory, result.paths.result), "utf8")).status, fixture.expected);
+    assert.equal(result.telemetry.messages, 2, `${fixture.name} should retain partial session telemetry`);
+    assert.deepEqual(result.telemetry.actualConfiguration, {
+      provider: "openai-codex",
+      model: fixture.name === "mismatch" ? "different-model" : "gpt-5.4",
+      thinking: "medium",
+    });
     assert.equal(typeof await readFile(join(manifest.outputDirectory, result.paths.stdout), "utf8"), "string");
     if (result.artifacts[0]) {
       assert.equal(await readFile(join(manifest.outputDirectory, result.artifacts[0]), "utf8"), "artifact\n");
