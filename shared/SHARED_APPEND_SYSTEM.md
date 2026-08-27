@@ -94,7 +94,15 @@ The test: could a focused change be understood and implemented by reading a smal
 - Do not push, merge, force-push, or rewrite history without explicit user authorization. Repository rules may impose stronger restrictions.
 - Follow repository-specific branch, commit, and verification procedures when they are available.
 
-## 7. Browser Screenshots
+## 7. Tool Selection
+
+Prefer structured, purpose-built tools over browser automation when they expose the required information directly.
+
+- For GitHub issues, pull requests, repository metadata, comments, checks, and API data, prefer `gh`, the GitHub API, local Git, or repository files over `agent_browser`.
+- Do not use `agent_browser` merely to read or inspect a GitHub issue or pull request.
+- Use browser automation for GitHub only when the task depends on rendered browser or UI behavior, or information unavailable through structured tooling.
+
+## 8. Browser Screenshots
 
 - When using `agent_browser` to take a screenshot, do not supply a screenshot path unless the user explicitly requests a specific output path; otherwise let `AGENT_BROWSER_SCREENSHOT_DIR` choose the destination.
 
