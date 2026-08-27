@@ -146,7 +146,7 @@ function installSyncCommands(fixture, { uvVersion = "0.12.6" } = {}) {
 	loggingCommand(
 		fixture,
 		"pi",
-		`if [[ "\${1:-}" == "list" ]]; then\n\tprintf '%s\\n' 'npm:pi-agent-browser-native@0.5.0' ${JSON.stringify(fixture.root)}\nfi`,
+		`if [[ "\${1:-}" == "list" ]]; then\n\tprintf '%s\\n' 'npm:pi-agent-browser-native@0.5.0' 'npm:pi-codex-search@0.1.6' ${JSON.stringify(fixture.root)}\nfi`,
 	);
 	loggingCommand(
 		fixture,
@@ -181,7 +181,7 @@ function installRefreshDependentCommands(fixture) {
 	loggingCommand(
 		fixture,
 		"pi",
-		`if [[ "\${1:-}" == "list" ]]; then\n\tprintf '%s\\n' 'npm:pi-agent-browser-native@0.5.0' ${JSON.stringify(fixture.root)}\nfi`,
+		`if [[ "\${1:-}" == "list" ]]; then\n\tprintf '%s\\n' 'npm:pi-agent-browser-native@0.5.0' 'npm:pi-codex-search@0.1.6' ${JSON.stringify(fixture.root)}\nfi`,
 	);
 	loggingCommand(
 		fixture,
@@ -217,6 +217,7 @@ test("sync reconciles and verifies the pinned global environment", (t) => {
 		"mise\tuse\t--global\tnpm:agent-browser@0.34.0",
 		"mise\tenv\t-s\tbash",
 		"pi\tinstall\tnpm:pi-agent-browser-native@0.5.0",
+		"pi\tinstall\tnpm:pi-codex-search@0.1.6",
 		`pi\tinstall\t${fixture.root}`,
 		`mise\tset\t--global\tAGENT_BROWSER_SCREENSHOT_DIR=${fixture.home}/dev/agent-browser/screenshots`,
 		"mise\tenv\t-s\tbash",
