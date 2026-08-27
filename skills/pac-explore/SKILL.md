@@ -1,5 +1,6 @@
 ---
 name: pac-explore
+disable-model-invocation: true
 description: "Explore ideas, problems, or design options without implementing. Use when the user wants open-ended discovery, codebase investigation, trade-off mapping, or to decide whether work should become a PRD, issue breakdown, grilling session, or implementation task."
 license: MIT
 compatibility: Pi coding agent

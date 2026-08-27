@@ -1,5 +1,6 @@
 ---
 name: pac-grill-with-docs
+disable-model-invocation: true
 description: "Grill issue-backed work against the codebase and project language, then persist durable outcomes to GitHub issue updates, ADR comments, PRD comments, and sparing CONTEXT.md edits. Use when working from a GitHub issue/PR or when the user wants grilling plus durable notes."
 license: MIT
 compatibility: Pi coding agent
