@@ -57,6 +57,7 @@ Versioned sections should match the Git tags and GitHub releases published for t
 
 ### Changed
 
+- Split `pac-commit` fixup and history-rewrite guidance into an on-demand reference while retaining normal atomic-commit safety in the core skill. ([#370](https://github.com/ladislas/mypac/issues/370))
 - Made `pac-pi-extension` verify pinned Pi APIs through targeted installed documentation sections and examples before broad fallback reads. ([#365](https://github.com/ladislas/mypac/issues/365))
 - Audited all 24 skill invocation modes, locked the model-visible and workflow-only sets in regression coverage, and narrowed `pac-improve-architecture` to explicit architecture requests. ([#367](https://github.com/ladislas/mypac/issues/367))
 - Gated `/pac-lwot` execution before repository preparation so completed targets stop without loading implementation or commit context. ([#361](https://github.com/ladislas/mypac/issues/361))
