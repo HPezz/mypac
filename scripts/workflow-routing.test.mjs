@@ -150,6 +150,27 @@ test("durable docs describe pac-llat routing and model-invocation visibility", a
 	assert.match(catalog, /workflow-only skills/i);
 });
 
+test("pac-pi-extension verifies pinned APIs through progressive documentation reads", async () => {
+	const skill = await readRepoFile("skills", "pac-pi-extension", "SKILL.md");
+	const inspectExistingCode = skill.search(/inspect the existing extension implementation/i);
+	const identifyApiSurface = skill.search(/identify the concrete Pi API.*surface/i);
+	const readTargetedDocs = skill.search(/targeted searches.*specific sections.*specific examples/i);
+
+	assert.ok(inspectExistingCode >= 0, "existing extension code inspection should be explicit");
+	assert.ok(identifyApiSurface > inspectExistingCode, "API identification should follow local inspection");
+	assert.ok(readTargetedDocs > identifyApiSurface, "targeted documentation should follow API identification");
+	assert.match(skill, /installed.*pinned.*authoritative/i);
+	assert.match(skill, /matching line numbers.*narrow surrounding range/i);
+	assert.match(skill, /do not begin.*entire documentation file/i);
+	assert.match(skill, /sequential ranges.*whole-document read/i);
+	assert.match(skill, /before.*whole-file fallback.*state.*unresolved API question.*targeted evidence.*failed/i);
+	assert.match(skill, /established local.*TUI.*pattern.*does not.*broad TUI documentation/i);
+	assert.match(skill, /TUI documentation only when.*touches TUI behavior/i);
+	assert.match(skill, /expand.*broader documentation only when.*targeted.*insufficient/i);
+	assert.match(skill, /do not rely on memory/i);
+	assert.match(skill, /upstream `pi-mono`.*only.*upgrade/i);
+});
+
 test("shared guidance requires progressive context disclosure", async () => {
 	const shared = await readRepoFile("shared", "SHARED_APPEND_SYSTEM.md");
 
