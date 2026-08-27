@@ -141,7 +141,7 @@ function installSyncCommands(fixture, { uvVersion = "0.12.6" } = {}) {
 		"uv",
 		`[[ "\${1:-}" == "--version" ]] && echo "uv ${uvVersion}"`,
 	);
-	loggingCommand(fixture, "headroom", '[[ "${1:-}" == "--version" ]] && echo "headroom, version 0.36.4"');
+	loggingCommand(fixture, "headroom", '[[ "${1:-}" == "--version" ]] && echo "headroom, version 0.36.5"');
 	loggingCommand(fixture, "agent-browser", '[[ "${1:-}" == "--version" ]] && echo "agent-browser 0.34.0"');
 	loggingCommand(
 		fixture,
@@ -161,7 +161,7 @@ function installRefreshDependentCommands(fixture) {
 	mkdirSync(available);
 	mkdirSync(toolsBin);
 	writeCommand(available, "uv", '[[ "${1:-}" == "--version" ]] && echo "uv 0.12.6"\ntrue');
-	writeCommand(available, "headroom", '[[ "${1:-}" == "--version" ]] && echo "headroom, version 0.36.4"\ntrue');
+	writeCommand(available, "headroom", '[[ "${1:-}" == "--version" ]] && echo "headroom, version 0.36.5"\ntrue');
 	writeCommand(available, "agent-browser", '[[ "${1:-}" == "--version" ]] && echo "agent-browser 0.34.0"\ntrue');
 	writeCommand(
 		fixture.bin,
@@ -172,7 +172,7 @@ function installRefreshDependentCommands(fixture) {
 			`printf '\\n' >> ${JSON.stringify(fixture.log)}`,
 			'case "$*" in',
 			`  "use --global uv@0.12.6") cp ${JSON.stringify(join(available, "uv"))} ${JSON.stringify(join(toolsBin, "uv"))} ;;`,
-			`  "use --global pipx:headroom-ai[extras=all]@0.36.4") command -v uv >/dev/null; cp ${JSON.stringify(join(available, "headroom"))} ${JSON.stringify(join(toolsBin, "headroom"))} ;;`,
+			`  "use --global pipx:headroom-ai[extras=all]@0.36.5") command -v uv >/dev/null; cp ${JSON.stringify(join(available, "headroom"))} ${JSON.stringify(join(toolsBin, "headroom"))} ;;`,
 			`  "use --global npm:agent-browser@0.34.0") cp ${JSON.stringify(join(available, "agent-browser"))} ${JSON.stringify(join(toolsBin, "agent-browser"))} ;;`,
 			`  "env -s bash") printf 'export PATH=%q\\n' ${JSON.stringify(`${toolsBin}:$PATH`)} ;;`,
 			'esac',
@@ -212,7 +212,7 @@ test("sync reconciles and verifies the pinned global environment", (t) => {
 	assert.deepEqual(readFileSync(fixture.log, "utf8").trim().split("\n"), [
 		"mise\tuse\t--global\tuv@0.12.6",
 		"mise\tenv\t-s\tbash",
-		"mise\tuse\t--global\tpipx:headroom-ai[extras=all]@0.36.4",
+		"mise\tuse\t--global\tpipx:headroom-ai[extras=all]@0.36.5",
 		"mise\tenv\t-s\tbash",
 		"mise\tuse\t--global\tnpm:agent-browser@0.34.0",
 		"mise\tenv\t-s\tbash",
@@ -261,7 +261,7 @@ test("sync refreshes PATH between ordered mise declarations", (t) => {
 		0,
 		`${result.stderr}\n${result.stdout}\n${readFileSync(fixture.log, "utf8")}`,
 	);
-	assert.match(readFileSync(fixture.log, "utf8"), /mise\tuse\t--global\tpipx:headroom-ai\[extras=all\]@0\.36\.4/);
+	assert.match(readFileSync(fixture.log, "utf8"), /mise\tuse\t--global\tpipx:headroom-ai\[extras=all\]@0\.36\.5/);
 });
 
 test("sync applies a changed checked-in version and remains safe to rerun", (t) => {

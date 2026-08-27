@@ -57,6 +57,7 @@ Versioned sections should match the Git tags and GitHub releases published for t
 
 ### Changed
 
+- Upgraded the pinned Headroom installation to 0.36.5.
 - Made safe Git execution hygiene—branch checks, atomic slice commits, unrelated-change isolation, and explicit authorization for history operations—the default for natural-language implementation. ([#349](https://github.com/ladislas/mypac/issues/349))
 - Upgraded development and peer dependency baseline to Pi 0.84.3, adopting session-scoped model defaults for Headroom routing refreshes and BTW side-session model synchronization. ([#345](https://github.com/ladislas/mypac/issues/345))
 - Made `/context` use Pi's structured system-prompt inputs for context-file attribution, including overrides, nested projects, worktrees, and reloaded resources. ([#324](https://github.com/ladislas/mypac/issues/324))
