@@ -1,0 +1,123 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/ladislas/mypac/schemas/pac-eval-manifest.schema.json",
+  "title": "mypac evaluation manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version", "id", "repository", "profiles", "scenarios"],
+  "properties": {
+    "$schema": { "type": "string" },
+    "version": { "const": 1 },
+    "id": { "$ref": "#/$defs/id" },
+    "outputDirectory": { "type": "string", "minLength": 1 },
+    "repository": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "ref"],
+      "properties": {
+        "path": { "type": "string", "minLength": 1 },
+        "ref": { "type": "string", "minLength": 1 }
+      }
+    },
+    "profiles": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/profile" }
+    },
+    "scenarios": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/scenario" }
+    }
+  },
+  "$defs": {
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9._-]*$"
+    },
+    "profile": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "model", "thinking"],
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "model": { "type": "string", "pattern": "^[^/]+/.+$" },
+        "thinking": {
+          "enum": ["off", "minimal", "low", "medium", "high", "xhigh", "max"]
+        },
+        "workflow": { "type": "string", "minLength": 1 },
+        "execution": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["tools"],
+          "properties": {
+            "tools": {
+              "type": "array",
+              "minItems": 1,
+              "uniqueItems": true,
+              "items": {
+                "enum": ["read", "bash", "powershell", "edit", "write", "grep", "find", "ls"]
+              }
+            }
+          }
+        },
+        "package": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["path", "ref"],
+          "properties": {
+            "path": { "type": "string", "minLength": 1 },
+            "ref": { "type": "string", "minLength": 1 },
+            "resources": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "prompts": { "$ref": "#/$defs/packagePaths" },
+                "skills": { "$ref": "#/$defs/packagePaths" },
+                "extensions": { "$ref": "#/$defs/packagePaths" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "packagePaths": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.(?:/|$)).+$"
+      }
+    },
+    "scenario": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "prompt"],
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "prompt": { "type": "string", "minLength": 1 },
+        "timeoutMs": { "type": "integer", "minimum": 1 },
+        "verify": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["command"],
+            "properties": {
+              "command": { "type": "string", "minLength": 1 },
+              "args": {
+                "type": "array",
+                "items": { "type": "string", "minLength": 1 }
+              },
+              "timeoutMs": { "type": "integer", "minimum": 1 }
+            }
+          }
+        },
+        "artifacts": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 }
+        }
+      }
+    }
+  }
+}
