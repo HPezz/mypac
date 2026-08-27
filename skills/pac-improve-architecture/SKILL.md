@@ -1,6 +1,6 @@
 ---
 name: pac-improve-architecture
-description: "Review a codebase for deepening opportunities using shared architecture vocabulary, then grill a chosen candidate. Use when the user explicitly asks for codebase architecture improvement, module or interface deepening, architecture refactoring candidates, or an architecture review from free text, GitHub issue/PR context, or a todo."
+description: "Review a codebase for deepening opportunities, then grill a chosen candidate using shared architecture vocabulary. Use when the user explicitly asks for codebase architecture improvement, module or interface deepening, or architecture refactoring."
 license: MIT
 compatibility: Pi coding agent
 metadata:
