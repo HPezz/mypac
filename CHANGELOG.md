@@ -57,6 +57,7 @@ Versioned sections should match the Git tags and GitHub releases published for t
 
 ### Changed
 
+- Audited all 24 skill invocation modes, locked the model-visible and workflow-only sets in regression coverage, and narrowed `pac-improve-architecture` to explicit architecture requests. ([#367](https://github.com/ladislas/mypac/issues/367))
 - Gated `/pac-lwot` execution before repository preparation so completed targets stop without loading implementation or commit context. ([#361](https://github.com/ladislas/mypac/issues/361))
 - Preferred structured GitHub and repository tooling over browser automation when direct APIs or local data provide the required information. ([#362](https://github.com/ladislas/mypac/issues/362))
 - Made `/pac-llat` a progressive-context router and kept workflow-only planning skills out of automatic model context. ([#359](https://github.com/ladislas/mypac/issues/359))

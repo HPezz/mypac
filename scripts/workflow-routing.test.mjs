@@ -13,6 +13,30 @@ const workflowOnlySkills = [
 	"pac-to-issues",
 	"pac-to-prd",
 ];
+const autoInvocableCapabilitySkills = [
+	"pac-caveman",
+	"pac-changelog",
+	"pac-commit",
+	"pac-diagnose",
+	"pac-github",
+	"pac-github-issue-create",
+	"pac-handoff",
+	"pac-librarian",
+	"pac-pi-extension",
+	"pac-pi-prompt",
+	"pac-pi-skill",
+	"pac-review",
+	"pac-tdd",
+	"pac-uv",
+	"pac-zoom-out",
+];
+const needsEvidenceSkills = [
+	"pac-improve-architecture",
+	"pac-review-standards-spec",
+	"pac-triage",
+	"pac-upstream-checkpoints",
+];
+const modelVisibleSkills = [...autoInvocableCapabilitySkills, ...needsEvidenceSkills];
 
 async function readRepoFile(...segments) {
 	return readFile(path.join(repoRoot, ...segments), "utf8");
@@ -64,6 +88,41 @@ test("workflow-only skills stay out of model context but explicit prompts still 
 		const explicitPrompt = await readRepoFile("prompts", `${name}.md`);
 		assert.match(explicitPrompt, new RegExp(`skills/${name}/SKILL\\.md`));
 	}
+});
+
+test("the intended model-visible skill set is an explicit metadata contract", () => {
+	const { skills, diagnostics } = loadSkillsFromDir({
+		dir: path.join(repoRoot, "skills"),
+		source: "workflow-routing-test",
+	});
+	assert.deepEqual(diagnostics, []);
+
+	const discoveredNames = skills.map((skill) => skill.name).sort();
+	const classifiedNames = [...workflowOnlySkills, ...modelVisibleSkills].sort();
+	assert.deepEqual(discoveredNames, classifiedNames, "all package skills should have an invocation classification");
+
+	const visibleNames = skills
+		.filter((skill) => !skill.disableModelInvocation)
+		.map((skill) => skill.name)
+		.sort();
+	assert.deepEqual(visibleNames, modelVisibleSkills.toSorted());
+
+	const modelPrompt = formatSkillsForPrompt(skills);
+	for (const name of modelVisibleSkills) {
+		assert.match(modelPrompt, new RegExp(`<name>${name}</name>`), `${name} should remain model-visible`);
+	}
+});
+
+test("pac-improve-architecture advertises architecture work rather than generic exploration", () => {
+	const { skills } = loadSkillsFromDir({
+		dir: path.join(repoRoot, "skills"),
+		source: "workflow-routing-test",
+	});
+	const architecture = skills.find((skill) => skill.name === "pac-improve-architecture");
+
+	assert.ok(architecture);
+	assert.match(architecture.description, /explicitly asks for codebase architecture/i);
+	assert.match(architecture.description, /not for general product (?:ideation|exploration)/i);
 });
 
 test("pac-github remains available for non-trivial GitHub operations without claiming simple reads", async () => {
