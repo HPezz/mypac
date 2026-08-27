@@ -30,7 +30,7 @@ mypac groups reusable Pi assets by how they affect a session. Repo-local prompts
 
 ## Skills
 
-Skills contain reusable instructions loaded when a task matches their purpose.
+Skills contain reusable instructions. Pi may load model-invocable skills when a task matches; workflow-only skills marked `disable-model-invocation: true` are loaded through explicit workflow entrypoints.
 
 | Skill | Purpose |
 | --- | --- |
@@ -74,7 +74,7 @@ Prompts are the slash-command entry points you type in Pi.
 | [`/pac-handoff`](../prompts/pac-handoff.md) | Prepare a session handoff |
 | [`/pac-hello-world`](../prompts/pac-hello-world.md) | Confirm that the package is loaded |
 | [`/pac-improve-architecture`](../prompts/pac-improve-architecture.md) | Explore architecture-deepening opportunities |
-| [`/pac-llat`](../prompts/pac-llat.md) | Explore and plan a target before implementation |
+| [`/pac-llat`](../prompts/pac-llat.md) | Classify a target and route it to the appropriate workflow |
 | [`/pac-lwot`](../prompts/pac-lwot.md) | Execute work from available context |
 | [`/pac-to-issues`](../prompts/pac-to-issues.md) | Split a plan or PRD into implementation issues |
 | [`/pac-to-prd`](../prompts/pac-to-prd.md) | Turn context into a PRD |

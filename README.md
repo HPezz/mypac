@@ -39,7 +39,7 @@ Sync installs declared versions but never automatically removes components delet
 
 ```text
 /pac-hello-world
-/pac-llat an idea to explore
+/pac-llat a target to classify
 /pac-lwot a concrete task to implement
 ```
 
@@ -53,7 +53,7 @@ mise run pi
 
 | Command | Purpose |
 | --- | --- |
-| `/pac-llat` | Explore, reframe, and plan before implementation |
+| `/pac-llat` | Classify a target and route it to the appropriate workflow |
 | `/pac-lwot` | Execute work from an issue, PRD, todo, URL, or conversation |
 | `/pac-grill-with-docs` | Refine issue-backed work and preserve decisions |
 | `/pac-to-prd` | Turn context into a product requirements document |

@@ -7,7 +7,7 @@ Let's look at that.
 
 Use this prompt as a lightweight assessment router: classify the target, recommend the next workflow, and stop before implementation. Do not edit files, create commits, run mutating commands, or post GitHub changes.
 
-Start with the provided target only and use the smallest authoritative artifact that can support the next decision. For a GitHub issue or PR URL, read that target first. Do not read issue comments, linked artifacts, `README.md`, `AGENTS.md`, `CONTEXT.md`, or broad code areas by default. Do not load another workflow skill merely because `/pac-llat` may recommend that workflow. Perform one targeted follow-up read only when the current artifact is materially insufficient to classify the work safely.
+Start with the provided target only and use the smallest authoritative artifact that can support the next decision. For a GitHub issue or PR URL, read that target first. Do not read issue comments, linked artifacts, `README.md`, `AGENTS.md`, `CONTEXT.md`, or broad code areas by default. Do not load another workflow skill merely because `/pac-llat` may recommend that workflow. Perform additional targeted reads only when the current artifact is materially insufficient to classify the work safely.
 
 Process:
 

@@ -26,7 +26,8 @@ test("pac-llat starts with the target and expands context only when classificati
 	assert.match(prompt, /do not load another workflow skill merely because/i);
 	assert.match(prompt, /do not read.*README\.md.*AGENTS\.md.*CONTEXT\.md/i);
 	assert.match(prompt, /issue comments/i);
-	assert.match(prompt, /only when.*materially insufficient/i);
+	assert.match(prompt, /additional targeted reads only when.*materially insufficient/i);
+	assert.doesNotMatch(prompt, /perform one targeted follow-up read/i);
 	assert.match(prompt, /\*\*Provided arguments\*\*: \$@\s*$/);
 });
 
@@ -59,6 +60,18 @@ test("pac-github remains available for non-trivial GitHub operations without cla
 	assert.equal(github.disableModelInvocation, false);
 	assert.match(github.description, /non-trivial GitHub operations/i);
 	assert.doesNotMatch(github.description, /working with GitHub issues, pull requests/i);
+});
+
+test("durable docs describe pac-llat routing and model-invocation visibility", async () => {
+	const [readme, catalog] = await Promise.all([
+		readRepoFile("README.md"),
+		readRepoFile("docs", "catalog.md"),
+	]);
+
+	assert.match(readme, /pac-llat.*classify a target and route it to the appropriate workflow/i);
+	assert.match(catalog, /pac-llat.*classify a target and route it to the appropriate workflow/i);
+	assert.match(catalog, /disable-model-invocation/i);
+	assert.match(catalog, /workflow-only skills/i);
 });
 
 test("shared guidance requires progressive context disclosure", async () => {
