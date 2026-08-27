@@ -1,0 +1,36 @@
+{
+  "$schema": "../../schemas/pac-eval-manifest.schema.json",
+  "version": 1,
+  "id": "mvp-smoke",
+  "repository": {
+    "path": "../..",
+    "ref": "HEAD"
+  },
+  "profiles": [
+    {
+      "id": "gpt-5.4-mini-low",
+      "model": "openai-codex/gpt-5.4-mini",
+      "thinking": "low"
+    },
+    {
+      "id": "gpt-5.4-medium",
+      "model": "openai-codex/gpt-5.4",
+      "thinking": "medium"
+    }
+  ],
+  "scenarios": [
+    {
+      "id": "exact-repository-edit",
+      "prompt": "Create evaluations/mvp-smoke/workspace/result.txt containing exactly this single line, including the final newline: Pi evaluation harness smoke passed. Do not modify any other file and do not commit the change.",
+      "timeoutMs": 300000,
+      "verify": [
+        {
+          "command": "node",
+          "args": ["evaluations/mvp-smoke/verify.mjs"],
+          "timeoutMs": 30000
+        }
+      ],
+      "artifacts": ["evaluations/mvp-smoke/workspace/result.txt"]
+    }
+  ]
+}
