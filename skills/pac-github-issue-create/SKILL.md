@@ -151,7 +151,7 @@ Use this section only as skill-level guidance for the agent when a newly created
 
    ```bash
    gh api graphql \
-     -f query='mutation($issueId:ID!, $blockingIssueId:ID!) { addBlockedBy(input:{issueId:$issueId, blockingIssueId:$blockingIssueId}) { issue { number } blockedByEdge { node { number } } } }' \
+     -f query='mutation($issueId:ID!, $blockingIssueId:ID!) { addBlockedBy(input:{issueId:$issueId, blockingIssueId:$blockingIssueId}) { issue { number } blockingIssue { number } } }' \
      -f issueId=<blocked-issue-node-id> \
      -f blockingIssueId=<blocking-issue-node-id>
    ```
