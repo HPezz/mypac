@@ -7,6 +7,7 @@ export interface PiSessionTelemetryAvailability {
 	cacheWriteTokens: boolean;
 	totalTokens: boolean;
 	reportedCost: boolean;
+	estimatedCost: boolean;
 	context: boolean;
 	maxContext: boolean;
 }
@@ -163,24 +164,35 @@ const COPILOT_MARKET_PRICING: Array<{ pattern: RegExp; pricing: ModelPricing }> 
 	{ pattern: /(?:^|\/)claude-sonnet(?:$|[-_.])/, pricing: { input: 3, output: 15, cacheRead: 0.3, cacheWrite: 3.75 } },
 ];
 
-function estimateMarketCost(model: string, usage: any): number {
-	if (!usage || (!/(^|\/)github-copilot\//.test(model) && !/(^|\/)copilot\//.test(model))) return 0;
+function estimateMarketCost(model: string, usage: any): { applicable: boolean; cost: number } {
+	if (!usage || (!/(^|\/)github-copilot\//.test(model) && !/(^|\/)copilot\//.test(model))) return { applicable: false, cost: 0 };
 	const match = COPILOT_MARKET_PRICING.find((entry) => entry.pattern.test(model));
-	if (!match) return 0;
+	if (!match) return { applicable: false, cost: 0 };
+	const hasPricedUsage = hasAnyNumber(usage, [
+		"promptTokens", "prompt_tokens", "inputTokens", "input_tokens", "input",
+		"completionTokens", "completion_tokens", "outputTokens", "output_tokens", "output",
+		"cacheRead", "cache_read", "cacheReadTokens", "cache_read_tokens",
+		"cacheWrite", "cache_write", "cacheWriteTokens", "cache_write_tokens",
+	]);
+	if (!hasPricedUsage) return { applicable: false, cost: 0 };
 	const input = extractInputTokens(usage);
 	const output = extractOutputTokens(usage);
 	const cacheRead = extractCacheReadTokens(usage);
 	const cacheWrite = extractCacheWriteTokens(usage);
-	if (input + output + cacheRead + cacheWrite <= 0) return 0;
 	const pricing = match.pricing;
-	return (input * pricing.input + output * pricing.output + cacheRead * (pricing.cacheRead ?? pricing.input) + cacheWrite * (pricing.cacheWrite ?? pricing.input)) / 1_000_000;
+	return {
+		applicable: true,
+		cost: (input * pricing.input + output * pricing.output + cacheRead * (pricing.cacheRead ?? pricing.input) + cacheWrite * (pricing.cacheWrite ?? pricing.input)) / 1_000_000,
+	};
 }
 
 function addUsage(state: PiSessionParseState, key: string, usage: unknown, allowEstimate: boolean): void {
 	updateAvailability(state, usage);
 	const tokens = extractTokens(usage);
 	const reportedCost = extractCost(usage);
-	const estimatedCost = allowEstimate && reportedCost === 0 ? estimateMarketCost(key, usage) : 0;
+	const estimate = allowEstimate && reportedCost === 0 ? estimateMarketCost(key, usage) : { applicable: false, cost: 0 };
+	state.availability.estimatedCost ||= estimate.applicable;
+	const estimatedCost = estimate.cost;
 	const cost = reportedCost || estimatedCost;
 	const contextTokens = extractContextTokens(usage);
 	const maxContextTokens = extractMaxContextTokens(usage);
@@ -248,7 +260,7 @@ export function createPiSessionParseState(filePath: string): PiSessionParseState
 		messagesByModel: new Map(),
 		tokensByModel: new Map(),
 		costByModel: new Map(),
-		availability: { inputTokens: false, outputTokens: false, cacheReadTokens: false, cacheWriteTokens: false, totalTokens: false, reportedCost: false, context: false, maxContext: false },
+		availability: { inputTokens: false, outputTokens: false, cacheReadTokens: false, cacheWriteTokens: false, totalTokens: false, reportedCost: false, estimatedCost: false, context: false, maxContext: false },
 		currentModel: null,
 		usesUsageLedger: false,
 		entryModels: new Map(),

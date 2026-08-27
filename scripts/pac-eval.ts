@@ -476,7 +476,7 @@ export async function collectRunSessionTelemetry(sessionDirectory: string): Prom
     { provider: null, model: null, thinking: null },
   );
   const reportedAvailable = available("reportedCost");
-  const estimatedAvailable = sessions.some((session) => session.estimatedCost > 0) || available("totalTokens");
+  const estimatedAvailable = available("estimatedCost");
   const reportedCost = sum((session) => session.totalCost - session.estimatedCost);
   const estimatedCost = sum((session) => session.estimatedCost);
 

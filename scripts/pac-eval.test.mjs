@@ -27,12 +27,41 @@ test("collectRunSessionTelemetry represents complete and unavailable Pi telemetr
     messages: 2,
     assistantTurns: 1,
     tokens: { input: 10, output: 5, cacheRead: 3, cacheWrite: 2, total: 20 },
-    cost: { reported: 0.2, estimated: 0, total: 0.2, currency: "USD" },
+    cost: { reported: 0.2, estimated: null, total: 0.2, currency: "USD" },
     context: { samples: [15], peak: 15, max: 100 },
     modelsUsed: ["openai-codex/gpt-actual", "openai-codex/gpt-requested"],
     thinkingLevelsUsed: ["high"],
     actualConfiguration: { provider: "openai-codex", model: "gpt-actual", thinking: "high" },
     malformedLines: 0,
+  });
+
+  const supportedDirectory = join(directory, "supported-estimate");
+  await mkdir(supportedDirectory);
+  await writeFile(join(supportedDirectory, "session.jsonl"), [
+    JSON.stringify({ type: "session", timestamp: "2026-01-01T00:00:00.000Z" }),
+    JSON.stringify({ type: "message", message: { role: "assistant", provider: "github-copilot", model: "claude-sonnet", usage: { input: 1_000_000, output: 100_000 } } }),
+  ].join("\n"));
+  assert.deepEqual((await collectRunSessionTelemetry(supportedDirectory)).cost, {
+    reported: null, estimated: 4.5, total: 4.5, currency: "USD",
+  });
+
+  const unsupportedDirectory = join(directory, "unsupported-estimate");
+  await mkdir(unsupportedDirectory);
+  await writeFile(join(unsupportedDirectory, "session.jsonl"), [
+    JSON.stringify({ type: "session", timestamp: "2026-01-01T00:00:00.000Z" }),
+    JSON.stringify({ type: "message", message: { role: "assistant", provider: "unknown-provider", model: "unknown-model", usage: { input: 10, output: 5, totalTokens: 15 } } }),
+  ].join("\n"));
+  assert.deepEqual((await collectRunSessionTelemetry(unsupportedDirectory)).cost, {
+    reported: null, estimated: null, total: null, currency: "USD",
+  });
+
+  const noUsageDirectory = join(directory, "no-usage");
+  await mkdir(noUsageDirectory);
+  await writeFile(join(noUsageDirectory, "session.jsonl"), JSON.stringify({
+    type: "session", timestamp: "2026-01-01T00:00:00.000Z",
+  }));
+  assert.deepEqual((await collectRunSessionTelemetry(noUsageDirectory)).cost, {
+    reported: null, estimated: null, total: null, currency: "USD",
   });
 
   assert.deepEqual(await collectRunSessionTelemetry(join(directory, "missing")), {
@@ -292,7 +321,7 @@ test("execution isolates the checkout, verifies externally, and retains normaliz
   assert.equal(result.telemetry.messages, 2);
   assert.equal(result.telemetry.assistantTurns, 1);
   assert.deepEqual(result.telemetry.tokens, { input: 10, output: 5, cacheRead: 3, cacheWrite: 2, total: 20 });
-  assert.deepEqual(result.telemetry.cost, { reported: 0.2, estimated: 0, total: 0.2, currency: "USD" });
+  assert.deepEqual(result.telemetry.cost, { reported: 0.2, estimated: null, total: 0.2, currency: "USD" });
   assert.deepEqual(result.telemetry.context, { samples: [15], peak: 15, max: 100 });
   assert.deepEqual(result.git.changedFiles, ["implementation.txt", "result.txt"]);
   assert.match(await readFile(join(manifest.outputDirectory, result.git.diffPath), "utf8"), /changed/);
