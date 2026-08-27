@@ -339,6 +339,9 @@ test("execution isolates the checkout, verifies externally, and retains normaliz
   assert.deepEqual(canonical.matrix.runs, [{ scenarioId: "narrow-change", profileId: "control" }]);
   assert.equal(canonical.runs[0].status, "passed");
   assert.equal(canonical.runs[0].telemetry.sessions[0].cwd, ".");
+  for (const reference of canonical.runs[0].retainedArtifacts) {
+    await access(join(manifest.outputDirectory, reference.path));
+  }
   assert.match(await readFile(reportPath, "utf8"), /narrow-change/);
 
   const regeneratedPath = join(manifest.outputDirectory, "report-regenerated.html");
