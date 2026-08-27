@@ -122,6 +122,7 @@ test("pac-improve-architecture advertises architecture work rather than generic 
 
 	assert.ok(architecture);
 	assert.match(architecture.description, /explicitly asks for codebase architecture/i);
+	assert.match(architecture.description, /not for general product (?:ideation|exploration)/i);
 });
 
 test("pac-github remains available for non-trivial GitHub operations without claiming simple reads", async () => {
