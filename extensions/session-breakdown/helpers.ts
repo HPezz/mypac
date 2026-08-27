@@ -4,6 +4,14 @@ import { homedir } from "node:os";
 import { basename, dirname, join, resolve } from "node:path";
 import { createInterface } from "node:readline";
 import { getSessionRoot } from "../../lib/agent-dir.ts";
+import {
+	createPiSessionParseState,
+	finalizePiSessionParseState,
+	parsePiSessionLine,
+	parsePiSessionLines,
+	parsePiSessionStartFromFilename,
+	type ParsedPiSessionTelemetry,
+} from "../../lib/pi-session-telemetry.ts";
 
 export const SESSION_BREAKDOWN_RANGES = [7, 30, 90] as const;
 export const DEFAULT_SESSION_ROOT = getSessionRoot();
@@ -121,45 +129,6 @@ export function getDefaultSessionRoot(env: NodeJS.ProcessEnv = process.env, home
 	return getSessionRoot(env, homeDir);
 }
 
-interface SessionParseState {
-	filePath: string;
-	sessionId: string | null;
-	title: string | null;
-	repo: string | null;
-	firstUserText: string | null;
-	startedAt: Date | null;
-	cwd: string | null;
-	currentModel: string | null;
-	usesUsageLedger: boolean;
-	entryModels: Map<string, string>;
-	usageRecords: Array<{ cause: string; entryId?: string; usage: unknown }>;
-	messages: number;
-	tokens: number;
-	totalCost: number;
-	estimatedCost: number;
-	cacheReadTokens: number;
-	cacheWriteTokens: number;
-	inputTokens: number;
-	outputTokens: number;
-	contextTokensTotal: number;
-	contextSamples: number;
-	maxContextTokens: number;
-	skippedLines: number;
-	modelsUsed: Set<string>;
-	messagesByModel: Map<string, number>;
-	tokensByModel: Map<string, number>;
-	costByModel: Map<string, number>;
-}
-
-function readNumber(value: unknown): number {
-	if (typeof value === "number") return Number.isFinite(value) ? value : 0;
-	if (typeof value === "string") {
-		const parsed = Number(value);
-		return Number.isFinite(parsed) ? parsed : 0;
-	}
-	return 0;
-}
-
 function addToMap<K>(map: Map<K, number>, key: K, value: number): void {
 	if (value === 0) return;
 	map.set(key, (map.get(key) ?? 0) + value);
@@ -205,151 +174,6 @@ function addDays(date: Date, days: number): Date {
 
 function getErrorCode(error: unknown): string | undefined {
 	return typeof error === "object" && error !== null && "code" in error ? String(error.code) : undefined;
-}
-
-function modelKey(provider: unknown, model: unknown): string | null {
-	const providerText = typeof provider === "string" ? provider.trim() : "";
-	const modelText = typeof model === "string" ? model.trim() : "";
-	if (!providerText && !modelText) return null;
-	if (!providerText) return modelText;
-	if (!modelText) return providerText;
-	return `${providerText}/${modelText}`;
-}
-
-function modelKeyFromFields(provider: unknown, model: unknown, modelId: unknown): string | null {
-	const modelText = typeof model === "string" && model.trim() ? model : undefined;
-	const modelIdText = typeof modelId === "string" && modelId.trim() ? modelId : undefined;
-	if (!modelText && !modelIdText) return null;
-	return modelKey(provider, modelText ?? modelIdText);
-}
-
-function extractMessageFields(entry: any): { provider?: unknown; model?: unknown; modelId?: unknown; usage?: unknown } {
-	const message = entry?.message;
-	return {
-		provider: entry?.provider ?? message?.provider,
-		model: entry?.responseModel ?? message?.responseModel ?? entry?.model ?? message?.model,
-		modelId: entry?.modelId ?? message?.modelId,
-		usage: entry?.usage ?? message?.usage,
-	};
-}
-
-function extractTokens(usage: any): number {
-	if (!usage) return 0;
-	const direct =
-		readNumber(usage.totalTokens) ||
-		readNumber(usage.total_tokens) ||
-		readNumber(usage.tokens) ||
-		readNumber(usage.tokenCount) ||
-		readNumber(usage.token_count);
-	if (direct > 0) return direct;
-
-	const nested = readNumber(usage.tokens?.total) || readNumber(usage.tokens?.totalTokens) || readNumber(usage.tokens?.total_tokens);
-	if (nested > 0) return nested;
-
-	const input =
-		readNumber(usage.promptTokens) ||
-		readNumber(usage.prompt_tokens) ||
-		readNumber(usage.inputTokens) ||
-		readNumber(usage.input_tokens) ||
-		readNumber(usage.input);
-	const output =
-		readNumber(usage.completionTokens) ||
-		readNumber(usage.completion_tokens) ||
-		readNumber(usage.outputTokens) ||
-		readNumber(usage.output_tokens) ||
-		readNumber(usage.output);
-	const cache = extractCacheReadTokens(usage) + extractCacheWriteTokens(usage);
-	return input + output + cache;
-}
-
-function extractCacheReadTokens(usage: any): number {
-	if (!usage) return 0;
-	return readNumber(usage.cacheRead) + readNumber(usage.cache_read) + readNumber(usage.cacheReadTokens) + readNumber(usage.cache_read_tokens);
-}
-
-function extractCacheWriteTokens(usage: any): number {
-	if (!usage) return 0;
-	return readNumber(usage.cacheWrite) + readNumber(usage.cache_write) + readNumber(usage.cacheWriteTokens) + readNumber(usage.cache_write_tokens);
-}
-
-function extractInputTokens(usage: any): number {
-	if (!usage) return 0;
-	return readNumber(usage.promptTokens) || readNumber(usage.prompt_tokens) || readNumber(usage.inputTokens) || readNumber(usage.input_tokens) || readNumber(usage.input);
-}
-
-function extractOutputTokens(usage: any): number {
-	if (!usage) return 0;
-	return readNumber(usage.completionTokens) || readNumber(usage.completion_tokens) || readNumber(usage.outputTokens) || readNumber(usage.output_tokens) || readNumber(usage.output);
-}
-
-function extractContextTokens(usage: any): number {
-	if (!usage) return 0;
-	return readNumber(usage.contextTokens) || readNumber(usage.context_tokens) || readNumber(usage.context);
-}
-
-function extractMaxContextTokens(usage: any): number {
-	if (!usage) return 0;
-	return readNumber(usage.maxContextTokens) || readNumber(usage.max_context_tokens) || readNumber(usage.contextWindow) || readNumber(usage.context_window);
-}
-
-function extractCost(usage: any): number {
-	if (!usage) return 0;
-	const direct = readNumber(usage.cost);
-	if (direct > 0) return direct;
-	return readNumber(usage.cost?.total);
-}
-
-interface ModelPricing {
-	input: number;
-	output: number;
-	cacheRead?: number;
-	cacheWrite?: number;
-}
-
-// USD per 1M tokens, sourced from models.dev upstream provider catalog.
-const COPILOT_MARKET_PRICING: Array<{ pattern: RegExp; pricing: ModelPricing }> = [
-	{ pattern: /(?:^|\/)claude-sonnet(?:$|[-_.])/, pricing: { input: 3, output: 15, cacheRead: 0.3, cacheWrite: 3.75 } },
-];
-
-function estimateMarketCost(model: string, usage: any): number {
-	if (!usage || !/(^|\/)github-copilot\//.test(model) && !/(^|\/)copilot\//.test(model)) return 0;
-	const match = COPILOT_MARKET_PRICING.find((entry) => entry.pattern.test(model));
-	if (!match) return 0;
-
-	const input = extractInputTokens(usage);
-	const output = extractOutputTokens(usage);
-	const cacheRead = extractCacheReadTokens(usage);
-	const cacheWrite = extractCacheWriteTokens(usage);
-	if (input + output + cacheRead + cacheWrite <= 0) return 0;
-
-	const pricing = match.pricing;
-	return (input * pricing.input + output * pricing.output + cacheRead * (pricing.cacheRead ?? pricing.input) + cacheWrite * (pricing.cacheWrite ?? pricing.input)) / 1_000_000;
-}
-
-function addReportedUsage(state: SessionParseState, key: string, usage: unknown): void {
-	const tokens = extractTokens(usage);
-	const cost = extractCost(usage);
-	const cacheReadTokens = extractCacheReadTokens(usage);
-	const cacheWriteTokens = extractCacheWriteTokens(usage);
-	const inputTokens = extractInputTokens(usage);
-	const outputTokens = extractOutputTokens(usage);
-	const contextTokens = extractContextTokens(usage);
-	const maxContextTokens = extractMaxContextTokens(usage);
-
-	state.tokens += tokens;
-	state.totalCost += cost;
-	state.cacheReadTokens += cacheReadTokens;
-	state.cacheWriteTokens += cacheWriteTokens;
-	state.inputTokens += inputTokens;
-	state.outputTokens += outputTokens;
-	if (contextTokens > 0) {
-		state.contextTokensTotal += contextTokens;
-		state.contextSamples += 1;
-	}
-	state.maxContextTokens = Math.max(state.maxContextTokens, contextTokens, maxContextTokens);
-	addToMap(state.tokensByModel, key, tokens);
-	addToMap(state.costByModel, key, cost);
-	state.modelsUsed.add(key);
 }
 
 function cleanTitle(value: string): string {
@@ -450,7 +274,7 @@ function humanizeSlug(value: string): string {
 	);
 }
 
-function deriveFallbackTitle(state: SessionParseState): string | null {
+function deriveFallbackTitle(state: Pick<ParsedPiSessionTelemetry, "firstUserText" | "cwd" | "filePath">): string | null {
 	if (state.firstUserText) return summarizeUserText(state.firstUserText, inferGitHubRepoFromPath(state.cwd));
 	if (state.cwd) return humanizeSlug(basename(state.cwd));
 	const title = humanizeSlug(basename(state.filePath));
@@ -469,169 +293,17 @@ function inferWorkflowType(session: ParsedSession): string {
 }
 
 export function parseSessionStartFromFilename(name: string): Date | null {
-	const match = name.match(/^(\d{4}-\d{2}-\d{2})T(\d{2})-(\d{2})-(\d{2})-(\d{3})Z_/);
-	if (!match) return null;
-	const date = new Date(`${match[1]}T${match[2]}:${match[3]}:${match[4]}.${match[5]}Z`);
-	return Number.isFinite(date.getTime()) ? date : null;
+	return parsePiSessionStartFromFilename(name);
 }
 
-function parseSessionIdFromFilename(name: string): string | null {
-	const match = name.match(/^\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}-\d{3}Z_(.+)\.jsonl$/);
-	return match?.[1] ?? null;
-}
-
-export function parseSessionLines(content: string, filePath = "session.jsonl"): ParsedSession | null {
-	const state = createSessionParseState(filePath);
-	for (const line of content.split(/\r?\n/)) {
-		parseSessionLine(state, line);
-	}
-	return finalizeSessionParseState(state);
-}
-
-function createSessionParseState(filePath: string): SessionParseState {
-	return {
-		filePath,
-		sessionId: parseSessionIdFromFilename(basename(filePath)),
-		title: null,
-		repo: null,
-		firstUserText: null,
-		startedAt: parseSessionStartFromFilename(basename(filePath)),
-		cwd: null,
-		currentModel: null,
-		usesUsageLedger: false,
-		entryModels: new Map(),
-		usageRecords: [],
-		messages: 0,
-		tokens: 0,
-		totalCost: 0,
-		estimatedCost: 0,
-		cacheReadTokens: 0,
-		cacheWriteTokens: 0,
-		inputTokens: 0,
-		outputTokens: 0,
-		contextTokensTotal: 0,
-		contextSamples: 0,
-		maxContextTokens: 0,
-		skippedLines: 0,
-		modelsUsed: new Set(),
-		messagesByModel: new Map(),
-		tokensByModel: new Map(),
-		costByModel: new Map(),
-	};
-}
-
-function parseSessionLine(state: SessionParseState, line: string): void {
-	if (!line.trim()) return;
-	let entry: any;
-	try {
-		entry = JSON.parse(line);
-	} catch {
-		state.skippedLines += 1;
-		return;
-	}
-
-	if (entry?.kind === "header" && entry?.version === 4) {
-		state.usesUsageLedger = true;
-		if (typeof entry.id === "string" && entry.id.trim()) state.sessionId = entry.id.trim();
-		if (!state.startedAt && Number.isSafeInteger(entry.createdAt)) {
-			const date = new Date(entry.createdAt);
-			if (Number.isFinite(date.getTime())) state.startedAt = date;
-		}
-		if (typeof entry.cwd === "string" && entry.cwd.trim()) {
-			state.cwd = entry.cwd.trim();
-			state.repo = inferGitHubRepoFromPath(state.cwd);
-		}
-		return;
-	}
-
-	if (entry?.type === "session") {
-		if (typeof entry.id === "string" && entry.id.trim()) state.sessionId = entry.id.trim();
-		if (!state.startedAt && typeof entry.timestamp === "string") {
-			const date = new Date(entry.timestamp);
-			if (Number.isFinite(date.getTime())) state.startedAt = date;
-		}
-		if (typeof entry.cwd === "string" && entry.cwd.trim()) {
-			state.cwd = entry.cwd.trim();
-			state.repo = inferGitHubRepoFromPath(state.cwd);
-		}
-		return;
-	}
-
-	if (entry?.type === "session_info" || (entry?.kind === "fact" && entry?.fact === "name")) {
-		if (typeof entry.name === "string" && entry.name.trim()) state.title = summarizeUserText(entry.name, inferGitHubRepoFromPath(state.cwd));
-		return;
-	}
-
-	if (entry?.type === "model_change") {
-		const key = modelKey(entry.provider, entry.modelId ?? entry.model);
-		if (key) {
-			state.currentModel = key;
-			state.modelsUsed.add(key);
-		}
-		return;
-	}
-
-	if (entry?.kind === "record" && entry?.type === "usage") {
-		state.usageRecords.push({ cause: String(entry.cause ?? "unknown"), entryId: entry.entryId, usage: entry.usage });
-		return;
-	}
-
-	if (!state.usesUsageLedger && (entry?.type === "compaction" || entry?.type === "branch_summary") && entry?.usage) {
-		addReportedUsage(state, "Tools/summaries", entry.usage);
-		return;
-	}
-
-	if (entry?.type !== "message") return;
-	const fields = extractMessageFields(entry);
-	if (!state.firstUserText && entry?.message?.role === "user") state.firstUserText = extractTextContent(entry.message.content);
-	const key = modelKeyFromFields(fields.provider, fields.model, fields.modelId) ?? state.currentModel ?? "unknown";
-	if (typeof entry.id === "string") state.entryModels.set(entry.id, key);
-	const entryTokens = state.usesUsageLedger ? 0 : extractTokens(fields.usage);
-	const reportedCost = state.usesUsageLedger ? 0 : extractCost(fields.usage);
-	const estimatedCost = state.usesUsageLedger || reportedCost > 0 ? 0 : estimateMarketCost(key, fields.usage);
-	const entryCost = reportedCost || estimatedCost;
-	const cacheReadTokens = state.usesUsageLedger ? 0 : extractCacheReadTokens(fields.usage);
-	const cacheWriteTokens = state.usesUsageLedger ? 0 : extractCacheWriteTokens(fields.usage);
-	const inputTokens = state.usesUsageLedger ? 0 : extractInputTokens(fields.usage);
-	const outputTokens = state.usesUsageLedger ? 0 : extractOutputTokens(fields.usage);
-	const contextTokens = state.usesUsageLedger ? 0 : extractContextTokens(fields.usage);
-	const maxContextTokens = state.usesUsageLedger ? 0 : extractMaxContextTokens(fields.usage);
-
-	state.messages += 1;
-	state.tokens += entryTokens;
-	state.totalCost += entryCost;
-	state.estimatedCost += estimatedCost;
-	state.cacheReadTokens += cacheReadTokens;
-	state.cacheWriteTokens += cacheWriteTokens;
-	state.inputTokens += inputTokens;
-	state.outputTokens += outputTokens;
-	if (contextTokens > 0) {
-		state.contextTokensTotal += contextTokens;
-		state.contextSamples += 1;
-	}
-	state.maxContextTokens = Math.max(state.maxContextTokens, contextTokens, maxContextTokens);
-	state.modelsUsed.add(key);
-	addToMap(state.messagesByModel, key, 1);
-	addToMap(state.tokensByModel, key, entryTokens);
-	addToMap(state.costByModel, key, entryCost);
-}
-
-function finalizeSessionParseState(state: SessionParseState): ParsedSession | null {
-	if (state.usesUsageLedger) {
-		for (const record of state.usageRecords) {
-			const key =
-				record.cause === "assistant" || record.cause === "deferred_fetch"
-					? (record.entryId && state.entryModels.get(record.entryId)) ?? "unknown"
-					: "Tools/summaries";
-			addReportedUsage(state, key, record.usage);
-		}
-	}
+function toBreakdownSession(state: ParsedPiSessionTelemetry): ParsedSession | null {
 	if (!state.startedAt) return null;
+	const repo = inferGitHubRepoFromPath(state.cwd);
 	return {
 		filePath: state.filePath,
 		sessionId: state.sessionId,
-		title: state.title ?? deriveFallbackTitle(state),
-		repo: state.repo,
+		title: state.name ? summarizeUserText(state.name, repo) : deriveFallbackTitle(state),
+		repo,
 		startedAt: state.startedAt,
 		dayKey: toDayKey(state.startedAt),
 		cwd: state.cwd,
@@ -654,16 +326,20 @@ function finalizeSessionParseState(state: SessionParseState): ParsedSession | nu
 	};
 }
 
+export function parseSessionLines(content: string, filePath = "session.jsonl"): ParsedSession | null {
+	return toBreakdownSession(parsePiSessionLines(content, filePath));
+}
+
 async function parseSessionFile(filePath: string, signal?: AbortSignal): Promise<{ session: ParsedSession | null; skippedLines: number; error?: string }> {
-	const state = createSessionParseState(filePath);
+	const state = createPiSessionParseState(filePath);
 	const stream = createReadStream(filePath, { encoding: "utf8" });
 	const reader = createInterface({ input: stream, crlfDelay: Infinity });
 	try {
 		for await (const line of reader) {
 			if (signal?.aborted) return { session: null, skippedLines: state.skippedLines };
-			parseSessionLine(state, line);
+			parsePiSessionLine(state, line);
 		}
-		const session = finalizeSessionParseState(state);
+		const session = toBreakdownSession(finalizePiSessionParseState(state));
 		if (session?.cwd) {
 			try {
 				session.cwdGroup = await resolveCanonicalDirectoryGroup(session.cwd);
