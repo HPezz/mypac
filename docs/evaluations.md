@@ -23,11 +23,17 @@ Manifests are JSON validated against the shape in [`schemas/pac-eval-manifest.sc
       "model": "provider/exact-model-id",
       "thinking": "high",
       "workflow": "/pac-lwot",
+      "execution": {
+        "tools": ["read", "bash", "edit", "write", "grep", "find", "ls"]
+      },
       "package": {
         "path": "/path/to/mypac",
         "ref": "candidate-ref",
-        "prompts": true,
-        "skills": true
+        "resources": {
+          "prompts": ["prompts"],
+          "skills": ["skills"],
+          "extensions": ["extensions/shared-append-system/index.ts"]
+        }
       }
     }
   ],
@@ -45,7 +51,9 @@ Manifests are JSON validated against the shape in [`schemas/pac-eval-manifest.sc
 }
 ```
 
-`repository.ref` is resolved once before matrix execution, so every profile starts at the same target SHA. A profile's optional package is cloned independently at its own immutable resolved ref; only its prompts and/or skills can be loaded. Profiles cannot enable extensions or shell tools.
+`repository.ref` and every profile package ref are resolved to commit SHAs before any child starts, so every profile receives stable target and package inputs. A profile's optional package is cloned independently at its resolved SHA. Package resources are package-relative allowlists: only the named prompt, skill, and extension files or directories are loaded.
+
+Without `execution`, Pi receives the restricted `read`, `edit`, `write`, `grep`, `find`, and `ls` tools. Trusted implementation evaluations can opt into an explicit built-in-tool allowlist, including `bash`, as shown above. Selected extensions remain subject to the same tool allowlist; extension discovery stays disabled.
 
 ## Commands
 
@@ -65,6 +73,8 @@ The execution plan is printed before launch. Each run retains `result.json`, Pi 
 
 ## Safety boundary
 
-The Pi child receives only `read`, `edit`, `write`, `grep`, `find`, and `ls`; extension discovery is disabled, Git remotes are removed, common publication credentials are stripped, and Pi runs in the disposable clone. Verification commands are trusted manifest input and run directly without a shell. The runner never pushes, publishes, merges, or calls GitHub.
+The safe default gives the Pi child only `read`, `edit`, `write`, `grep`, `find`, and `ls`, with extension discovery disabled. Elevated tools and selected package resources are explicit trusted-evaluation policy, not defaults.
+
+Every child receives a disposable HOME and Pi config directory. The runner copies only Pi authentication/model-catalog files needed for model access, then deletes that config after the run; maintainer GitHub/npm/SSH config and credentials are not inherited. Git remotes are removed, common publication credentials are stripped, and a local disposable Git identity is configured for implementation commits. Verification commands are trusted manifest input and run directly without a shell. The runner itself never pushes, publishes, merges, or calls GitHub.
 
 A run is normalized as `passed`, `child_failed`, `timed_out`, `configuration_mismatch`, `verification_failed`, or `runner_error`. Actual provider/model and clamped thinking are read from Pi's retained session entries and compared with the requested profile.

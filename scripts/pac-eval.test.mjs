@@ -28,7 +28,12 @@ function validManifest(repository, outputDirectory) {
         model: "openai-codex/gpt-5.4",
         thinking: "high",
         workflow: "/pac-lwot",
-        package: { path: repository, ref: "HEAD", prompts: true, skills: true },
+        execution: { tools: ["read", "bash", "edit", "write", "grep", "find", "ls"] },
+        package: {
+          path: repository,
+          ref: "HEAD",
+          resources: { prompts: ["prompts"], skills: ["skills"] },
+        },
       },
     ],
     scenarios: [
@@ -51,6 +56,14 @@ test("manifest validation rejects unsupported thinking levels and unsafe artifac
   manifest.profiles[0].thinking = "medium";
   manifest.scenarios[0].artifacts = ["../secret"];
   assert.throws(() => parseManifest(manifest), /must stay inside/);
+
+  manifest.scenarios[0].artifacts = [];
+  manifest.profiles[1].execution.tools = ["bash", "publish"];
+  assert.throws(() => parseManifest(manifest), /unsupported built-in tool publish/);
+
+  manifest.profiles[1].execution.tools = ["bash"];
+  manifest.profiles[1].package.resources.extensions = ["../host-extension.ts"];
+  assert.throws(() => parseManifest(manifest), /must stay inside the resolved package/);
 });
 
 test("pinned Pi invocation uses JSON mode, explicit model/thinking, a fresh session directory, and safe tools", () => {
@@ -75,6 +88,45 @@ test("pinned Pi invocation uses JSON mode, explicit model/thinking, a fresh sess
     "--approve",
     "--",
     "/pac-lwot Change one file.",
+  ]);
+});
+
+test("trusted implementation policy explicitly enables bash and selected package resources", () => {
+  const invocation = buildPiInvocation(
+    {
+      id: "implementation",
+      model: "openai-codex/gpt-5.4",
+      thinking: "high",
+      execution: { tools: ["read", "bash", "edit", "write", "grep", "find", "ls"] },
+      package: {
+        path: "/source/mypac",
+        ref: "candidate",
+        resources: {
+          prompts: ["prompts"],
+          skills: ["skills/pac-tdd"],
+          extensions: ["extensions/shared-append-system/index.ts"],
+        },
+      },
+    },
+    "/tmp/session",
+    "Implement the change.",
+    "/tmp/package",
+  );
+
+  assert.deepEqual(invocation.args.slice(1), [
+    "--mode", "json",
+    "--model", "openai-codex/gpt-5.4",
+    "--thinking", "high",
+    "--session-dir", "/tmp/session",
+    "--tools", "read,bash,edit,write,grep,find,ls",
+    "--no-extensions",
+    "--no-skills",
+    "--no-prompt-templates",
+    "--no-themes",
+    "--skill", "/tmp/package/skills/pac-tdd",
+    "--prompt-template", "/tmp/package/prompts",
+    "--extension", "/tmp/package/extensions/shared-append-system/index.ts",
+    "--approve", "--", "Implement the change.",
   ]);
 });
 
@@ -112,6 +164,9 @@ test("dry-run validates and previews the expanded matrix without launching Pi", 
       },
     ],
   );
+  assert.deepEqual(preview.runs[0].tools, ["read", "edit", "write", "grep", "find", "ls"]);
+  assert.deepEqual(preview.runs[1].tools, ["read", "bash", "edit", "write", "grep", "find", "ls"]);
+  assert.deepEqual(preview.runs[1].packageResources, { prompts: ["prompts"], skills: ["skills"] });
   assert.equal(preview.outputDirectory, outputDirectory);
 });
 
@@ -128,6 +183,7 @@ async function initializeRepository(path) {
 
 async function writeFakePi(path) {
   await writeFile(path, `
+import { existsSync } from "node:fs";
 import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 const args = process.argv.slice(2);
@@ -145,7 +201,11 @@ await writeFile(join(sessionDir, "session.jsonl"), [
 ].join("\\n") + "\\n");
 await writeFile("implementation.txt", "changed\\n");
 await writeFile("result.txt", "artifact\\n");
-console.log("fake pi stdout");
+console.log("fake pi stdout", JSON.stringify({
+  home: process.env.HOME,
+  agentDirectory: process.env.PI_CODING_AGENT_DIR,
+  authCopied: existsSync(join(process.env.PI_CODING_AGENT_DIR, "auth.json")),
+}));
 console.error("fake pi stderr");
 if (process.env.FAKE_TIMEOUT === "1") await new Promise((resolve) => setTimeout(resolve, 10_000));
 if (process.env.FAKE_FAILURE === "1") process.exitCode = 7;
@@ -158,6 +218,9 @@ test("execution isolates the checkout, verifies externally, and retains normaliz
   const baseSha = await initializeRepository(repository);
   const fakePi = join(directory, "fake-pi.mjs");
   await writeFakePi(fakePi);
+  const agentDirectory = join(directory, "maintainer-agent");
+  await mkdir(agentDirectory);
+  await writeFile(join(agentDirectory, "auth.json"), "{}\n");
   const manifest = validManifest(repository, join(directory, "eval-output"));
   manifest.profiles = [manifest.profiles[0]];
   manifest.scenarios[0].verify = [{
@@ -168,6 +231,7 @@ test("execution isolates the checkout, verifies externally, and retains normaliz
 
   const results = await runEvaluation(manifest, {
     piCommand: { command: process.execPath, leadingArgs: [fakePi] },
+    agentDirectory,
   });
   const result = results[0];
 
@@ -175,6 +239,10 @@ test("execution isolates the checkout, verifies externally, and retains normaliz
   assert.equal(result.piVersion, "0.84.3");
   assert.equal(PINNED_PI_VERSION, "0.84.3");
   assert.equal(result.repository.baseSha, baseSha);
+  assert.deepEqual(result.executionPolicy, {
+    tools: ["read", "edit", "write", "grep", "find", "ls"],
+    packageResources: {},
+  });
   assert.deepEqual(result.actualConfiguration, {
     provider: "openai-codex",
     model: "gpt-5.4",
@@ -184,11 +252,17 @@ test("execution isolates the checkout, verifies externally, and retains normaliz
   assert.deepEqual(result.git.changedFiles, ["implementation.txt", "result.txt"]);
   assert.match(await readFile(join(manifest.outputDirectory, result.git.diffPath), "utf8"), /changed/);
   assert.equal(result.verification[0].status, "passed");
-  assert.match(await readFile(join(manifest.outputDirectory, result.paths.stdout), "utf8"), /fake pi stdout/);
+  const stdout = await readFile(join(manifest.outputDirectory, result.paths.stdout), "utf8");
+  assert.match(stdout, /fake pi stdout/);
+  assert.match(stdout, /"authCopied":true/);
+  assert.doesNotMatch(stdout, new RegExp(`"home":"${process.env.HOME}"`));
   assert.match(await readFile(join(manifest.outputDirectory, result.paths.stderr), "utf8"), /fake pi stderr/);
   assert.equal(await readFile(join(manifest.outputDirectory, result.artifacts[0]), "utf8"), "artifact\n");
   await assert.rejects(access(join(repository, "implementation.txt")));
-  await assert.rejects(access(join(manifest.outputDirectory, "runs", "narrow-change", "control", "repository")));
+  const retainedRunDirectory = join(manifest.outputDirectory, "runs", "narrow-change", "control");
+  await assert.rejects(access(join(retainedRunDirectory, "repository")));
+  await assert.rejects(access(join(retainedRunDirectory, "home")));
+  await assert.rejects(access(join(retainedRunDirectory, "agent-config")));
 });
 
 test("failed, timed-out, mismatched, and verification-failed children retain normalized results", async () => {

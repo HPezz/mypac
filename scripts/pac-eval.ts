@@ -7,15 +7,22 @@ import { dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const THINKING_LEVELS = new Set(["off", "minimal", "low", "medium", "high", "xhigh", "max"]);
+const BUILT_IN_TOOLS = new Set(["read", "bash", "powershell", "edit", "write", "grep", "find", "ls"]);
+const DEFAULT_TOOLS = ["read", "edit", "write", "grep", "find", "ls"];
 const ID_PATTERN = /^[a-z0-9][a-z0-9._-]*$/;
 
 type JsonObject = Record<string, unknown>;
 
+export interface PackageResources {
+  prompts?: string[];
+  skills?: string[];
+  extensions?: string[];
+}
+
 export interface PackageConfig {
   path: string;
   ref: string;
-  prompts?: boolean;
-  skills?: boolean;
+  resources?: PackageResources;
 }
 
 export interface EvalProfile {
@@ -23,6 +30,7 @@ export interface EvalProfile {
   model: string;
   thinking: string;
   workflow?: string;
+  execution?: { tools: string[] };
   package?: PackageConfig;
 }
 
@@ -76,6 +84,8 @@ export interface RunResult {
   status: "passed" | "child_failed" | "timed_out" | "configuration_mismatch" | "verification_failed" | "runner_error";
   piVersion: string;
   requestedConfiguration: { model: string; thinking: string };
+  executionPolicy: { tools: string[]; packageResources: PackageResources };
+  package: { source: string; ref: string; sha: string } | null;
   actualConfiguration: { provider: string; model: string; thinking: string } | null;
   configurationMatched: boolean;
   repository: { source: string; ref: string; baseSha: string };
@@ -92,6 +102,7 @@ export interface RunResult {
 export interface EvaluationDependencies {
   piCommand?: { command: string; leadingArgs?: string[] };
   environment?: NodeJS.ProcessEnv;
+  agentDirectory?: string;
 }
 
 function object(value: unknown, path: string): JsonObject {
@@ -112,12 +123,6 @@ function id(value: unknown, path: string): string {
   return parsed;
 }
 
-function optionalBoolean(value: unknown, path: string): boolean | undefined {
-  if (value === undefined) return undefined;
-  if (typeof value !== "boolean") throw new Error(`${path} must be a boolean`);
-  return value;
-}
-
 function optionalTimeout(value: unknown, path: string): number | undefined {
   if (value === undefined) return undefined;
   if (!Number.isSafeInteger(value) || (value as number) <= 0) throw new Error(`${path} must be a positive integer`);
@@ -129,14 +134,42 @@ function stringArray(value: unknown, path: string): string[] {
   return value.map((item, index) => string(item, `${path}[${index}]`));
 }
 
+function safeRelativePaths(value: unknown, path: string): string[] {
+  return stringArray(value, path).map((item, index) => {
+    if (isAbsolute(item) || item.split(/[\\/]/).includes("..")) {
+      throw new Error(`${path}[${index}] must stay inside the resolved package`);
+    }
+    return item;
+  });
+}
+
+function packageResources(value: unknown, path: string): PackageResources {
+  const parsed = object(value, path);
+  return {
+    prompts: parsed.prompts === undefined ? undefined : safeRelativePaths(parsed.prompts, `${path}.prompts`),
+    skills: parsed.skills === undefined ? undefined : safeRelativePaths(parsed.skills, `${path}.skills`),
+    extensions: parsed.extensions === undefined ? undefined : safeRelativePaths(parsed.extensions, `${path}.extensions`),
+  };
+}
+
 function packageConfig(value: unknown, path: string): PackageConfig {
   const parsed = object(value, path);
   return {
     path: string(parsed.path, `${path}.path`),
     ref: string(parsed.ref, `${path}.ref`),
-    prompts: optionalBoolean(parsed.prompts, `${path}.prompts`),
-    skills: optionalBoolean(parsed.skills, `${path}.skills`),
+    resources: parsed.resources === undefined ? undefined : packageResources(parsed.resources, `${path}.resources`),
   };
+}
+
+function executionPolicy(value: unknown, path: string): { tools: string[] } {
+  const parsed = object(value, path);
+  const tools = stringArray(parsed.tools, `${path}.tools`);
+  if (tools.length === 0) throw new Error(`${path}.tools must not be empty`);
+  for (const tool of tools) {
+    if (!BUILT_IN_TOOLS.has(tool)) throw new Error(`${path}.tools contains unsupported built-in tool ${tool}`);
+  }
+  if (new Set(tools).size !== tools.length) throw new Error(`${path}.tools must not contain duplicates`);
+  return { tools };
 }
 
 function profile(value: unknown, index: number): EvalProfile {
@@ -153,6 +186,7 @@ function profile(value: unknown, index: number): EvalProfile {
     })(),
     thinking,
     workflow: parsed.workflow === undefined ? undefined : string(parsed.workflow, `${path}.workflow`),
+    execution: parsed.execution === undefined ? undefined : executionPolicy(parsed.execution, `${path}.execution`),
     package: parsed.package === undefined ? undefined : packageConfig(parsed.package, `${path}.package`),
   };
 }
@@ -243,6 +277,8 @@ export function previewManifest(manifest: EvalManifest) {
       profileId: profile.id,
       model: profile.model,
       thinking: profile.thinking,
+      tools: profile.execution?.tools ?? DEFAULT_TOOLS,
+      packageResources: profile.package?.resources ?? {},
     })),
     outputDirectory: manifest.outputDirectory,
   };
@@ -251,8 +287,6 @@ export function previewManifest(manifest: EvalManifest) {
 const PINNED_PI_PACKAGE_URL = new URL("../node_modules/@earendil-works/pi-coding-agent/package.json", import.meta.url);
 const PINNED_PI_CLI = fileURLToPath(new URL("./dist/bundle/cli.js", PINNED_PI_PACKAGE_URL));
 export const PINNED_PI_VERSION = (JSON.parse(readFileSync(PINNED_PI_PACKAGE_URL, "utf8")) as { version: string }).version;
-const SAFE_PI_TOOLS = "read,edit,write,grep,find,ls";
-
 export function buildPiInvocation(
   profile: EvalProfile,
   sessionDirectory: string,
@@ -265,14 +299,18 @@ export function buildPiInvocation(
     "--model", profile.model,
     "--thinking", profile.thinking,
     "--session-dir", sessionDirectory,
-    "--tools", SAFE_PI_TOOLS,
+    "--tools", (profile.execution?.tools ?? DEFAULT_TOOLS).join(","),
     "--no-extensions",
     "--no-skills",
     "--no-prompt-templates",
     "--no-themes",
   ];
-  if (packageDirectory && profile.package?.skills) args.push("--skill", join(packageDirectory, "skills"));
-  if (packageDirectory && profile.package?.prompts) args.push("--prompt-template", join(packageDirectory, "prompts"));
+  if (packageDirectory) {
+    const resources = profile.package?.resources;
+    for (const path of resources?.skills ?? []) args.push("--skill", join(packageDirectory, path));
+    for (const path of resources?.prompts ?? []) args.push("--prompt-template", join(packageDirectory, path));
+    for (const path of resources?.extensions ?? []) args.push("--extension", join(packageDirectory, path));
+  }
   args.push("--approve", "--", profile.workflow ? `${profile.workflow} ${prompt}` : prompt);
   return { command: process.execPath, args };
 }
@@ -322,17 +360,57 @@ async function requireGit(cwd: string, args: string[], description: string): Pro
   return result.stdout.trim();
 }
 
-function safeChildEnvironment(overrides?: NodeJS.ProcessEnv): NodeJS.ProcessEnv {
+function safeChildEnvironment(
+  homeDirectory: string,
+  agentDirectory: string,
+  overrides?: NodeJS.ProcessEnv,
+): NodeJS.ProcessEnv {
   const env = { ...process.env, ...overrides };
-  for (const name of ["GH_TOKEN", "GITHUB_TOKEN", "GITLAB_TOKEN", "NPM_TOKEN", "NODE_AUTH_TOKEN", "SSH_AUTH_SOCK"]) {
+  for (const name of [
+    "GH_TOKEN",
+    "GH_ENTERPRISE_TOKEN",
+    "GITHUB_TOKEN",
+    "GITLAB_TOKEN",
+    "NPM_TOKEN",
+    "NODE_AUTH_TOKEN",
+    "SSH_AUTH_SOCK",
+    "SSH_ASKPASS",
+    "GIT_ASKPASS",
+    "GIT_CONFIG_GLOBAL",
+    "GIT_CONFIG_SYSTEM",
+  ]) {
     delete env[name];
   }
   return {
     ...env,
+    HOME: homeDirectory,
+    XDG_CACHE_HOME: join(homeDirectory, ".cache"),
+    XDG_CONFIG_HOME: join(homeDirectory, ".config"),
+    XDG_DATA_HOME: join(homeDirectory, ".local", "share"),
+    NPM_CONFIG_USERCONFIG: join(homeDirectory, ".npmrc"),
+    PI_CODING_AGENT_DIR: agentDirectory,
     CI: "1",
+    GIT_CONFIG_NOSYSTEM: "1",
     GIT_TERMINAL_PROMPT: "0",
     PI_SKIP_VERSION_CHECK: "1",
   };
+}
+
+async function prepareIsolatedUserState(
+  runDirectory: string,
+  sourceAgentDirectory: string,
+): Promise<{ homeDirectory: string; agentDirectory: string }> {
+  const homeDirectory = join(runDirectory, "home");
+  const agentDirectory = join(runDirectory, "agent-config");
+  await mkdir(agentDirectory, { recursive: true });
+  await mkdir(homeDirectory, { recursive: true });
+  await writeFile(join(homeDirectory, ".npmrc"), "");
+  for (const file of ["auth.json", "models.json", "models-store.json"]) {
+    try {
+      await cp(join(sourceAgentDirectory, file), join(agentDirectory, file));
+    } catch { /* Optional Pi authentication/catalog files may be absent. */ }
+  }
+  return { homeDirectory, agentDirectory };
 }
 
 async function cloneAt(source: string, sha: string, destination: string): Promise<void> {
@@ -341,6 +419,8 @@ async function cloneAt(source: string, sha: string, destination: string): Promis
   const clone = await git(parent, ["clone", "--quiet", "--no-hardlinks", "--no-checkout", source, destination]);
   if (clone.exitCode !== 0) throw new Error(`git clone failed: ${clone.stderr.trim()}`);
   await requireGit(destination, ["checkout", "--quiet", "--detach", sha], "git checkout failed");
+  await requireGit(destination, ["config", "user.name", "Pi Evaluation"], "cannot set disposable Git identity");
+  await requireGit(destination, ["config", "user.email", "pi-evaluation@localhost"], "cannot set disposable Git identity");
   const remotes = await requireGit(destination, ["remote"], "git remote failed");
   for (const remote of remotes.split("\n").filter(Boolean)) {
     await requireGit(destination, ["remote", "remove", remote], `cannot remove git remote ${remote}`);
@@ -403,6 +483,7 @@ async function executeRun(
   manifest: EvalManifest,
   matrixRun: MatrixRun,
   baseSha: string,
+  packageSha: string | undefined,
   dependencies: EvaluationDependencies,
 ): Promise<RunResult> {
   const { scenario, profile } = matrixRun;
@@ -410,6 +491,11 @@ async function executeRun(
   const runDirectory = join(manifest.outputDirectory, runRelative);
   const repositoryDirectory = join(runDirectory, "repository");
   const sessionDirectory = join(runDirectory, "session");
+  const sourceAgentDirectory = resolve(
+    dependencies.agentDirectory ?? process.env.PI_CODING_AGENT_DIR ?? join(homedir(), ".pi", "agent"),
+  );
+  const { homeDirectory, agentDirectory } = await prepareIsolatedUserState(runDirectory, sourceAgentDirectory);
+  const childEnvironment = safeChildEnvironment(homeDirectory, agentDirectory, dependencies.environment);
   const startedAt = new Date().toISOString();
   await mkdir(runDirectory, { recursive: true });
 
@@ -425,8 +511,7 @@ async function executeRun(
 
   try {
     await cloneAt(manifest.repository.path, baseSha, repositoryDirectory);
-    if (profile.package) {
-      const packageSha = await requireGit(profile.package.path, ["rev-parse", `${profile.package.ref}^{commit}`], "cannot resolve package ref");
+    if (profile.package && packageSha) {
       packageDirectory = join(runDirectory, "package");
       await cloneAt(profile.package.path, packageSha, packageDirectory);
     }
@@ -437,7 +522,7 @@ async function executeRun(
       : invocation;
     child = await runProcess(command.command, command.args, {
       cwd: repositoryDirectory,
-      env: safeChildEnvironment(dependencies.environment),
+      env: childEnvironment,
       timeoutMs: scenario.timeoutMs,
     });
     await writeFile(join(runDirectory, "stdout.log"), child.stdout);
@@ -447,7 +532,7 @@ async function executeRun(
     for (const [index, check] of (scenario.verify ?? []).entries()) {
       const outcome = await runProcess(check.command, check.args ?? [], {
         cwd: repositoryDirectory,
-        env: safeChildEnvironment(dependencies.environment),
+        env: childEnvironment,
         timeoutMs: check.timeoutMs,
       });
       await writeFile(join(runDirectory, `verification-${index}.stdout.log`), outcome.stdout);
@@ -503,6 +588,13 @@ async function executeRun(
     status,
     piVersion: PINNED_PI_VERSION,
     requestedConfiguration: { model: profile.model, thinking: profile.thinking },
+    executionPolicy: {
+      tools: profile.execution?.tools ?? DEFAULT_TOOLS,
+      packageResources: profile.package?.resources ?? {},
+    },
+    package: profile.package && packageSha
+      ? { source: profile.package.path, ref: profile.package.ref, sha: packageSha }
+      : null,
     actualConfiguration: actual,
     configurationMatched,
     repository: { source: manifest.repository.path, ref: manifest.repository.ref, baseSha },
@@ -533,6 +625,8 @@ async function executeRun(
   await writeFile(join(runDirectory, "result.json"), `${JSON.stringify(result, null, 2)}\n`);
   await rm(repositoryDirectory, { recursive: true, force: true });
   if (packageDirectory) await rm(packageDirectory, { recursive: true, force: true });
+  await rm(homeDirectory, { recursive: true, force: true });
+  await rm(agentDirectory, { recursive: true, force: true });
   return result;
 }
 
@@ -544,11 +638,19 @@ export async function runEvaluation(
     throw new Error("Evaluation output directory must be outside the target repository and invoking checkout");
   }
   const baseSha = await requireGit(manifest.repository.path, ["rev-parse", `${manifest.repository.ref}^{commit}`], "cannot resolve repository ref");
+  const packageShas = new Map<string, string>();
+  for (const profile of manifest.profiles) {
+    if (!profile.package) continue;
+    packageShas.set(
+      profile.id,
+      await requireGit(profile.package.path, ["rev-parse", `${profile.package.ref}^{commit}`], `cannot resolve package ref for ${profile.id}`),
+    );
+  }
   await mkdir(manifest.outputDirectory, { recursive: true });
   await writeFile(join(manifest.outputDirectory, "manifest.json"), `${JSON.stringify(manifest, null, 2)}\n`);
   const results: RunResult[] = [];
   for (const matrixRun of expandMatrix(manifest)) {
-    results.push(await executeRun(manifest, matrixRun, baseSha, dependencies));
+    results.push(await executeRun(manifest, matrixRun, baseSha, packageShas.get(matrixRun.profile.id), dependencies));
   }
   return results;
 }
