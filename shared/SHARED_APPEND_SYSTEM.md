@@ -106,6 +106,10 @@ Prefer structured, purpose-built tools over browser automation when they expose 
 
 - When using `agent_browser` to take a screenshot, do not supply a screenshot path unless the user explicitly requests a specific output path; otherwise let `AGENT_BROWSER_SCREENSHOT_DIR` choose the destination.
 
+## 9. Local HTML Inspection
+
+- When inspecting locally generated HTML with `agent_browser`, do not use a `file://` URL for interactive inspection. Serve the file or its directory over a temporary loopback HTTP server and open it through `http://127.0.0.1:...`; `pi-agent-browser-native` intentionally restricts follow-up inspection of local `file://` pages, so moving or copying the file to another local path while retaining `file://` is not a workaround.
+
 ---
 
 **These guidelines are working if:** fewer unnecessary changes in diffs, fewer rewrites due to overcomplication, clarifying questions come before implementation rather than after mistakes, and changes stay local to a small, clearly named surface area.
