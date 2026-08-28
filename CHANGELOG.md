@@ -44,6 +44,8 @@ Versioned sections should match the Git tags and GitHub releases published for t
 
 ### Removed
 
+- Retired completed Phase 1/2 model-comparison campaign fixtures after confirming the generic `pac-eval` harness already owns their reusable execution, configuration, matrix, and reporting invariants. ([#391](https://github.com/ladislas/mypac/issues/391))
+
 - Removed the unused `/commit` extension; `pac-commit` remains the canonical commit workflow. ([#347](https://github.com/ladislas/mypac/issues/347))
 - Removed OpenSpec prompts, skills, docs, and artifacts in favor of the GitHub-native planning workflow, and kept `/pac-explore` as a non-OpenSpec discovery mode. ([#216](https://github.com/ladislas/mypac/issues/216))
 
