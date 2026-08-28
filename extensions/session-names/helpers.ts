@@ -22,12 +22,12 @@ function truncate(input: string, maxLength: number): string {
 }
 
 function normalizeGithubReference(input: string): string | null {
-	const issueMatch = input.match(/^https?:\/\/github\.com\/[^/]+\/[^/]+\/issues\/(\d+)(?:[/?#].*)?$/i);
+	const issueMatch = input.match(/^https?:\/\/github\.com\/[^/\s]+\/[^/\s]+\/issues\/(\d+)(?=$|[/?#\s])/i);
 	if (issueMatch) {
 		return `issue #${issueMatch[1]}`;
 	}
 
-	const prMatch = input.match(/^https?:\/\/github\.com\/[^/]+\/[^/]+\/pull\/(\d+)(?:[/?#].*)?$/i);
+	const prMatch = input.match(/^https?:\/\/github\.com\/[^/\s]+\/[^/\s]+\/pull\/(\d+)(?=$|[/?#\s])/i);
 	if (prMatch) {
 		return `PR #${prMatch[1]}`;
 	}
