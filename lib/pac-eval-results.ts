@@ -214,7 +214,7 @@ function runCard(run: CanonicalRunResult): string {
       <dt>Output tokens</dt><dd>${formatNumber(run.telemetry.tokens.output)}</dd>
       <dt>Cache tokens</dt><dd>read ${formatNumber(run.telemetry.tokens.cacheRead)} · write ${formatNumber(run.telemetry.tokens.cacheWrite)}</dd>
       <dt>Total tokens</dt><dd>${formatNumber(run.telemetry.tokens.total)}</dd>
-      <dt>Context peak / max</dt><dd>${formatNumber(run.telemetry.context.peak)} / ${formatNumber(run.telemetry.context.max)}</dd>
+      <dt>Context initial / peak / final / max</dt><dd>${formatNumber(run.telemetry.context.initial)} / ${formatNumber(run.telemetry.context.peak)} / ${formatNumber(run.telemetry.context.final)} / ${formatNumber(run.telemetry.context.max)}</dd>
       <dt>Cost</dt><dd>${escapeHtml(formatCost(run))}</dd>
       <dt>Child duration</dt><dd>${escapeHtml(formatDuration(run.child.durationMs))}</dd>
       <dt>Changed files</dt><dd>${run.git.changedFiles.length ? run.git.changedFiles.map(escapeHtml).join("<br>") : "None"}</dd>

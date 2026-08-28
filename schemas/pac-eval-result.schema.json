@@ -197,10 +197,12 @@
         "context": {
           "type": "object",
           "additionalProperties": false,
-          "required": ["samples", "peak", "max"],
+          "required": ["samples", "initial", "peak", "final", "max"],
           "properties": {
             "samples": { "type": "array", "items": { "type": "integer" } },
+            "initial": { "$ref": "#/$defs/nullableInteger" },
             "peak": { "$ref": "#/$defs/nullableInteger" },
+            "final": { "$ref": "#/$defs/nullableInteger" },
             "max": { "$ref": "#/$defs/nullableInteger" }
           }
         },

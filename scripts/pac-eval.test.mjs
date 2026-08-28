@@ -28,7 +28,7 @@ test("collectRunSessionTelemetry represents complete and unavailable Pi telemetr
     assistantTurns: 1,
     tokens: { input: 10, output: 5, cacheRead: 3, cacheWrite: 2, total: 20 },
     cost: { reported: 0.2, estimated: null, total: 0.2, currency: "USD" },
-    context: { samples: [15], peak: 15, max: 100 },
+    context: { samples: [15], initial: 15, peak: 15, final: 15, max: 100 },
     modelsUsed: ["openai-codex/gpt-actual", "openai-codex/gpt-requested"],
     thinkingLevelsUsed: ["high"],
     actualConfiguration: { provider: "openai-codex", model: "gpt-actual", thinking: "high" },
@@ -68,7 +68,7 @@ test("collectRunSessionTelemetry represents complete and unavailable Pi telemetr
     sessions: [], messages: null, assistantTurns: null,
     tokens: { input: null, output: null, cacheRead: null, cacheWrite: null, total: null },
     cost: { reported: null, estimated: null, total: null, currency: "USD" },
-    context: { samples: [], peak: null, max: null },
+    context: { samples: [], initial: null, peak: null, final: null, max: null },
     modelsUsed: [], thinkingLevelsUsed: [],
     actualConfiguration: { provider: null, model: null, thinking: null },
     malformedLines: 0,
@@ -322,7 +322,7 @@ test("execution isolates the checkout, verifies externally, and retains normaliz
   assert.equal(result.telemetry.assistantTurns, 1);
   assert.deepEqual(result.telemetry.tokens, { input: 10, output: 5, cacheRead: 3, cacheWrite: 2, total: 20 });
   assert.deepEqual(result.telemetry.cost, { reported: 0.2, estimated: null, total: 0.2, currency: "USD" });
-  assert.deepEqual(result.telemetry.context, { samples: [15], peak: 15, max: 100 });
+  assert.deepEqual(result.telemetry.context, { samples: [15], initial: 15, peak: 15, final: 15, max: 100 });
   assert.deepEqual(result.git.changedFiles, ["implementation.txt", "result.txt"]);
   assert.match(await readFile(join(manifest.outputDirectory, result.git.diffPath), "utf8"), /changed/);
   assert.equal(result.verification[0].status, "passed");
