@@ -89,7 +89,7 @@ Do not copy or commit generated `results.json`, `report.html`, sessions, logs, d
 ## Add a deterministic scenario
 
 1. Add one scenario with a narrow prompt and an objectively verifiable outcome.
-2. Add a repository-owned verifier that exits nonzero for missing, incorrect, or extraneous changes.
+2. Add a repository-owned verifier that exits nonzero for missing, incorrect, or extraneous changes. When regression coverage is required, preferably prove candidate tests pass against the candidate implementation and fail against the baseline; self-test plausible false positives such as comment-only coverage, partial fixes, or symptom-only fixes where relevant.
 3. Keep the action quick, side-effect free, and safe to repeat from equivalent base state.
 4. Declare only useful retained artifacts; generated files still belong in the external evaluation output.
 5. Add a behavior-level test for the manifest matrix and verifier.
