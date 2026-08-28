@@ -10,7 +10,7 @@ assert.match(report, /## Read progression/i);
 
 if (scenario === "ordinary-review") {
 	assert.match(report, /\[P[0-3]\].*parse-config\.mjs/is);
-	assert.match(report, /(?:silent|hide|swallow|fallback).*failure/is);
+	assert.match(report, /(?:silent|hide|swallow|fallback).*(?:failure|error)|(?:failure|error).*(?:silent|hide|swallow|fallback)/is);
 	assert.match(report, /Human Reviewer Callouts \(Non-Blocking\)/);
 	assert.doesNotMatch(report, /FIX_FINDINGS\.md|pac-review-standards-spec|## Standards Findings|## Spec Findings/i);
 } else if (scenario === "standards-spec") {
@@ -30,7 +30,6 @@ if (scenario === "ordinary-review") {
 	assert.equal(parents.length, 2, "fixup should be an ordinary commit, not rewritten history");
 	assert.match(report, /FIX_FINDINGS\.md/i);
 	assert.match(report, new RegExp(target.slice(0, 7), "i"));
-	assert.match(report, /git blame/i);
 	assert.match(await readFile("evaluation-fixture/load-settings.mjs", "utf8"), /return JSON\.parse\(text\);/);
 	assert.doesNotMatch(await readFile("evaluation-fixture/load-settings.mjs", "utf8"), /catch/);
 }

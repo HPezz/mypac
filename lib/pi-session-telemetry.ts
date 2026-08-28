@@ -155,7 +155,8 @@ function updateAvailability(state: PiSessionParseState, usage: any): void {
 		|| hasAnyNumber(usage?.tokens, ["total", "totalTokens", "total_tokens"])
 		|| state.availability.inputTokens || state.availability.outputTokens || state.availability.cacheReadTokens || state.availability.cacheWriteTokens;
 	state.availability.reportedCost ||= hasNumber(usage.cost) || hasNumber(usage.cost?.total);
-	state.availability.context ||= hasAnyNumber(usage, ["contextTokens", "context_tokens", "context"]);
+	state.availability.context ||= hasAnyNumber(usage, ["contextTokens", "context_tokens", "context"])
+		|| state.availability.totalTokens;
 	state.availability.maxContext ||= hasAnyNumber(usage, ["maxContextTokens", "max_context_tokens", "contextWindow", "context_window"]);
 }
 
@@ -194,7 +195,7 @@ function addUsage(state: PiSessionParseState, key: string, usage: unknown, allow
 	state.availability.estimatedCost ||= estimate.applicable;
 	const estimatedCost = estimate.cost;
 	const cost = reportedCost || estimatedCost;
-	const contextTokens = extractContextTokens(usage);
+	const contextTokens = extractContextTokens(usage) || extractTokens(usage);
 	const maxContextTokens = extractMaxContextTokens(usage);
 	state.tokens += tokens;
 	state.totalCost += cost;
