@@ -256,3 +256,16 @@ test("shared guidance prefers structured GitHub tooling over browser automation"
 	assert.match(shared, /rendered browser or UI behavior/i);
 	assert.match(shared, /unavailable through structured tooling/i);
 });
+
+test("shared browser guidance serves local HTML over loopback HTTP without changing screenshot behavior", async () => {
+	const shared = await readRepoFile("shared", "SHARED_APPEND_SYSTEM.md");
+
+	assert.match(shared, /locally generated HTML with `agent_browser`/i);
+	assert.match(shared, /do not use a `file:\/\/` URL for interactive inspection/i);
+	assert.match(shared, /temporary loopback HTTP server/i);
+	assert.match(shared, /http:\/\/127\.0\.0\.1:\.\.\./i);
+	assert.match(shared, /intentionally restricts follow-up inspection of local `file:\/\/` pages/i);
+	assert.match(shared, /moving or copying.*retaining `file:\/\/`.*not a workaround/i);
+	assert.match(shared, /do not supply a screenshot path unless the user explicitly requests a specific output path/i);
+	assert.match(shared, /let `AGENT_BROWSER_SCREENSHOT_DIR` choose the destination/i);
+});
