@@ -21,6 +21,22 @@ test("normalizeSessionNameSuffix shortens GitHub issue and PR URLs", () => {
 	);
 });
 
+test("workflow session names prefer leading GitHub targets over multiline context", () => {
+	const lwotInput = extractSlashCommandArgument(
+		`/pac-lwot "\nhttps://github.com/ladislas/mypac/issues/368\nadditional context here\n"`,
+		"pac-lwot",
+	);
+	assert.notEqual(lwotInput, null);
+	assert.equal(buildWorkflowSessionName("lwot", lwotInput), "lwot - issue #368");
+
+	const llatInput = extractSlashCommandArgument(
+		`/pac-llat "\nhttps://github.com/ladislas/mypac/pull/404\nadditional context here\n"`,
+		"pac-llat",
+	);
+	assert.notEqual(llatInput, null);
+	assert.equal(buildWorkflowSessionName("llat", llatInput), "llat - PR #404");
+});
+
 test("normalizeSessionNameSuffix preserves todo ids and trims generic URLs", () => {
 	assert.equal(normalizeSessionNameSuffix("todo-abc123"), "TODO-abc123");
 	assert.equal(normalizeSessionNameSuffix("https://example.com/spec-notes/?view=full"), "example.com/spec-notes");
