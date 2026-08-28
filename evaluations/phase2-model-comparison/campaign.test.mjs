@@ -56,6 +56,24 @@ export function buildWorkQueue(workItems, { limit = Infinity } = {}) {
 }
 `;
 
+const cohesiveWorkQueue = `import { isQueueVisible } from "./eligibility.mjs";
+import { normalizeWorkItem } from "./normalize-work-item.mjs";
+
+export function buildWorkQueue(workItems, { limit = Infinity } = {}) {
+  const normalized = workItems.map(normalizeWorkItem);
+  const itemsById = new Map(normalized.map((item) => [item.id, item]));
+  const visible = normalized.filter(isQueueVisible);
+  const blocked = visible.filter((item) =>
+    item.dependsOn.some((dependencyId) => itemsById.get(dependencyId)?.status !== "done"),
+  );
+  return {
+    total: normalized.length,
+    items: visible.filter((item) => !blocked.includes(item)).slice(0, limit),
+    blocked,
+  };
+}
+`;
+
 const partialWorkQueue = `import { blockingDependencies, isQueueVisible } from "./eligibility.mjs";
 import { normalizeWorkItem } from "./normalize-work-item.mjs";
 
@@ -229,7 +247,7 @@ test("Phase 2 manifest is exactly two scenarios by Luna max and Terra medium", a
   }
 });
 
-test("implementation verifier rejects baseline, incomplete, and comment-only coverage, then accepts a strong fix", async () => {
+test("implementation verifier rejects baseline, incomplete, and comment-only coverage, then accepts multi-module and cohesive local fixes", async () => {
   const untouched = await fixtureRepository();
   await assert.rejects(verify(untouched, "implementation"));
 
@@ -239,7 +257,7 @@ test("implementation verifier rejects baseline, incomplete, and comment-only cov
     join(incomplete, implementationRoot, implementationTest),
     `${await readFile(join(incomplete, implementationRoot, implementationTest), "utf8")}${implementationRegression}`,
   );
-  await assert.rejects(verify(incomplete, "implementation"));
+  await assert.rejects(verify(incomplete, "implementation"), /actionable limit/);
 
   const commentOnly = await fixtureRepository();
   await writeImplementationSource(commentOnly, goodEligibility, goodWorkQueue);
@@ -248,6 +266,17 @@ test("implementation verifier rejects baseline, incomplete, and comment-only cov
     `${await readFile(join(commentOnly, implementationRoot, implementationTest), "utf8")}\n// Coverage note only; no executable regression was added.\n`,
   );
   await assert.rejects(verify(commentOnly, "implementation"));
+
+  const cohesive = await fixtureRepository();
+  await writeFile(
+    join(cohesive, implementationRoot, "src", "work-queue.mjs"),
+    cohesiveWorkQueue,
+  );
+  await writeFile(
+    join(cohesive, implementationRoot, implementationTest),
+    `${await readFile(join(cohesive, implementationRoot, implementationTest), "utf8")}${implementationStrongRegression}`,
+  );
+  await assert.doesNotReject(verify(cohesive, "implementation"));
 
   const good = await fixtureRepository();
   await writeImplementationSource(good, goodEligibility, goodWorkQueue);
