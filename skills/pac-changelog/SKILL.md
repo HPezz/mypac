@@ -40,7 +40,7 @@ Keep `CHANGELOG.md` current as the curated source of notable repository changes.
 
 ### Normal updates
 
-1. Read the current `CHANGELOG.md`.
+1. Read only the relevant `## [Unreleased]` section of `CHANGELOG.md`.
 2. Check whether the change is notable enough to record.
 3. For retrospective updates, optionally inspect commits since the latest release tag to find missing notable changes.
 4. Update or add the smallest useful bullet under `## [Unreleased]`.
@@ -51,7 +51,7 @@ Keep `CHANGELOG.md` current as the curated source of notable repository changes.
 
 When the user explicitly asks to prepare a release:
 
-1. Read the current `CHANGELOG.md`.
+1. Read only the relevant `## [Unreleased]` section of `CHANGELOG.md`.
 2. Choose the requested version and release date, or ask if either is missing.
 3. Move the relevant bullets out of `## [Unreleased]` into a new section:
 
