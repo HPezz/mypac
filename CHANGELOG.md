@@ -52,6 +52,7 @@ Versioned sections should match the Git tags and GitHub releases published for t
 
 ### Fixed
 
+- Made `/pac-upstream-checkpoints` resolve named registry scopes by stable ID before loading full registry, model, watch, or publication context. ([#373](https://github.com/ladislas/mypac/issues/373))
 - Strengthened `/pac-llat` so complete structured GitHub reads classify directly and duplicate body/metadata fetches are explicitly forbidden. ([#397](https://github.com/ladislas/mypac/issues/397))
 - Improved minimal and low thinking-level contrast across all bundled themes. ([#331](https://github.com/ladislas/mypac/issues/331))
 - Made the current fullscreen transcript-search match visually distinct across all bundled themes. ([#331](https://github.com/ladislas/mypac/issues/331))
