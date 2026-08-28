@@ -88,7 +88,7 @@ export interface RunSessionTelemetry {
   assistantTurns: number | null;
   tokens: { input: number | null; output: number | null; cacheRead: number | null; cacheWrite: number | null; total: number | null };
   cost: { reported: number | null; estimated: number | null; total: number | null; currency: "USD" };
-  context: { samples: number[]; peak: number | null; max: number | null };
+  context: { samples: number[]; initial: number | null; peak: number | null; final: number | null; max: number | null };
   modelsUsed: string[];
   thinkingLevelsUsed: string[];
   actualConfiguration: { provider: string | null; model: string | null; thinking: string | null };
@@ -515,7 +515,9 @@ export async function collectRunSessionTelemetry(sessionDirectory: string): Prom
     },
     context: {
       samples: contextSamples,
+      initial: contextSamples.at(0) ?? null,
       peak: contextSamples.length > 0 ? Math.max(...contextSamples) : null,
+      final: contextSamples.at(-1) ?? null,
       max: available("maxContext") ? Math.max(...sessions.map((session) => session.maxContextTokens)) : null,
     },
     modelsUsed,

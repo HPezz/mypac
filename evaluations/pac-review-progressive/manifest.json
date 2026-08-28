@@ -1,0 +1,44 @@
+{
+  "$schema": "../../schemas/pac-eval-manifest.schema.json",
+  "version": 1,
+  "id": "pac-review-progressive",
+  "repository": { "path": "../..", "ref": "HEAD" },
+  "profiles": [
+    {
+      "id": "luna-medium",
+      "model": "openai-codex/gpt-5.6-luna",
+      "thinking": "medium",
+      "execution": { "tools": ["read", "bash", "edit", "write", "grep", "find", "ls"] },
+      "package": {
+        "path": "../..",
+        "ref": "HEAD",
+        "resources": {
+          "skills": ["skills/pac-review", "skills/pac-review-standards-spec"]
+        }
+      }
+    }
+  ],
+  "scenarios": [
+    {
+      "id": "ordinary-review",
+      "prompt": "Run `node evaluations/pac-review-progressive/setup.mjs ordinary-review`, then perform a read-only review of the resulting HEAD commit using pac-review. Resolve the commit and inspect its diff first. Read supporting source only to prove or disprove a concrete finding. Do not perform Standards or Spec review and do not enter a fix workflow. Do not read repository docs merely for background. Write the complete review to evaluations/pac-review-progressive/workspace/ordinary-review.md. End that file with `## Read progression` listing, in actual order, every skill/reference and repository file read; state why any read beyond the diff was necessary.",
+      "timeoutMs": 300000,
+      "verify": [{ "command": "node", "args": ["evaluations/pac-review-progressive/verify.mjs", "ordinary-review"], "timeoutMs": 30000 }],
+      "artifacts": ["evaluations/pac-review-progressive/workspace/ordinary-review.md"]
+    },
+    {
+      "id": "standards-spec",
+      "prompt": "Run `node evaluations/pac-review-progressive/setup.mjs standards-spec`. Perform the normal read-only pac-review pass on HEAD first, then perform an explicitly requested Standards + Spec follow-up using pac-review-standards-spec. Start the follow-up from the changed paths and the best originating decision, evaluation-fixture/SPEC.md. Identify concrete Standards and Spec questions before reading applicable sources. Do not sweep README, CONTEXT, docs, ADRs, or configs. Write separate default, Standards, and Spec results to evaluations/pac-review-progressive/workspace/standards-spec.md. End with `## Read progression` listing, in actual order, every skill/reference and repository file read and the concrete question each post-diff read answered.",
+      "timeoutMs": 300000,
+      "verify": [{ "command": "node", "args": ["evaluations/pac-review-progressive/verify.mjs", "standards-spec"], "timeoutMs": 30000 }],
+      "artifacts": ["evaluations/pac-review-progressive/workspace/standards-spec.md"]
+    },
+    {
+      "id": "fix-findings",
+      "prompt": "Run `node evaluations/pac-review-progressive/setup.mjs fix-findings`. Enter an actual review-fix workflow for this known finding: evaluation-fixture/load-settings.mjs silently converts malformed JSON into success. Use pac-review and load its detailed fix-findings reference only now. Blame the finding lines, restore fail-fast parsing, verify the fix, and create one atomic fixup commit targeting the commit that introduced the fallback. Do not autosquash, rebase, rewrite history, or force push. Write a summary to evaluations/pac-review-progressive/workspace/fix-findings.md including the target SHA, verification, and `## Read progression` listing every skill/reference and repository file read in actual order.",
+      "timeoutMs": 300000,
+      "verify": [{ "command": "node", "args": ["evaluations/pac-review-progressive/verify.mjs", "fix-findings"], "timeoutMs": 30000 }],
+      "artifacts": ["evaluations/pac-review-progressive/workspace/fix-findings.md", "evaluations/pac-review-progressive/workspace/fix-target.txt"]
+    }
+  ]
+}

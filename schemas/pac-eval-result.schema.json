@@ -200,7 +200,9 @@
           "required": ["samples", "peak", "max"],
           "properties": {
             "samples": { "type": "array", "items": { "type": "integer" } },
+            "initial": { "$ref": "#/$defs/nullableInteger" },
             "peak": { "$ref": "#/$defs/nullableInteger" },
+            "final": { "$ref": "#/$defs/nullableInteger" },
             "max": { "$ref": "#/$defs/nullableInteger" }
           }
         },
