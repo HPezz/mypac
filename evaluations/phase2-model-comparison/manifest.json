@@ -1,0 +1,53 @@
+{
+  "$schema": "../../schemas/pac-eval-manifest.schema.json",
+  "version": 1,
+  "id": "phase2-model-comparison",
+  "repository": {
+    "path": "../..",
+    "ref": "HEAD"
+  },
+  "profiles": [
+    {
+      "id": "luna-max",
+      "model": "openai-codex/gpt-5.6-luna",
+      "thinking": "max",
+      "execution": {
+        "tools": ["read", "bash", "edit", "write", "grep", "find", "ls"]
+      }
+    },
+    {
+      "id": "terra-medium",
+      "model": "openai-codex/gpt-5.6-terra",
+      "thinking": "medium",
+      "execution": {
+        "tools": ["read", "bash", "edit", "write", "grep", "find", "ls"]
+      }
+    }
+  ],
+  "scenarios": [
+    {
+      "id": "medium-multi-file-implementation",
+      "prompt": "This is an isolated evaluation checkout. Work only under evaluations/phase2-model-comparison/fixtures/implementation. A work queue report now needs to explain pending work that cannot yet be acted on. Update the public buildWorkQueue behavior so its existing total and items information remains compatible, while blocked work is reported separately. An item is blocked when any dependency is missing or its matching item is not done; done and archived items remain outside both lists. The actionable limit applies only to items that are not blocked, and input order, normalization, and input immutability must remain intact. Read the related implementation modules and focused tests before deciding where the behavior belongs. Add meaningful regression coverage to the focused test file, including the edge cases implied by the request, and run the relevant node test command. Keep the implementation cohesive and bounded, do not modify anything outside this fixture, and do not create a branch or commit evaluator changes.",
+      "timeoutMs": 600000,
+      "verify": [
+        {
+          "command": "node",
+          "args": ["evaluations/phase2-model-comparison/verify-implementation.mjs"],
+          "timeoutMs": 30000
+        }
+      ]
+    },
+    {
+      "id": "non-local-diagnosis",
+      "prompt": "This is an isolated evaluation checkout. Work only under evaluations/phase2-model-comparison/fixtures/diagnosis. A user reports that after inspecting one workspace, the local status command can show the previous workspace's display and execution settings when another workspace is opened. Reproduce the deterministic failure with node evaluations/phase2-model-comparison/fixtures/diagnosis/repro.mjs, inspect the related loader, report, and supporting modules, and diagnose the underlying defect rather than masking the symptom at the report boundary. Preserve layered nested-setting semantics, defaults, arrays, and input immutability. Add a genuine regression test to the focused test file that fails on the baseline and passes with the root-cause fix, then run the repro and relevant node test command. Keep the fix minimal and bounded, do not modify the repro or anything outside this fixture, and do not create a branch or commit evaluator changes.",
+      "timeoutMs": 600000,
+      "verify": [
+        {
+          "command": "node",
+          "args": ["evaluations/phase2-model-comparison/verify-diagnosis.mjs"],
+          "timeoutMs": 30000
+        }
+      ]
+    }
+  ]
+}
