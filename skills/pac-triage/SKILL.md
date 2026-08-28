@@ -14,7 +14,7 @@ Move GitHub issues through a small, durable state machine. Infer the repository 
 
 This workflow expects canonical pac-owned labels. If an expected `pac:*` label is missing, warn clearly and tell the maintainer to run `/pac-setup-workflows`; do not fall back to legacy labels or create labels from triage.
 
-This skill is maintainer-in-the-loop by default. Read broadly enough to recommend, then wait for maintainer direction before changing labels, closing issues, or posting comments unless the user explicitly asked for that exact state change.
+This skill is maintainer-in-the-loop by default. Gather only the context needed for the pending triage action, then wait for maintainer direction before changing labels, closing issues, or posting comments unless the user explicitly asked for that exact state change.
 
 ## AI disclaimer
 
@@ -119,20 +119,22 @@ Query GitHub and present three buckets, oldest first:
 2. **`pac:needs_triage`** — issues with the canonical triage-needed state label.
 3. **`pac:needs_info` with reporter activity** — issues where the reporter has commented since the last triage-notes comment.
 
-For each issue, show number, title, age, labels, and a one-line body summary. Let the maintainer pick one to triage.
+Listing requires only issue metadata: number, title, labels, state, age, and a one-line body summary. Do not read comments, linked artifacts, source, or prior out-of-scope decisions merely to build the list. Let the maintainer pick one to triage.
 
 ## Workflow: triage a specific issue
 
-### 1. Gather context
+### 1. Gather context progressively
 
-Before recommending anything:
-
-- Read the full issue: title, body, labels, state, reporter, and all relevant comments.
-- Parse prior triage notes, agent briefs, PRD comments, and ADR comments so resolved decisions are not re-asked.
-- If the issue body has `## PRDs` or `## Decisions`, follow those links first. Prefer the newest linked PRD comment that contains `<!-- pac:prd -->`; treat linked `<!-- pac:adr -->` comments as constraints.
-- Explore the codebase enough to understand the domain, relevant interfaces, and existing behavior.
-- Search GitHub issues with the `pac:out_of_scope` label for similar prior scope decisions. Prefer comments containing `<!-- pac:out-of-scope -->`; fall back to comments with `## Out-of-Scope Decision`, then to issue body/comments if no structured artifact exists. Surface likely matches before recommending a new out-of-scope decision.
-- Do **not** read or write `.out-of-scope/` files. Scope-boundary decisions are tracked on GitHub with the `pac:out_of_scope` label and a structured `<!-- pac:out-of-scope -->` comment.
+1. **Resolve the requested action.** Distinguish listing, a simple state override, resuming `pac:needs_info`, a general recommendation, bug readiness, and a genuine scope-boundary decision.
+2. **Read issue metadata and body first.** Include title, body, labels, state, reporter, and the metadata needed for the requested action in one structured read. Do not re-fetch fields already returned through another command or API shape.
+3. **Ask whether there is enough evidence to perform or recommend the pending action.** If yes, stop gathering. Before each additional read, identify the materially missing fact it must answer.
+4. **Expand only for a specific unresolved question:**
+   - **Listing or simple state override:** current labels and requested target state are normally enough. Do not read comments, linked artifacts, source, or out-of-scope precedent unless the pending transition requires a durable brief, validation, or scope reasoning.
+   - **Resuming `pac:needs_info`:** read prior triage notes and reporter answers after those notes. Preserve established facts and do not re-ask resolved questions. Read code only when it can cheaply answer the specific missing question.
+   - **Durable PRD or ADR constraints:** follow only the linked PRD/ADR artifacts needed to decide the pending question. An applicable PRD or ADR remains authoritative; the presence of links does not require traversing all of them for every action.
+   - **Ready-for-agent bug:** read relevant comments or decisions, then require focused reproduction and relevant code evidence before recommending or preparing `pac:ready_for_agent`.
+   - **Out-of-scope decision:** only when a scope-boundary recommendation is genuinely under consideration, search GitHub issues with the `pac:out_of_scope` label for similar precedent. Prefer comments containing `<!-- pac:out-of-scope -->`; fall back to `## Out-of-Scope Decision`, then issue body/comments if no structured artifact exists. Surface likely matches before recommending a new boundary.
+Do **not** read or write `.out-of-scope/` files. Scope-boundary decisions are tracked on GitHub with the `pac:out_of_scope` label and a structured `<!-- pac:out-of-scope -->` comment.
 
 ### 2. Recommend
 
@@ -147,7 +149,7 @@ Then wait for direction unless the user already requested a specific state chang
 
 ### 3. Reproduce bugs before briefing
 
-For `bug` issues, attempt reproduction before preparing a `pac:ready_for_agent` brief:
+For a `bug` being considered for `pac:ready_for_agent`, focused reproduction and relevant code evidence are required before preparing the brief:
 
 - Read reporter steps and expected vs actual behavior.
 - Trace the relevant code paths.
@@ -175,7 +177,7 @@ After maintainer approval or an explicit state-change request:
 
 ## Quick state override
 
-If the maintainer says, for example, `move #42 to pac:ready_for_agent`, trust the requested target state. Still confirm or report the concrete GitHub actions:
+A simple state override starts with current labels and the requested target state; it does not mandate implementation analysis. If the maintainer says, for example, `move #42 to pac:ready_for_agent`, trust the requested target state. Still confirm or report the concrete GitHub actions:
 
 - labels added and removed
 - whether a comment is posted
