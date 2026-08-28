@@ -19,7 +19,8 @@ Keep `CHANGELOG.md` current as the curated source of notable repository changes.
 ## Default scope
 
 - Edit `CHANGELOG.md` only unless the user explicitly asks for related docs changes.
-- By default, update `## [Unreleased]`.
+- By default, target the heading-delimited `## [Unreleased]` section.
+- Expand beyond that section only for release prep, retrospective work, or a concrete ambiguity.
 - Prepare a versioned release section only when the user explicitly asks for release prep.
 
 ## Entry rules
@@ -40,9 +41,9 @@ Keep `CHANGELOG.md` current as the curated source of notable repository changes.
 
 ### Normal updates
 
-1. Read only the relevant `## [Unreleased]` section of `CHANGELOG.md`.
+1. Read the `## [Unreleased]` section of `CHANGELOG.md`.
 2. Check whether the change is notable enough to record.
-3. For retrospective updates, optionally inspect commits since the latest release tag to find missing notable changes.
+3. For retrospective updates, inspect relevant historical changelog sections and commits since the latest release tag only when needed to find missing notable changes.
 4. Update or add the smallest useful bullet under `## [Unreleased]`.
 5. Avoid duplicate or overlapping bullets; merge or rewrite when needed.
 6. Keep the changelog update in the same commit as the work it describes when practical.
@@ -51,18 +52,19 @@ Keep `CHANGELOG.md` current as the curated source of notable repository changes.
 
 When the user explicitly asks to prepare a release:
 
-1. Read only the relevant `## [Unreleased]` section of `CHANGELOG.md`.
+1. Start with the `## [Unreleased]` section of `CHANGELOG.md`.
 2. Choose the requested version and release date, or ask if either is missing.
-3. Move the relevant bullets out of `## [Unreleased]` into a new section:
+3. Only when needed to choose the insertion point or preserve surrounding format, read the destination/release structure.
+4. Move the relevant bullets out of `## [Unreleased]` into a new section:
 
    ```md
    ## [x.y.z] - YYYY-MM-DD
    ```
 
-4. Keep only the headings that still have entries.
-5. Recreate an empty `## [Unreleased]` section at the top.
-6. Preserve existing older release sections as-is unless the user asks for cleanup.
-7. If helpful, draft GitHub release notes from the new changelog section, but do not publish anything unless the user asks.
+5. Keep only the headings that still have entries.
+6. Recreate an empty `## [Unreleased]` section at the top.
+7. Preserve existing older release sections as-is unless the user asks for cleanup.
+8. If helpful, draft GitHub release notes from the new changelog section, but do not publish anything unless the user asks.
 
 ## Guardrails
 
