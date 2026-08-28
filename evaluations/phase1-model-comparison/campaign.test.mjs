@@ -66,7 +66,10 @@ test("implementation verifier requires behavior, regression coverage, and narrow
   await assert.rejects(verify(repository, "implementation"));
   const root = join(repository, "evaluations", "phase1-model-comparison", "fixtures", "implementation");
   await writeFile(join(root, "labels.mjs"), `export function normalizeLabels(labels) {\n  return [...new Set(labels.map((label) => label.trim().toLowerCase()).filter(Boolean))];\n}\n`);
-  await writeFile(join(root, "labels.test.mjs"), `${await readFile(join(root, "labels.test.mjs"), "utf8")}\n// Regression: empty and duplicate labels are removed.\n`);
+  const baselineTest = await readFile(join(root, "labels.test.mjs"), "utf8");
+  await writeFile(join(root, "labels.test.mjs"), `${baselineTest}\n// Regression: empty and duplicate labels are removed.\n`);
+  await assert.rejects(verify(repository, "implementation"));
+  await writeFile(join(root, "labels.test.mjs"), `${baselineTest}\ntest("removes blank and duplicate normalized labels", () => {\n  assert.deepEqual(normalizeLabels([" Bug ", "", "bug", "FEATURE"]), ["bug", "feature"]);\n});\n`);
   await assert.doesNotReject(verify(repository, "implementation"));
 });
 
@@ -76,6 +79,9 @@ test("diagnosis verifier requires a general cache-collision fix and regression c
   const root = join(repository, "evaluations", "phase1-model-comparison", "fixtures", "diagnosis");
   const source = await readFile(join(root, "config-cache.mjs"), "utf8");
   await writeFile(join(root, "config-cache.mjs"), source.replaceAll("basename", "resolve"));
-  await writeFile(join(root, "config-cache.test.mjs"), `${await readFile(join(root, "config-cache.test.mjs"), "utf8")}\n// Regression: cache keys use full directory identity.\n`);
+  const baselineTest = await readFile(join(root, "config-cache.test.mjs"), "utf8");
+  await writeFile(join(root, "config-cache.test.mjs"), `${baselineTest}\n// Regression: cache keys use full directory identity.\n`);
+  await assert.rejects(verify(repository, "diagnosis"));
+  await writeFile(join(root, "config-cache.test.mjs"), `${baselineTest}\ntest("separates same-named directories", async () => {\n  clearConfigCache();\n  const root = await mkdtemp(join(tmpdir(), "config-cache-regression-"));\n  const first = join(root, "one", "service");\n  const second = join(root, "two", "service");\n  await mkdir(first, { recursive: true });\n  await mkdir(second, { recursive: true });\n  await writeFile(join(first, "config.json"), JSON.stringify({ owner: "one" }));\n  await writeFile(join(second, "config.json"), JSON.stringify({ owner: "two" }));\n  assert.deepEqual(loadConfig(first), { owner: "one" });\n  assert.deepEqual(loadConfig(second), { owner: "two" });\n});\n`);
   await assert.doesNotReject(verify(repository, "diagnosis"));
 });
