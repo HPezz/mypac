@@ -52,6 +52,7 @@ Versioned sections should match the Git tags and GitHub releases published for t
 
 ### Fixed
 
+- Made `pac-triage` gather issue context progressively by requested action while preserving deep bug-readiness, needs-info, durable-decision, and scope-precedent branches. ([#368](https://github.com/ladislas/mypac/issues/368))
 - Made `/pac-lwot` reuse complete structured GitHub issue reads across target resolution and execution gating instead of re-fetching body or state metadata. ([#405](https://github.com/ladislas/mypac/issues/405))
 - Made `/pac-upstream-checkpoints` resolve named registry scopes by stable ID before loading full registry, model, watch, or publication context. ([#373](https://github.com/ladislas/mypac/issues/373))
 - Strengthened `/pac-llat` so complete structured GitHub reads classify directly and duplicate body/metadata fetches are explicitly forbidden. ([#397](https://github.com/ladislas/mypac/issues/397))
