@@ -70,6 +70,10 @@ test("pac-lwot gates execution before loading implementation context", async () 
 	assert.ok(executionGate > targetResolution, "execution gate should follow target resolution");
 	assert.ok(repositoryPreparation > executionGate, "repository preparation should follow the execution gate");
 	assert.match(prompt, /smallest authoritative artifact/i);
+	assert.match(prompt, /GitHub issue.*initial structured read.*body.*execution-gate metadata/is);
+	assert.match(prompt, /fields already present.*must not be re-fetched/is);
+	assert.match(prompt, /before any second read.*specific materially missing fact/is);
+	assert.match(prompt, /follow-up reads.*missing.*stale.*state transition/is);
 	assert.match(prompt, /no (?:work|execution).*stop/i);
 	assert.match(prompt, /do not.*README\.md.*(?:startup|by default)/i);
 	assert.match(prompt, /repository-specific.*rules.*before mutation/i);
