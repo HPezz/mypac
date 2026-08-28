@@ -7,7 +7,9 @@ Let's look at that.
 
 Use this prompt as a lightweight assessment router: classify the target, recommend the next workflow, and stop before implementation. Do not edit files, create commits, run mutating commands, or post GitHub changes.
 
-Start with the provided target only and use the smallest authoritative artifact that can support the next decision. For a GitHub issue or PR URL, read that target first. If its complete structured result already contains the facts needed for classification, do not re-fetch the issue or PR fields already returned. Do not read issue comments, linked artifacts, `README.md`, `AGENTS.md`, `CONTEXT.md`, or broad code areas by default. Do not load another workflow skill merely because `/pac-llat` may recommend that workflow. Perform additional targeted reads only when the current artifact is materially insufficient to classify the work safely.
+Start with the provided target only and use the smallest authoritative artifact that can support the next decision. For a GitHub issue or PR URL, read that target first. Do not read issue comments, linked artifacts, `README.md`, `AGENTS.md`, `CONTEXT.md`, or broad code areas by default. Do not load another workflow skill merely because `/pac-llat` may recommend that workflow.
+
+Operational invariant for GitHub targets: after a successful structured target read containing the requested body and metadata, classify directly from that result and do not re-fetch issue or PR fields already returned. Before any second read of the same target, identify the specific materially missing fact that the first result did not contain. Never re-read the same content through another command or API shape, including to obtain a less escaped or more raw representation. In particular, never follow `gh issue view ... --json ...body...` with `gh api ... --jq .body` for the same issue. Additional targeted follow-up reads remain allowed only for a concrete missing fact, a fact that may have changed, or post-transition verification.
 
 Process:
 

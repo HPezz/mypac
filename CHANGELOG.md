@@ -51,6 +51,7 @@ Versioned sections should match the Git tags and GitHub releases published for t
 
 ### Fixed
 
+- Strengthened `/pac-llat` so complete structured GitHub reads classify directly and duplicate body/metadata fetches are explicitly forbidden. ([#397](https://github.com/ladislas/mypac/issues/397))
 - Improved minimal and low thinking-level contrast across all bundled themes. ([#331](https://github.com/ladislas/mypac/issues/331))
 - Made the current fullscreen transcript-search match visually distinct across all bundled themes. ([#331](https://github.com/ladislas/mypac/issues/331))
 - Corrected Footer and Session Breakdown accounting for Pi 0.84.2 tool, summary, cache, response-model, adjustment, and v4 usage-ledger metadata without duplicate totals. ([#328](https://github.com/ladislas/mypac/issues/328))
