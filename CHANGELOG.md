@@ -52,6 +52,8 @@ Versioned sections should match the Git tags and GitHub releases published for t
 
 ### Fixed
 
+- Made `pac-review` keep its default defect and safety rubric concise while loading fix-session guidance conditionally and gathering explicit Standards + Spec context by changed-path applicability. ([#371](https://github.com/ladislas/mypac/issues/371))
+
 - Made `pac-triage` gather issue context progressively by requested action while preserving deep bug-readiness, needs-info, durable-decision, and scope-precedent branches. ([#368](https://github.com/ladislas/mypac/issues/368))
 - Made `/pac-lwot` reuse complete structured GitHub issue reads across target resolution and execution gating instead of re-fetching body or state metadata. ([#405](https://github.com/ladislas/mypac/issues/405))
 - Made `/pac-upstream-checkpoints` resolve named registry scopes by stable ID before loading full registry, model, watch, or publication context. ([#373](https://github.com/ladislas/mypac/issues/373))
