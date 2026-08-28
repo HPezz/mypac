@@ -1,0 +1,69 @@
+{
+  "$schema": "../../schemas/pac-eval-manifest.schema.json",
+  "version": 1,
+  "id": "pac-triage-progressive",
+  "repository": {
+    "path": "../..",
+    "ref": "HEAD"
+  },
+  "profiles": [
+    {
+      "id": "luna-medium",
+      "model": "openai-codex/gpt-5.6-luna",
+      "thinking": "medium",
+      "workflow": "/pac-triage",
+      "execution": {
+        "tools": ["read", "bash", "grep", "find", "ls", "write"]
+      },
+      "package": {
+        "path": "../..",
+        "ref": "HEAD",
+        "resources": {
+          "prompts": ["prompts/pac-triage.md"],
+          "skills": ["skills/pac-triage"]
+        }
+      }
+    }
+  ],
+  "scenarios": [
+    {
+      "id": "cheap-override",
+      "prompt": "Disposable, non-publishing triage evaluation. The following JSON is the authoritative initial structured issue metadata/body read; do not fetch it again: {\"number\":9001,\"title\":\"Document release ownership\",\"body\":\"Maintainer has decided this coordination task requires a human owner.\",\"state\":\"OPEN\",\"author\":{\"login\":\"reporter\"},\"labels\":[{\"name\":\"enhancement\"},{\"name\":\"pac:needs_triage\"}]}. Explicitly move it to pac:ready_for_human as a label-only override. Do not inspect comments, linked artifacts, source/docs, or prior scope decisions. Do not mutate GitHub. Write evaluations/pac-triage-progressive/workspace/cheap-override.md with the planned label add/remove actions and a concise evidence-consulted list.",
+      "timeoutMs": 300000,
+      "verify": [
+        {
+          "command": "node",
+          "args": ["evaluations/pac-triage-progressive/verify.mjs", "cheap-override"],
+          "timeoutMs": 30000
+        }
+      ],
+      "artifacts": ["evaluations/pac-triage-progressive/workspace/cheap-override.md"]
+    },
+    {
+      "id": "ready-for-agent-bug",
+      "prompt": "Disposable, non-publishing triage evaluation. The following JSON is the authoritative initial structured issue metadata/body read: {\"number\":9002,\"title\":\"isEven reports odd numbers as even\",\"body\":\"Bug: isEven(3) returns true. Expected false. Candidate for pac:ready_for_agent. Focused fixture paths are listed in evaluations/pac-triage-progressive/fixtures/bug/issue-comments.md.\",\"state\":\"OPEN\",\"author\":{\"login\":\"reporter\"},\"labels\":[{\"name\":\"bug\"},{\"name\":\"pac:needs_triage\"}]}. Do not mutate GitHub. Gather deeper evidence required for bug readiness: read the relevant comments, inspect the focused source/test, and run the smallest reproduction. Write evaluations/pac-triage-progressive/workspace/ready-for-agent-bug.md with the recommendation, reproduction result, relevant code evidence, and concise evidence-consulted progression.",
+      "timeoutMs": 300000,
+      "verify": [
+        {
+          "command": "node",
+          "args": ["evaluations/pac-triage-progressive/verify.mjs", "ready-for-agent-bug"],
+          "timeoutMs": 30000
+        }
+      ],
+      "artifacts": ["evaluations/pac-triage-progressive/workspace/ready-for-agent-bug.md"]
+    },
+    {
+      "id": "out-of-scope",
+      "prompt": "Disposable, non-publishing triage evaluation. The following JSON is the authoritative initial structured issue metadata/body read: {\"number\":9003,\"title\":\"Add hosted artifact storage to mypac\",\"body\":\"Request asks mypac to operate a hosted artifact service. A pac:out_of_scope boundary decision is genuinely under consideration. In this fixture, evaluations/pac-triage-progressive/fixtures/scope/prior-decisions.md is the structured GitHub precedent-search result.\",\"state\":\"OPEN\",\"author\":{\"login\":\"reporter\"},\"labels\":[{\"name\":\"enhancement\"},{\"name\":\"pac:needs_triage\"}]}. Do not mutate GitHub. Search the supplied structured precedent selectively because scope precedent is relevant; do not inspect implementation source. Write evaluations/pac-triage-progressive/workspace/out-of-scope.md with the recommendation, matched precedent, and concise evidence-consulted progression.",
+      "timeoutMs": 300000,
+      "verify": [
+        {
+          "command": "node",
+          "args": ["evaluations/pac-triage-progressive/verify.mjs", "out-of-scope"],
+          "timeoutMs": 30000
+        }
+      ],
+      "artifacts": ["evaluations/pac-triage-progressive/workspace/out-of-scope.md"]
+    }
+  ]
+}
