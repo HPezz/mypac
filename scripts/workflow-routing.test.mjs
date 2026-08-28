@@ -182,6 +182,7 @@ test("pac-upstream-checkpoints skill resolves narrow registry scope before expan
 		readRepoFile("skills", "pac-upstream-checkpoints", "WATCH_INVENTORY.md"),
 	]);
 	const resolveScope = skill.search(/resolve (?:the )?requested registry scope/i);
+	const notesBranch = skill.search(/free-form notes/i);
 	const targetedExtraction = skill.search(/registry-scope\.mjs.*<id>/i);
 	const fullRegistry = skill.search(/only then expand to the full registry/i);
 	const model = skill.search(/load `MODEL\.md`/i);
@@ -189,7 +190,8 @@ test("pac-upstream-checkpoints skill resolves narrow registry scope before expan
 	const publicationTemplate = skill.search(/CHECKPOINT_ISSUE_TEMPLATE\.md/i);
 
 	assert.ok(resolveScope >= 0, "scope resolution should be explicit");
-	assert.ok(targetedExtraction > resolveScope, "targeted extraction should follow scope resolution");
+	assert.ok(notesBranch > resolveScope, "free-form notes should have an explicit routing branch");
+	assert.ok(targetedExtraction > notesBranch, "notes routing should resolve before exact-ID extraction");
 	assert.ok(fullRegistry > targetedExtraction, "full-registry fallback should follow targeted extraction");
 	assert.ok(model > targetedExtraction, "model loading should not precede narrow extraction");
 	assert.ok(publicationDecision >= 0, "publication should have an explicit decision gate");
@@ -202,6 +204,11 @@ test("pac-upstream-checkpoints skill resolves narrow registry scope before expan
 	assert.match(skill, /human confirmation.*baseline/i);
 	assert.match(skill, /do not implement upstream changes/i);
 	assert.match(skill, /watch-source ID:.*WATCH_INVENTORY\.md/i);
+	assert.match(skill, /extract.*explicit.*stable ID.*notes/i);
+	assert.match(skill, /targeted literal searches.*stable registry fields/i);
+	assert.match(skill, /zero or multiple candidates.*expand only.*concrete unresolved/is);
+	assert.match(skill, /never.*treat.*notes.*all/i);
+	assert.match(skill, /never.*pass.*entire note.*exact-ID extractor/i);
 	assert.match(watchInventory, /every uncovered upstream artifact path/i);
 	assert.match(watchInventory, /never replace the complete list.*such as.*etc/is);
 	assert.match(watchInventory, /initial baseline.*currently uncovered.*not `new`/is);
@@ -212,16 +219,20 @@ test("pac-upstream-checkpoints skill resolves narrow registry scope before expan
 test("pac-upstream-checkpoints prompt routes narrow scope before full registry and model access", async () => {
 	const prompt = await readRepoFile("prompts", "pac-upstream-checkpoints.md");
 	const resolveScope = prompt.search(/resolve (?:the )?requested registry scope/i);
+	const notesBranch = prompt.search(/free-form notes/i);
 	const targetedExtraction = prompt.search(/registry-scope\.mjs.*<id>/i);
 	const fullRegistry = prompt.search(/full registry/i);
 	const model = prompt.search(/MODEL\.md/i);
 
 	assert.ok(resolveScope >= 0, "prompt should resolve scope explicitly");
-	assert.ok(targetedExtraction > resolveScope, "prompt should prefer targeted extraction for named scope");
+	assert.ok(notesBranch > resolveScope, "prompt should retain free-form note routing");
+	assert.ok(targetedExtraction > notesBranch, "prompt should resolve notes before exact-ID extraction");
 	assert.ok(fullRegistry > targetedExtraction, "prompt should delay full registry access");
 	assert.ok(model > targetedExtraction, "prompt should delay model access");
 	assert.match(prompt, /all-sources?.*full registry/is);
 	assert.match(prompt, /targeted.*insufficient.*full registry/is);
+	assert.match(prompt, /notes.*unique.*targeted.*exact-ID extractor/is);
+	assert.match(prompt, /ambiguous.*clarification.*not.*all/is);
 	assert.match(prompt, /no-change.*CHECKPOINT_ISSUE_TEMPLATE\.md/is);
 	assert.match(prompt, /\*\*Provided arguments\*\*: \$@\s*$/);
 });

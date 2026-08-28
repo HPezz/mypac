@@ -38,7 +38,18 @@ If `gh` is unavailable or unauthenticated, continue with local comparison where 
 
 ### 2. Resolve the requested registry scope progressively
 
-Classify an explicit argument as one local-artifact ID, upstream-ref ID, watch-source ID, or `all`. Empty scope means `all`. For a named ID, use the stable key-based extractor instead of opening the full registry in model context:
+Classify an explicit argument as one local-artifact ID, upstream-ref ID, watch-source ID, `all`, or free-form notes. Empty scope means `all`.
+
+For free-form notes, resolve scope progressively before extraction:
+
+1. Extract any explicit stable ID named in the notes.
+2. Otherwise use targeted literal searches over stable registry fields such as `id`, `title`, `local.paths`, `repo`, `paths`, and `purpose` to identify candidate IDs without opening the full registry in model context.
+3. If exactly one candidate fits the notes, use its stable ID with the exact-ID extractor below.
+4. For zero or multiple candidates, expand only enough candidate entries or `MODEL.md` context to answer the concrete unresolved scope question. Ask for clarification when intent remains ambiguous; do not silently broaden to `all`.
+
+Never treat unresolved free-form notes as `all`, never fail them merely because they are not an exact ID, and never pass the entire note to the exact-ID extractor.
+
+For an exact named ID, or the unique candidate resolved from notes, use the stable key-based extractor:
 
 ```bash
 node skills/pac-upstream-checkpoints/scripts/registry-scope.mjs .pac/upstream-sources.yaml <id>
