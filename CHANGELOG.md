@@ -68,6 +68,7 @@ Versioned sections should match the Git tags and GitHub releases published for t
 - Gated `/pac-lwot` execution before repository preparation so completed targets stop without loading implementation or commit context. ([#361](https://github.com/ladislas/mypac/issues/361))
 - Preferred structured GitHub and repository tooling over browser automation when direct APIs or local data provide the required information. ([#362](https://github.com/ladislas/mypac/issues/362))
 - Made `/pac-llat` a progressive-context router and kept workflow-only planning skills out of automatic model context. ([#359](https://github.com/ladislas/mypac/issues/359))
+- Avoided redundant structured GitHub issue reads during `/pac-llat` classification while preserving necessary follow-up verification. ([#393](https://github.com/ladislas/mypac/issues/393))
 - Upgraded the pinned Headroom installation to 0.36.5.
 - Made safe Git execution hygiene—branch checks, atomic slice commits, unrelated-change isolation, and explicit authorization for history operations—the default for natural-language implementation. ([#349](https://github.com/ladislas/mypac/issues/349))
 - Upgraded development and peer dependency baseline to Pi 0.84.3, adopting session-scoped model defaults for Headroom routing refreshes and BTW side-session model synchronization. ([#345](https://github.com/ladislas/mypac/issues/345))

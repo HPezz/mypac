@@ -177,7 +177,8 @@ test("shared guidance requires progressive context disclosure", async () => {
 
 	assert.match(shared, /progressive context disclosure/i);
 	assert.match(shared, /smallest authoritative artifact/i);
-	assert.match(shared, /do not re-fetch facts already present/i);
+	assert.match(shared, /avoid redundant reads of facts already present/i);
+	assert.match(shared, /materially missing, may have changed, or must be verified after a state transition/i);
 	assert.match(shared, /materially needed for the next decision/i);
 });
 
