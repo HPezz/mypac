@@ -1,6 +1,6 @@
 ---
 name: pac-review
-description: Review code changes following project review guidelines. Use when the user asks to review code, uncommitted changes, a pull request, a branch comparison, or a specific commit.
+description: "Review code changes following project review guidelines. Use when the user asks to review code, uncommitted changes, a pull request, a branch comparison, or a specific commit."
 license: MIT
 compatibility: Git repository; gh CLI required for pull request reviews.
 metadata:
@@ -10,115 +10,100 @@ metadata:
 
 # Code Review
 
-Use this skill whenever the user asks for a code review, whether in conversation or via the `/review-start` command.
+Use this skill for defect-oriented code review, including `/review-start` sessions.
 
-## Gathering the diff
+## Resolve the target and inspect the diff first
 
-Before reviewing, determine what to inspect. Choose the approach that matches the request:
-
-**Uncommitted changes (staged, unstaged, and untracked):**
+Resolve exactly what the user asked to review, then inspect that diff before broad context. Use the matching minimal command:
 
 ```bash
+# uncommitted: include staged, unstaged, and untracked files
 git status --porcelain
 git diff
 git diff --staged
 git ls-files --others --exclude-standard
-```
 
-**Changes against a base branch:**
+# branch comparison
+git merge-base HEAD <base-branch>
+git diff <merge-base-sha>
 
-```bash
-git merge-base HEAD <base-branch>   # find the merge base commit
-git diff <merge-base-sha>           # inspect the diff against it
-```
-
-**A specific commit:**
-
-```bash
+# commit
 git show <sha>
+
+# pull request
+gh pr view <number> --json baseRefName,title,headRefName
+gh pr checkout <number>
+git merge-base HEAD <base-branch>
+git diff <merge-base-sha>
 ```
 
-**A pull request:**
+For a requested file snapshot rather than a diff, read only those files. After inspecting the diff, read surrounding code, callers, tests, or runtime context only to prove or disprove a concrete finding. Do not sweep repository docs or unrelated source for general understanding.
 
-```bash
-gh pr view <number> --json baseRefName,title,headRefName   # get PR info
-gh pr checkout <number>                                     # switch to the PR branch
-git merge-base HEAD <base-branch>                           # find merge base
-git diff <merge-base-sha>                                   # inspect the diff
-```
+## Finding bar
 
-**Specific folders or files (snapshot, not a diff):**
-Read the relevant files directly with the `read` tool.
+Flag an issue only when all relevant conditions hold:
 
----
+1. It meaningfully affects correctness, performance, security, maintainability, or operational safety.
+2. It is discrete and actionable, not a broad concern or several issues combined.
+3. It was introduced by the reviewed diff, not pre-existing code.
+4. The author would likely fix it if aware.
+5. It does not depend on unstated assumptions about intent or the codebase.
+6. Its impact is proved: identify the affected scenario and code path rather than speculating.
+7. It is not clearly an intentional tradeoff.
+8. The expected rigor is consistent with the repository.
 
-## Review Guidelines
+Do not stop after the first finding. Ignore trivial style unless it obscures meaning or violates an explicitly supplied standard. Prefer simple fixes over unnecessary wrappers or abstractions.
 
-You are acting as a code reviewer for a proposed code change made by another engineer.
+### Security and untrusted input
 
-Below are default guidelines for determining what to flag. These are not the final word — if you encounter more specific guidelines in the conversation or in project-specific review instructions, those take precedence.
+Treat changed trust boundaries as high signal:
 
-## Determining what to flag
+- Restrict redirect targets such as `next_page` to trusted destinations.
+- Flag non-parameterized SQL.
+- Protect user-supplied URL fetches against local-resource access, including DNS resolution/rebinding behavior.
+- Escape output for its destination context; do not substitute vague sanitization when escaping is available.
 
-Flag issues that:
+### Fail-fast error handling (strict)
 
-1. Meaningfully impact the accuracy, performance, security, or maintainability of the code.
-2. Are discrete and actionable (not general issues or multiple combined issues).
-3. Don't demand rigor inconsistent with the rest of the codebase.
-4. Were introduced in the changes being reviewed (not pre-existing bugs).
-5. The author would likely fix if aware of them.
-6. Don't rely on unstated assumptions about the codebase or author's intent.
-7. Have provable impact on other parts of the code — it is not enough to speculate that a change may disrupt another part, you must identify the parts that are provably affected.
-8. Are clearly not intentional changes by the author.
-9. Be particularly careful with untrusted user input and follow the specific guidelines below.
-10. Treat silent local error recovery (especially parsing/IO/network fallbacks) as high-signal review candidates unless there is explicit boundary-level justification.
+Review every added or changed `try/catch` and other local recovery path. Identify what can fail and why handling belongs at that exact layer.
 
-## Untrusted User Input
+- Prefer propagation when the current scope cannot fully recover while preserving correctness.
+- Flag swallowed failures, message-based error matching, logging-and-continue, or fallback returns such as `null`, `[]`, or `false` that hide failure signals.
+- JSON parsing/decoding fails loudly by default. Quiet compatibility fallback requires an explicit requirement and focused tests.
+- Boundary handlers such as HTTP routes, CLI entrypoints, and supervisors may translate failures, but must not pretend success or silently degrade.
+- A catch added only for lint/style is a bug. When uncertain, prefer fail-fast behavior over silent corruption.
 
-1. Be careful with open redirects, they must always be checked to only go to trusted domains (?next_page=...)
-2. Always flag SQL that is not parametrized
-3. In systems with user supplied URL input, http fetches always need to be protected against access to local resources (intercept DNS resolver!)
-4. Escape, don't sanitize if you have the option (eg: HTML escaping)
+Also treat missing back pressure as a system-stability risk and changes likely to create operational or on-call risk as high signal.
 
-## Comment guidelines
+## Findings and comments
 
-1. Be clear about why the issue is a problem.
-2. Communicate severity appropriately - don't exaggerate.
-3. Be brief - at most 1 paragraph.
-4. Keep code snippets under 3 lines, wrapped in inline code or code blocks.
-5. Use \`\`\`suggestion blocks ONLY for concrete replacement code (minimal lines; no commentary inside the block). Preserve the exact leading whitespace of the replaced lines.
-6. Explicitly state scenarios/environments where the issue arises.
-7. Use a matter-of-fact tone - helpful AI assistant, not accusatory.
-8. Write for quick comprehension without close reading.
-9. Avoid excessive flattery or unhelpful phrases like "Great job...".
+Each finding must:
 
-## Review priorities
+- use a title tagged `[P0]`, `[P1]`, `[P2]`, or `[P3]`;
+- name the file and the shortest useful line range (normally no more than 5–10 lines);
+- reference a location that overlaps the actual diff;
+- explain the failure scenario/environment and why it matters;
+- be brief, matter-of-fact, and at most one paragraph.
 
-1. Surface critical non-blocking human callouts (migrations, dependency churn, auth/permissions, compatibility, destructive operations) at the end.
-2. Prefer simple, direct solutions over wrappers or abstractions without clear value.
-3. Treat back pressure handling as critical to system stability.
-4. Apply system-level thinking; flag changes that increase operational risk or on-call wakeups.
-5. Ensure that errors are always checked against codes or stable identifiers, never error messages.
+Priority meanings:
 
-## Fail-fast error handling (strict)
+- `[P0]` — universal release/operations blocker; does not depend on input assumptions.
+- `[P1]` — urgent; address in the next cycle.
+- `[P2]` — normal actionable defect.
+- `[P3]` — low priority but still worth fixing.
 
-When reviewing added or modified error handling, default to fail-fast behavior.
+Keep snippets under three lines. Use a `suggestion` block only for concrete replacement code, with exact indentation and no commentary inside it. Do not generate a full PR fix during review.
 
-1. Evaluate every new or changed `try/catch`: identify what can fail and why local handling is correct at that exact layer.
-2. Prefer propagation over local recovery. If the current scope cannot fully recover while preserving correctness, rethrow (optionally with context) instead of returning fallbacks.
-3. Flag catch blocks that hide failure signals (e.g. returning `null`/`[]`/`false`, swallowing JSON parse failures, logging-and-continue, or "best effort" silent recovery).
-4. JSON parsing/decoding should fail loudly by default. Quiet fallback parsing is only acceptable with an explicit compatibility requirement and clear tested behavior.
-5. Boundary handlers (HTTP routes, CLI entrypoints, supervisors) may translate errors, but must not pretend success or silently degrade.
-6. If a catch exists only to satisfy lint/style without real handling, treat it as a bug.
-7. When uncertain, prefer crashing fast over silent degradation.
+## Verdict and output contract
 
-## Required human callouts (non-blocking, at the very end)
-
-After findings/verdict, you MUST append this final section:
+1. List every qualifying finding with priority, diff-local location, and explanation.
+2. If none qualify, explicitly say the code looks good.
+3. Give the overall verdict exactly as `correct` when there are no blocking issues or `needs attention` when blocking issues exist.
+4. Finish with the following section, after findings and verdict.
 
 ## Human Reviewer Callouts (Non-Blocking)
 
-Include only applicable callouts (no yes/no lines):
+Include only applicable callouts, preserving the exact bold labels:
 
 - **This change adds a database migration:** <files/details>
 - **This change introduces a new dependency:** <package(s)/details>
@@ -126,52 +111,17 @@ Include only applicable callouts (no yes/no lines):
 - **This change modifies auth/permission behavior:** <what changed and where>
 - **This change introduces backwards-incompatible public schema/API/contract changes:** <what changed and where>
 - **This change includes irreversible or destructive operations:** <operation and scope>
-- **This change adds or removes feature flags:** <feature flags changed> (call out re-use of dormant feature flags!)
-- **This change changes configuration defaults:** <config var changed>
+- **This change adds or removes feature flags:** <feature flags changed; call out re-use of dormant flags>
+- **This change changes configuration defaults:** <config variable changed>
 
-Rules for this section:
+These are informational, not findings. They do not change the verdict without an independent defect. If none apply, write `- (none)`.
 
-1. These are informational callouts for the human reviewer, not fix items.
-2. Do not include them in Findings unless there is an independent defect.
-3. These callouts alone must not change the verdict.
-4. Only include callouts that apply to the reviewed change.
-5. Keep each emitted callout bold exactly as written.
-6. If none apply, write "- (none)".
+## Conditional follow-ups
 
-## Priority levels
+### Standards + Spec
 
-Tag each finding with a priority level in the title:
+Only when the user explicitly asks for a Standards review, Spec review, or Standards + Spec follow-up, load `skills/pac-review-standards-spec/SKILL.md`. Do not run Standards or Spec gathering during the default review. Keep follow-up findings separate from default findings.
 
-- [P0] - Drop everything to fix. Blocking release/operations. Only for universal issues that do not depend on assumptions about inputs.
-- [P1] - Urgent. Should be addressed in the next cycle.
-- [P2] - Normal. To be fixed eventually.
-- [P3] - Low. Nice to have.
+### Fix reviewed findings
 
-## Output format
-
-Provide your findings in a clear, structured format:
-
-1. List each finding with its priority tag, file location, and explanation.
-2. Findings must reference locations that overlap with the actual diff — don't flag pre-existing code.
-3. Keep line references as short as possible (avoid ranges over 5-10 lines; pick the most suitable subrange).
-4. Provide an overall verdict: "correct" (no blocking issues) or "needs attention" (has blocking issues).
-5. Ignore trivial style issues unless they obscure meaning or violate documented standards.
-6. Do not generate a full PR fix — only flag issues and optionally provide short suggestion blocks.
-7. End with the required "Human Reviewer Callouts (Non-Blocking)" section and all applicable bold callouts (no yes/no).
-
-Output all findings the author would fix if they knew about them. If there are no qualifying findings, explicitly state the code looks good. Don't stop at the first finding — list every qualifying issue. Then append the required non-blocking callouts section.
-
-## Optional Standards + Spec follow-up review
-
-Do not run Standards or Spec checks during the default review pass unless the user explicitly asks for them. When the user asks for a Standards review, Spec review, or Standards + Spec follow-up, load `skills/pac-review-standards-spec/SKILL.md` and keep those findings separate from default review findings.
-
-## Fix session commit discipline
-
-When applying fixes during a review fix pass (via `/review-end` → "Return and fix findings"):
-
-- Create an atomic `git commit --fixup <sha>` for each fix. Before editing a file, run `git blame <file> -L <start>,<end>` to identify which commit introduced the code being fixed, then use that SHA as the fixup target.
-- Never run `git rebase --autosquash` automatically. Always ask the user before rewriting history.
-- For uncommitted changes reviews (no prior commits to fixup against): stage the file's current state before applying the fix (`git add <file>`) so the fix delta is visible as an unstaged diff. Do not commit.
-- After all fixes are applied, summarize each fixup commit (what was fixed, which original commit it targets) and ask the user for next steps: continue fixing, run `git rebase --autosquash` (with explicit approval), or leave fixup commits as-is.
-
-See `skills/pac-commit/SKILL.md` for the full fixup workflow reference.
+Only when the user is actually entering a workflow that applies fixes to review findings, load `FIX_FINDINGS.md` before editing. Do not read or load `FIX_FINDINGS.md` for a read-only review. The reference owns blame targeting, atomic fixups, uncommitted-review handling, and history-safety procedure.

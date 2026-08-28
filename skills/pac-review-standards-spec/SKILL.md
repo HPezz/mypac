@@ -10,9 +10,7 @@ metadata:
 
 # Standards + Spec Review
 
-Use this skill only as an optional follow-up to the default `pac-review` defect-oriented review pass. Do not replace or weaken the default review rubric.
-
-Keep the results separate from default review findings with these sections:
+Use this skill only as an explicit follow-up to the default `pac-review` defect pass. Do not replace or weaken that pass. Keep results separate:
 
 ```md
 ## Standards Findings
@@ -22,31 +20,28 @@ Keep the results separate from default review findings with these sections:
 ...
 ```
 
+## Gather context progressively
+
+1. Start from the changed paths already established by the default review.
+2. Identify the best available originating spec or decision from the user request, PR body, `closes #...` references, linked issue/PRD comments, design note, or ADR.
+3. State the concrete Standards or Spec question raised by the diff—for example, “Does the new extension helper violate the layout rule applicable to `extensions/`?”
+4. Read only instruction, standards, decision, or tooling sources applicable to those paths or claims. Nested instruction files apply by path; a linked decision applies by subject and scope.
+5. Expand only when current evidence cannot resolve that concrete question. Before another read, name the materially missing fact and choose the narrowest authoritative source likely to answer it.
+
+Do not reflexively traverse `AGENTS.md` + `CONTEXT.md` + `README.md` + docs + ADRs + configs as a checklist. A source category is not a reason to read a file. Do not re-read diff or target fields already available from the default pass unless they may be stale or a specific missing fact requires it.
+
 ## Standards pass
 
-Evaluate whether the diff follows documented repository standards. Look for relevant sources such as:
+Evaluate whether the diff follows documented repository standards that actually govern its changed paths or behavior. Applicable evidence may include scoped `AGENTS.md`/instruction files, contributor guidance, a relevant ADR, or a config/CI rule that expresses policy.
 
-- `AGENTS.md` and nested agent/instruction files that apply to the changed paths
-- `CONTRIBUTING.md`, `CONTEXT.md`, README guidance, and docs that define contributor or project conventions
-- ADRs or decision records that constrain the changed area
-- Tooling/config files that express repository policy, such as linters, formatters, TypeScript config, test config, CI workflows, package scripts, or dependency policy files
-
-Do not spend findings on rules that machines already enforce unless the diff bypasses or weakens that enforcement. Flag only standards mismatches that are actionable, introduced by the diff, and likely worth fixing.
-
-For each Standards finding, cite the relevant standards source. If no relevant standards source exists, say so and keep the pass brief.
+Do not report rules machines already enforce unless the diff bypasses or weakens enforcement. Flag only actionable mismatches introduced by the diff that the author would likely fix. Cite the governing source for every Standards finding. If no applicable standards source exists, say so briefly and stop that pass.
 
 ## Spec pass
 
-Evaluate whether the diff matches the originating issue, PRD, ADR, design note, PR description, or user-provided spec.
+Compare the diff with the best available originating requirement or decision. Prefer the newest linked PRD/comment that contains the expected structured marker when such artifacts exist. Treat applicable ADR decisions as constraints.
 
-First identify the best available spec source from the review context, including issue/PR links, `closes #...` references, PR body references, linked PRD comments, ADR comments, or explicit user instructions. Prefer the newest linked PRD/comment that actually contains the expected structured marker when those artifacts exist. Treat ADRs and explicit decisions as constraints.
-
-If no spec source is available, clearly say that and do not invent requirements. If a spec source is stale, unreadable, or missing the expected marker, say so plainly and use the minimum direct context available.
-
-For each Spec finding, cite the spec source and explain the mismatch. Keep Spec findings separate from Standards and default review findings.
+If no spec source exists, or it is stale, unreadable, or missing the expected marker, say so and use only the minimum direct context available. Do not invent requirements. Cite the source and explain the mismatch for every Spec finding.
 
 ## Output
 
-Report Standards and Spec findings separately. Use the same priority tags and finding quality bar as `pac-review`: only flag actionable issues introduced by the reviewed diff that the author would likely fix if aware of them.
-
-If a pass was not possible, say why under that pass heading instead of inventing requirements or standards.
+Use the same priority tags, diff locality, provable-impact requirement, and actionable-finding bar as `pac-review`. Keep Standards and Spec findings separate from each other and from default findings. If a pass could not be performed, explain why under its heading instead of inventing standards or requirements.
