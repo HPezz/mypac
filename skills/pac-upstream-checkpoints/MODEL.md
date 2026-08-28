@@ -1,54 +1,74 @@
 # Upstream checkpoint registry model
 
-This model defines the vocabulary for `.pac/upstream-sources.yaml` and `/pac-upstream-checkpoints`.
+Load this reference for a full/all-sources run or when a targeted registry subset is insufficient to validate the requested operation.
 
 ## Core concepts
 
-- **Local artifact**: one individually maintainable repo artifact, such as a single skill, extension, prompt, document, or standalone script. This is the primary registry unit.
-- **Upstream ref**: one source repository/path/ref that explains a local artifact's provenance or provides a current reference for targeted review. Upstream-ref IDs are globally unique so users can target one directly.
-- **Watch source**: an upstream inventory scan for discovering new, moved, removed, or renamed assets. A watch source is not a local artifact and does not imply adoption.
-- **Checkpoint issue**: the durable GitHub review narrative and decision log for an upstream review run.
-- **Registry checkpoint**: the pointer-only `last_reviewed` data stored in YAML so the next run knows where to resume.
+- **Local artifact**: one individually maintainable repository artifact: a skill, extension, prompt, theme, document, or standalone script.
+- **Upstream ref**: a repository/path/ref that records provenance or supports targeted review. Its ID is globally unique.
+- **Watch source**: a whole-upstream inventory scan for new, moved, removed, renamed, or uncovered assets. It does not imply adoption.
+- **Checkpoint issue**: the durable review narrative and decision log.
+- **Registry checkpoint**: pointer-only `last_reviewed` data used as the next accepted baseline.
 
-## Allowed local artifact kinds
+The registry is local-first. Broad artifact groups and normalized top-level source definitions are outside the model.
 
-- `skill`: one local skill directory under `skills/`.
-- `extension`: one local extension directory under `extensions/`.
-- `prompt`: one local prompt file under `prompts/`.
-- `theme`: one local theme file under `themes/`.
-- `document`: one standalone document with active upstream tracking.
-- `script`: one standalone script with active upstream tracking.
+## Registry schema
 
-Docs or scripts that are part of a skill or extension are covered by that parent artifact.
+Required top-level fields:
+
+- `schema_version`
+- `checkpoint_label`
+- `local_artifacts`
+- `watch_sources`
+
+Each `local_artifacts` entry requires:
+
+- `id`: stable machine-friendly local artifact ID.
+- `title`: human-readable review unit.
+- `kind`: `skill`, `extension`, `prompt`, `theme`, `document`, or `script`.
+- `local.paths`: files or directories belonging to this artifact.
+- `upstream_refs`: one or more upstream references.
+- `attribution`: source credit, license notes, and provenance notes.
+- Optional `known_divergence` and `do_not_chase`.
+
+Each `upstream_refs` entry requires:
+
+- `id`: globally unique upstream-ref ID.
+- `role`, `status`, and `sync_policy`.
+- `repo`, `ref`, and `paths`.
+- `attribution`.
+- `last_reviewed.upstream_commit`, `checkpoint_issue`, `reviewed_at`, and `notes`.
+- Optional `known_divergence` and `do_not_chase`.
+
+Each `watch_sources` entry requires:
+
+- `id`, `title`, and `sync_policy`.
+- `repo`, `ref`, and `paths`.
+- `purpose`.
+- `last_reviewed.upstream_commit`, `checkpoint_issue`, `reviewed_at`, and `notes`.
 
 ## Sync policies
 
-Every upstream ref and watch source must declare `sync_policy`.
+- `provenance_only`: record origin or attribution; do not compare parity unless requested.
+- `targeted`: inspect concrete useful improvements, fixes, conventions, or rationale; do not chase parity.
+- `inventory_watch`: scan watched paths for added, moved, removed, renamed, and uncovered assets.
 
-- `provenance_only`: Records origin or attribution. Do not regularly compare for parity unless a human asks.
-- `targeted`: Check for specific useful improvements, bug fixes, conventions, or rationale. Do not chase feature parity.
-- `inventory_watch`: Scan an upstream path for newly added, moved, removed, or renamed assets.
+Every upstream ref and watch source declares one policy.
 
 ## Divergence fields
 
-- `known_divergence`: factual differences between local and upstream that help reviewers interpret comparisons.
-- `do_not_chase`: explicit rules for things future reviews should not repeatedly propose.
+- `known_divergence`: factual local/upstream differences that affect interpretation.
+- `do_not_chase`: settled rules future reviews must not repeatedly propose.
 
-Both fields may appear on a local artifact or on a specific upstream ref.
+They may appear on a local artifact or an upstream ref.
 
 ## Checkpoint data
 
-`last_reviewed` is pointer-only. It contains:
+`last_reviewed` is pointer-only:
 
-- `upstream_commit`: upstream commit hash last accepted as the checkpoint baseline, or `null`.
-- `checkpoint_issue`: GitHub issue URL/number for that accepted checkpoint, or `null`.
-- `reviewed_at`: ISO timestamp for that accepted checkpoint, or `null`.
+- `upstream_commit`: accepted upstream commit baseline, or `null`.
+- `checkpoint_issue`: accepted checkpoint URL/number, or `null`.
+- `reviewed_at`: accepted ISO timestamp, or `null`.
 - `notes`: short baseline notes.
 
-Do not store decision summaries in `last_reviewed`; decisions live in checkpoint issues or ADR comments.
-
-## Out of model
-
-- Top-level artifact groups.
-- Top-level normalized source definitions.
-- Active tracking for documents that only provided initial inspiration and do not need ongoing comparison.
+Do not store review decisions in `last_reviewed`; they belong in checkpoint issues or ADR comments. Advance these pointers only after human confirmation.
