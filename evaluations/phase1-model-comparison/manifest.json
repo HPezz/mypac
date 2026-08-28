@@ -1,0 +1,53 @@
+{
+  "$schema": "../../schemas/pac-eval-manifest.schema.json",
+  "version": 1,
+  "id": "phase1-model-comparison",
+  "repository": { "path": "../..", "ref": "HEAD" },
+  "profiles": [
+    {
+      "id": "luna-max",
+      "model": "openai-codex/gpt-5.6-luna",
+      "thinking": "max",
+      "execution": { "tools": ["read", "bash", "edit", "write", "grep", "find", "ls"] }
+    },
+    {
+      "id": "terra-medium",
+      "model": "openai-codex/gpt-5.6-terra",
+      "thinking": "medium",
+      "execution": { "tools": ["read", "bash", "edit", "write", "grep", "find", "ls"] }
+    },
+    {
+      "id": "terra-high",
+      "model": "openai-codex/gpt-5.6-terra",
+      "thinking": "high",
+      "execution": { "tools": ["read", "bash", "edit", "write", "grep", "find", "ls"] }
+    },
+    {
+      "id": "sol-medium",
+      "model": "openai-codex/gpt-5.6-sol",
+      "thinking": "medium",
+      "execution": { "tools": ["read", "bash", "edit", "write", "grep", "find", "ls"] }
+    }
+  ],
+  "scenarios": [
+    {
+      "id": "routing-judgement",
+      "prompt": "This is an isolated evaluation checkout. Inspect evaluations/phase1-model-comparison/fixtures/routing/target.json and decide whether execution is still required. Record your decision in evaluations/phase1-model-comparison/workspace/routing-decision.json as JSON with exactly these keys: decision (execute, plan, or stop), implementationRequired (boolean), nextWorkflow (string or null), and evidence (the decisive record and state as <record>:<state>). Do not change the target. Avoid unrelated repository, documentation, history, or skill exploration; stop after recording the decision. Do not create a branch or commit because the evaluator captures the working-tree diff.",
+      "timeoutMs": 300000,
+      "verify": [{ "command": "node", "args": ["evaluations/phase1-model-comparison/verify-routing.mjs"], "timeoutMs": 30000 }],
+      "artifacts": ["evaluations/phase1-model-comparison/workspace/routing-decision.json"]
+    },
+    {
+      "id": "narrow-implementation",
+      "prompt": "This is an isolated evaluation checkout. In evaluations/phase1-model-comparison/fixtures/implementation, change normalizeLabels so user-entered labels are normalized, blank labels are discarded, and duplicates are removed while preserving first-seen order. Add focused regression coverage. Inspect only what you need, keep the change within that fixture, run the relevant tests, and do not create a branch or commit because the evaluator captures the working-tree diff.",
+      "timeoutMs": 600000,
+      "verify": [{ "command": "node", "args": ["evaluations/phase1-model-comparison/verify-implementation.mjs"], "timeoutMs": 30000 }]
+    },
+    {
+      "id": "deterministic-diagnosis",
+      "prompt": "This is an isolated evaluation checkout. Diagnose and fix the deterministic failure in evaluations/phase1-model-comparison/fixtures/diagnosis/repro.mjs. Fix the root cause rather than the example symptom, preserve the intended cache behavior, and add focused regression coverage to config-cache.test.mjs. Keep changes within that fixture, run the repro and relevant tests, and do not create a branch or commit because the evaluator captures the working-tree diff.",
+      "timeoutMs": 600000,
+      "verify": [{ "command": "node", "args": ["evaluations/phase1-model-comparison/verify-diagnosis.mjs"], "timeoutMs": 30000 }]
+    }
+  ]
+}
