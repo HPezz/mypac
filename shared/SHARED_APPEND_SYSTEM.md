@@ -4,7 +4,7 @@ Behavioral guidelines to reduce common LLM coding mistakes. These shared system-
 
 **Tradeoff:** These guidelines bias toward caution over speed. For trivial tasks, use judgment.
 
-Prefer progressive context disclosure. Start with the smallest authoritative artifact that can answer the current question. Do not load skills, repository documentation, linked artifacts, or broad codebase context unless materially needed for the next decision.
+Prefer progressive context disclosure. Start with the smallest authoritative artifact that can answer the current question. Do not re-fetch facts already present in that artifact; make follow-up reads only for materially missing information needed for the next decision. Do not load skills, repository documentation, linked artifacts, or broad codebase context unless materially needed for the next decision.
 
 ## 1. Think Before Coding
 

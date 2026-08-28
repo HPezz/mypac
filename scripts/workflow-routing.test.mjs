@@ -50,6 +50,7 @@ test("pac-llat starts with the target and expands context only when classificati
 	assert.match(prompt, /do not load another workflow skill merely because/i);
 	assert.match(prompt, /do not read.*README\.md.*AGENTS\.md.*CONTEXT\.md/i);
 	assert.match(prompt, /issue comments/i);
+	assert.match(prompt, /do not re-fetch.*issue.*fields already returned/i);
 	assert.match(prompt, /additional targeted reads only when.*materially insufficient/i);
 	assert.doesNotMatch(prompt, /perform one targeted follow-up read/i);
 	assert.match(prompt, /\*\*Provided arguments\*\*: \$@\s*$/);
@@ -176,6 +177,7 @@ test("shared guidance requires progressive context disclosure", async () => {
 
 	assert.match(shared, /progressive context disclosure/i);
 	assert.match(shared, /smallest authoritative artifact/i);
+	assert.match(shared, /do not re-fetch facts already present/i);
 	assert.match(shared, /materially needed for the next decision/i);
 });
 
