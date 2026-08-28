@@ -9,7 +9,7 @@ Use this prompt when the user wants execution from the available context. The ta
 
 Process:
 
-1. Resolve the target. Prefer explicit arguments, then current conversation context. Start with the smallest authoritative artifact needed to understand the request and its current state. For a GitHub issue or PR, read that target first with enough state and resolution metadata to recognize an obvious completed or merged result. For a todo, read the todo first.
+1. Resolve the target. Prefer explicit arguments, then current conversation context. Start with the smallest authoritative artifact needed to understand the request and its current state. For a GitHub issue, make the initial structured read include the body and execution-gate metadata. Reuse that complete result for target resolution and the execution gate: fields already present must not be re-fetched through another command or API shape. Before any second read of the same target, identify the specific materially missing fact that the initial result did not contain. Targeted follow-up reads remain allowed only when information is materially missing, potentially stale, or needs verification after a state transition. For a GitHub PR, read that target first with enough state and resolution metadata to recognize an obvious merged result. For a todo, read the todo first.
 2. Before repository preparation, decide whether execution is required. Keep this execution gate progressive and cheap:
    - If authoritative evidence shows no work is needed or no execution is required, report the evidence concisely and stop.
    - Do not create or switch branches, load implementation or commit skills, inspect broad comments or history, or search source files merely to double-check an obvious no-op.
