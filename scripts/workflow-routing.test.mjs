@@ -51,7 +51,11 @@ test("pac-llat starts with the target and expands context only when classificati
 	assert.match(prompt, /do not read.*README\.md.*AGENTS\.md.*CONTEXT\.md/i);
 	assert.match(prompt, /issue comments/i);
 	assert.match(prompt, /do not re-fetch.*issue.*fields already returned/i);
-	assert.match(prompt, /additional targeted reads only when.*materially insufficient/i);
+	assert.match(prompt, /after a successful structured target read.*body and metadata.*classify directly/is);
+	assert.match(prompt, /before any second read.*specific materially missing fact/is);
+	assert.match(prompt, /never re-read.*same content.*command.*API shape.*escaped.*raw/is);
+	assert.match(prompt, /gh issue view.*--json.*body.*gh api.*--jq \.body/is);
+	assert.match(prompt, /follow-up reads.*missing fact.*changed.*post-transition/is);
 	assert.doesNotMatch(prompt, /perform one targeted follow-up read/i);
 	assert.match(prompt, /\*\*Provided arguments\*\*: \$@\s*$/);
 });
