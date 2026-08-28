@@ -177,8 +177,8 @@ function escapeHtml(value: unknown): string {
   })[character]!);
 }
 
-function formatNumber(value: number | null): string {
-  return value === null ? "Unknown" : new Intl.NumberFormat("en-US").format(value);
+function formatNumber(value: number | null | undefined): string {
+  return value == null ? "Unknown" : new Intl.NumberFormat("en-US").format(value);
 }
 
 function formatDuration(ms: number): string {
