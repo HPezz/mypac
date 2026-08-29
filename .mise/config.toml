@@ -1,8 +1,8 @@
 [tools]
-hk = "1.38.0"
-pkl = "0.31.0"
-markdownlint-cli2 = "0.21.0"
-yamllint = "1.37.1"
+hk = "1.56.1"
+pkl = "0.32.1"
+markdownlint-cli2 = { version = "0.23.2", trust_policy_excludes = ["fastq@1.20.2"] }
+yamllint = "1.38.0"
 
 [tasks]
 test = "npm test"
