@@ -7,7 +7,7 @@ Read this reference only for an explicit fixup, amend, autosquash, reword, or ot
 - A request to create a fixup or amend commit does not authorize autosquash or any other history rewrite.
 - Run autosquash or another rewrite only after the user explicitly asks for that rewrite.
 - Do not target a commit on the default branch or shared published history without the user's confirmed rewrite intent.
-- Never force push or run a force-push command. Publishing rewritten history is a user-only action.
+- Force-push and history rewrite each require explicit user authorization. Preserve any stronger repository or user restriction or prohibition; a user-only force-push rule remains user-only.
 - If the user asks only for a fixup commit, create it, verify it, report it, and stop.
 
 ## Fixup commits
@@ -75,7 +75,7 @@ git log --oneline
 git status --short
 ```
 
-Do not push. Never force push; if rewritten history must be published, ask the user to do that step.
+Do not push without separate explicit authorization. Before any force-push, re-apply repository and user policy; if a stronger restriction makes it user-only or prohibited, stop and report that restriction.
 
 ## Multiple fixups
 
