@@ -1,6 +1,6 @@
 ---
 name: pac-commit
-description: Create, split, or plan git commits that follow this repository's commit workflow. Use when the user asks to commit changes directly, split changes into commits, or make an implementation commit along the way.
+description: Create or plan repository-compliant commits from existing changes. Load immediately for a standalone commit, split, fixup, amend, reword, or commit-planning request. In an implementation workflow, load only after a coherent slice exists, proportionate implementation verification is complete, and commit creation is allowed.
 license: MIT
 compatibility: Git repository; gitmoji CLI is optional.
 metadata:
@@ -10,7 +10,9 @@ metadata:
 
 # Create repository-compliant commits
 
-Use this skill whenever creating or planning commits, including incremental commits during an authorized implementation workflow.
+Do not load this skill for implementation tasks or requests to implement and then commit. During an implementation workflow, do not use it to plan, perform, or verify implementation work, and do not load it merely because a commit will eventually be needed. Load it only after a coherent slice exists, proportionate implementation verification is complete, and commit creation is allowed.
+
+Load this skill immediately only for an explicit standalone request whose primary action is Git work on existing changes: commit, split, fixup, amend, reword, or commit planning.
 
 ## Conditional history workflows
 
