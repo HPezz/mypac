@@ -15,7 +15,7 @@ Process:
    - Do not create or switch branches, load implementation or commit skills, inspect broad comments or history, or search source files merely to double-check an obvious no-op.
    - If the target is ambiguous, perform only the smallest targeted follow-up read needed to decide whether to continue or stop.
    - Do not read `README.md` as startup context or by default. Read it only when it materially contributes to executing confirmed work.
-3. Once execution is confirmed, inspect repository rules and state. Repository-specific execution rules such as `AGENTS.md` must be read and followed before mutation. Do not work directly on `main`; create or switch to a properly named branch when needed.
+3. Once execution is confirmed, resolve repository state and the actual default and protected branches before implementation mutation. Implementation must not proceed on the actual default branch. Follow repository-specific execution rules before mutation; they may strengthen but not weaken this default-branch floor. Reuse applicable repository and user policy already available in context. If a specific repository-policy value remains unresolved, make only the smallest targeted read needed; do not broadly re-read `AGENTS.md` or other policy. Repository and user policy own branch naming, branch type and base strategy, additional protected branches, and whether an already-active non-protected branch is appropriate.
 4. State the goal, assumptions, and any ambiguity. If intent or scope is unclear, ask before editing. Give a short implementation and verification plan before making changes.
 5. Load specialized implementation skills only after execution is confirmed and when they become relevant:
    - `skills/pac-tdd/SKILL.md` for behavior-changing implementation, bug fixes, or regression coverage, before implementation begins.
@@ -24,7 +24,7 @@ Process:
    - `/pac-llat`, `/pac-explore`, `/pac-grill-with-docs`, `/pac-to-prd`, or `/pac-to-issues` when the request needs more planning instead of coding.
 6. Implement the smallest slice that satisfies the request. Keep changes surgical and directly tied to the target. Avoid unrelated refactors.
 7. Verify with the smallest relevant checks. Report what changed, what was verified, and any remaining follow-up.
-8. Load and follow `skills/pac-commit/SKILL.md` only when a verified implementation slice is actually ready to commit. Create atomic commits as meaningful slices are completed; do not wait until the end or combine unrelated work. If the work originated from a GitHub issue, include `closes #<issue-number>` in the resolving commit body. Do not guess issue numbers.
+8. Carry any explicitly referenced issue identity forward without deciding whether the change closes it. Load and follow `skills/pac-commit/SKILL.md` only when a coherent slice is ready, proportionately verified, and commit creation is allowed by repository and user policy. Do not infer push or merge authorization from implementation or commit progression.
 
 Use GitHub context and linked artifacts as supporting material, not permission to expand scope.
 
