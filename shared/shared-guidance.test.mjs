@@ -15,7 +15,9 @@ test("CONTEXT.md defines compositional behavior ownership", async () => {
 	assert.match(context, /shared guidance.*safety floors/is);
 	assert.match(context, /repository policy.*commit-message conventions.*branch naming.*verification commands.*merge strategy/is);
 	assert.match(context, /skills.*task-specific procedure/is);
-	assert.match(context, /prompts.*entrypoints/is);
+	assert.match(context, /prompts.*entrypoints.*carry target identity.*load relevant procedure.*without independently deciding.*policy.*workflow outcomes/is);
+	assert.match(context, /tooling.*hooks.*extensions.*deterministic enforcement.*runtime behavior/is);
+	assert.match(context, /conditional reference files.*large or uncommon workflow branches/is);
 	assert.match(context, /may strengthen.*cannot weaken/is);
 	assert.match(context, /contradictory.*stop.*request resolution/is);
 });
