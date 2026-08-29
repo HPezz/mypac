@@ -46,6 +46,18 @@ test("core resolves commit permission before applying commit procedure", async (
 	assert.match(core, /do not commit|stop before commit/i);
 });
 
+test("core consumes available policy before targeted policy reads", async () => {
+	const core = await readSkill(skillUrl);
+
+	assertOrdered(core, [
+		/policy already available in (?:the )?(?:session )?context/i,
+		/specific required policy value remains unresolved/i,
+		/targeted read/i,
+	]);
+	assert.match(core, /do not broadly re-?read.*AGENTS\.md|never broadly re-?read.*AGENTS\.md/i);
+	assert.match(core, /do not.*repository policy.*just because.*(?:skill|pac-commit).*(?:loaded|load)/i);
+});
+
 test("core resolves message policy progressively before the mypac fallback", async () => {
 	const core = await readSkill(skillUrl);
 

@@ -20,9 +20,10 @@ For an explicit fixup, amend, autosquash, reword, or other history rewrite reque
 
 Before applying the procedure below:
 
-1. Resolve whether Pi may create commits from explicit repository and user policy. Either may prohibit agent-created commits or defer them for user review. If commits are prohibited or deferred, do not commit; report the applicable rule and stop before the commit procedure.
-2. Read applicable explicit repository guidance and enforced policy for message format, required verification, hooks, signing, issue references, protected branches, and stronger restrictions.
-3. If two authoritative applicable rules still contradict each other, stop the affected operation and ask for resolution. A repository rule that replaces a fallback is not a conflict.
+1. Consume applicable repository and user policy already available in the session context. Resolve whether Pi may create commits; either source may prohibit agent-created commits or defer them for user review. If commits are prohibited or deferred, do not commit; report the applicable rule and stop before the commit procedure.
+2. If a specific required policy value remains unresolved, name that value and perform a targeted read of the smallest authoritative artifact likely to resolve it. Relevant values may include message format, required verification, hooks, signing, issue references, protected branches, and stronger restrictions.
+3. Do not broadly re-read `AGENTS.md`, and do not re-read repository policy just because `pac-commit` was loaded.
+4. If two authoritative applicable rules still contradict each other, stop the affected operation and ask for resolution. A repository rule that replaces a fallback is not a conflict.
 
 Only when commit creation is allowed, create one atomic, coherent commit per meaningful, verified work slice. Do not make one commit per file or tiny checkbox, and do not batch unrelated work.
 
