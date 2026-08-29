@@ -87,12 +87,12 @@ The test: could a focused change be understood and implemented by reading a smal
 **Treat repository mutations as execution and protect shared history by default.**
 
 - Read-only exploration does not require changing branches or creating commits.
-- Before the first repository mutation, inspect repository status and the current branch.
-- Do not implement directly on the default branch. Create or switch to an appropriate working branch using repository conventions. Ask only when the correct branch or scope is materially ambiguous.
-- During authorized implementation, create atomic commits as coherent, verified slices complete. Do not defer all commits until the end or combine unrelated work.
-- Preserve unrelated pre-existing changes. Scope diffs carefully and stage commit file lists explicitly.
-- Do not push, merge, force-push, or rewrite history without explicit user authorization. Repository rules may impose stronger restrictions.
-- Follow repository-specific branch, commit, and verification procedures when they are available.
+- Inspect repository state and resolve the actual default branch before the first implementation mutation.
+- Do not make implementation changes on the actual default branch. Create or switch to an appropriate working branch using repository conventions. Ask only when the correct branch or scope is materially ambiguous.
+- Whether Pi creates commits is a separate permission from commit quality. When Pi creates commits, use coherent slices backed by proportionate verification.
+- Preserve unrelated work. Use explicit, scoped staging when creating commits.
+- Require explicit authorization for push, merge, force-push, and history rewrite operations.
+- Follow repository-specific branch, commit, and verification procedures when they are available. Repository policy may strengthen these safety floors but not weaken them.
 
 ## 7. Tool Selection
 

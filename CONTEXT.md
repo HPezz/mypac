@@ -34,6 +34,17 @@ _Avoid_: Repo ADR file, design note
 A GitHub issue comment that captures a more developed implementation plan when work is not ready to build yet.
 _Avoid_: ADR, issue body note
 
+## Behavior ownership
+
+Behavior ownership is compositional, not a linear precedence stack:
+
+- **Shared guidance** owns concise, intentionally non-overridable cross-repository safety floors and the minimal routing needed before narrower context loads.
+- **Repository policy** owns values that legitimately vary, including commit-message conventions, branch naming, verification commands, merge strategy, and stronger safety restrictions.
+- **Skills** own task-specific procedure. They consume resolved repository policy instead of competing with it.
+- **Prompts** own entrypoints and the current repository-varying decision, loading broader context only when uncertainty or a workflow transition requires it.
+- Repository policy may strengthen shared safety floors but cannot weaken them. Package defaults apply only when repository policy does not provide a value.
+- If authoritative applicable sources remain contradictory after ownership is resolved, stop the affected operation and request resolution rather than guessing.
+
 ## Relationships
 
 - A **Pi Package** contains **Extensions**, **Skills**, **Prompts**, and optionally themes.
