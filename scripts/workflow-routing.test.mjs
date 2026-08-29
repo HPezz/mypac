@@ -80,7 +80,10 @@ test("pac-lwot gates execution before loading implementation context", async () 
 	assert.match(prompt, /actual default.*protected branch.*before.*implementation mutation/is);
 	assert.match(prompt, /reuse.*repository.*policy.*already available/i);
 	assert.match(prompt, /policy.*unresolved.*only.*targeted read/is);
-	assert.match(prompt, /branch naming.*repository.*user policy/i);
+	assert.match(prompt, /implementation must not proceed.*actual default branch/i);
+	assert.match(prompt, /may strengthen but not weaken.*default-branch floor/i);
+	assert.match(prompt, /repository.*user policy.*branch naming.*branch type.*base strategy.*additional protected branches.*already-active non-protected branch/is);
+	assert.doesNotMatch(prompt, /deferring whether a work branch is required/i);
 	assert.match(prompt, /implementation skills.*only after.*execution/i);
 	assert.match(prompt, /carry.*issue identity.*without deciding.*clos/i);
 	assert.match(prompt, /pac-commit.*only when.*coherent.*verified.*commit creation.*allowed/is);
