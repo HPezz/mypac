@@ -28,10 +28,10 @@ test("activation contract distinguishes explicit Git requests from eventual impl
 
 	assert.match(description, /commits from existing changes/i);
 	assert.match(description, /load immediately.*standalone.*commit.*split.*fixup.*amend.*reword.*plan/i);
-	assert.match(description, /implementation workflow.*only after.*coherent slice.*verification has passed.*commit creation.*allowed/i);
+	assert.match(description, /implementation workflow.*only after.*coherent slice.*proportionate implementation verification is complete.*commit creation.*allowed/i);
 	assertOrdered(guidance, [
 		/do not load.*(?:implementation tasks|implement.*commit)/is,
-		/verification.*already passed/is,
+		/proportionate implementation verification is complete/is,
 		/load this skill immediately.*explicit standalone request/is,
 	]);
 	assert.match(guidance, /primary action.*Git work.*existing changes/is);
