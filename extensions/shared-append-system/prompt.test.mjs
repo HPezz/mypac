@@ -117,11 +117,13 @@ test("shared append-system extension inserts shared instructions before append-s
 	assert.ok(result.systemPrompt.includes(`<shared_append_system_instructions path="${sharedAppendSystemPath}">`));
 	assert.ok(result.systemPrompt.indexOf("<shared_append_system_context>") < result.systemPrompt.indexOf(append));
 	assert.match(result.systemPrompt, /repository execution hygiene/i);
-	assert.match(result.systemPrompt, /before the first repository mutation/i);
-	assert.match(result.systemPrompt, /default branch/i);
-	assert.match(result.systemPrompt, /atomic commits/i);
-	assert.match(result.systemPrompt, /unrelated pre-existing changes/i);
-	assert.match(result.systemPrompt, /push, merge, force-push, or rewrite history/i);
+	assert.match(result.systemPrompt, /before the first implementation mutation/i);
+	assert.match(result.systemPrompt, /actual default branch/i);
+	assert.match(result.systemPrompt, /whether Pi creates commits.*separate.*commit quality/is);
+	assert.match(result.systemPrompt, /when Pi creates commits.*coherent.*proportionate verification/is);
+	assert.match(result.systemPrompt, /unrelated.*explicit.*scoped staging/is);
+	assert.match(result.systemPrompt, /explicit authorization.*push.*merge.*force-push.*history rewrite/is);
+	assert.match(result.systemPrompt, /repository policy may strengthen.*not weaken/is);
 	assert.match(result.systemPrompt, /do not supply a screenshot path/i);
 	assert.match(result.systemPrompt, /explicitly requests a specific output path/i);
 	assert.ok(result.systemPrompt.endsWith(VERBOSITY_STEERING_PROMPT));
