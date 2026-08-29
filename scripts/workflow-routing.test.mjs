@@ -77,8 +77,15 @@ test("pac-lwot gates execution before loading implementation context", async () 
 	assert.match(prompt, /no (?:work|execution).*stop/i);
 	assert.match(prompt, /do not.*README\.md.*(?:startup|by default)/i);
 	assert.match(prompt, /repository-specific.*rules.*before mutation/i);
+	assert.match(prompt, /actual default.*protected branch.*before.*implementation mutation/is);
+	assert.match(prompt, /reuse.*repository.*policy.*already available/i);
+	assert.match(prompt, /policy.*unresolved.*only.*targeted read/is);
+	assert.match(prompt, /branch naming.*repository.*user policy/i);
 	assert.match(prompt, /implementation skills.*only after.*execution/i);
-	assert.match(prompt, /pac-commit.*only when.*commit/i);
+	assert.match(prompt, /carry.*issue identity.*without deciding.*clos/i);
+	assert.match(prompt, /pac-commit.*only when.*coherent.*verified.*commit creation.*allowed/is);
+	assert.match(prompt, /do not infer.*push.*merge.*authorization/is);
+	assert.doesNotMatch(prompt, /do not work directly on `main`/i);
 });
 
 test("workflow-only skills stay out of model context but explicit prompts still load them", async () => {
