@@ -82,7 +82,7 @@ function runBootstrap(fixture, env = {}) {
 	});
 }
 
-test("bootstrap reconciles fixed phases and reports a non-fatal Pi pin mismatch", (t) => {
+test("bootstrap accepts mise-reported custom shims and reports a non-fatal Pi pin mismatch", (t) => {
 	const fixture = createBootstrapFixture(t);
 	writeFileSync(
 		join(fixture.root, ".mise", "tasks", "sync.sh"),
@@ -93,23 +93,30 @@ test("bootstrap reconciles fixed phases and reports a non-fatal Pi pin mismatch"
 		join(fixture.root, "package.json"),
 		'{"devDependencies":{"@earendil-works/pi-coding-agent":"0.84.3"}}\n',
 	);
-	for (const command of ["npm", "mise"]) {
-		writeCommand(
-			fixture.bin,
-			command,
-			`printf '${command}\\t%s\\n' "$*" >> ${JSON.stringify(fixture.log)}`,
-		);
-	}
+	writeCommand(
+		fixture.bin,
+		"npm",
+		`printf 'npm\\t%s\\n' "$*" >> ${JSON.stringify(fixture.log)}`,
+	);
+	writeCommand(
+		fixture.bin,
+		"mise",
+		`printf 'mise\\t%s\\n' "$*" >> ${JSON.stringify(fixture.log)}\n[[ "$*" != "doctor --json" ]] || printf '%s\\n' '{"activated":false,"shims_on_path":true}'`,
+	);
 	writeCommand(
 		fixture.bin,
 		"pi",
 		`printf 'pi\\t%s\\n' "$*" >> ${JSON.stringify(fixture.log)}\n[[ "\${1:-}" == "--version" ]] && echo '0.85.0'`,
 	);
 
-	const result = runBootstrap(fixture);
+	const result = runBootstrap(fixture, {
+		MISE_DATA_DIR: join(fixture.root, "custom-mise-data"),
+		MISE_SHELL: "",
+	});
 
 	assert.equal(result.status, 0, result.stderr);
 	assert.deepEqual(readFileSync(fixture.log, "utf8").trim().split("\n"), [
+		"mise\tdoctor --json",
 		"sync\tvalidate",
 		"sync\tfoundation",
 		"mise\tenv -s bash",
@@ -131,7 +138,7 @@ test("bootstrap fails with actionable guidance when Pi is missing", (t) => {
 	writeFileSync(join(fixture.root, ".mise", "tasks", "sync.sh"), "#!/usr/bin/env bash\nexit 0\n");
 	chmodSync(join(fixture.root, ".mise", "tasks", "sync.sh"), 0o755);
 	writeCommand(fixture.bin, "npm", "exit 0");
-	writeCommand(fixture.bin, "mise", "exit 0");
+	writeCommand(fixture.bin, "mise", '[[ "$*" != "doctor --json" ]] || echo \'{"activated":true,"shims_on_path":false}\'');
 
 	const result = runBootstrap(fixture);
 
@@ -141,14 +148,18 @@ test("bootstrap fails with actionable guidance when Pi is missing", (t) => {
 
 test("bootstrap rejects missing persistent mise integration before mutation", (t) => {
 	const fixture = createBootstrapFixture(t);
-	writeCommand(fixture.bin, "mise", `printf 'mise\\t%s\\n' "$*" >> ${JSON.stringify(fixture.log)}`);
+	writeCommand(
+		fixture.bin,
+		"mise",
+		`printf 'mise\\t%s\\n' "$*" >> ${JSON.stringify(fixture.log)}\n[[ "$*" == "doctor --json" ]] && printf '%s\\n' '{"activated":false,"shims_on_path":false}'`,
+	);
 
-	const result = runBootstrap(fixture, { MISE_SHELL: "" });
+	const result = runBootstrap(fixture, { MISE_SHELL: "bash" });
 
 	assert.equal(result.status, 1);
 	assert.match(result.stderr, /shell activation or shims/);
 	assert.match(result.stderr, /mise\.jdx\.dev\/cli\/activate\.html/);
-	assert.equal(existsSync(fixture.log), false);
+	assert.equal(readFileSync(fixture.log, "utf8"), "mise\tdoctor --json\n");
 });
 
 test("global environment owns each exact pin once with a closed phase", () => {
@@ -164,7 +175,7 @@ test("global environment owns each exact pin once with a closed phase", () => {
 	assert.equal(new Set(parsed.map(([, , specification]) => specification)).size, parsed.length);
 	assert.deepEqual(
 		parsed.filter(([phase]) => phase === "foundation").map(([, , specification]) => specification),
-		["node@26.8.1", "npm:npm@11.19.0", "uv@0.12.6"],
+		["node@24.20.0", "uv@0.12.6"],
 	);
 	assert.doesNotMatch(config, /^uv\s*=/m);
 	assert.doesNotMatch(config, /depends\s*=\s*"uv"/);
@@ -195,7 +206,7 @@ function createSyncFixture(t, suffix = "") {
 
 function installSyncCommands(fixture, { uvVersion = "0.12.6" } = {}) {
 	loggingCommand(fixture, "mise");
-	loggingCommand(fixture, "node", '[[ "${1:-}" == "--version" ]] && echo "v26.8.1"');
+	loggingCommand(fixture, "node", '[[ "${1:-}" == "--version" ]] && echo "v24.20.0"');
 	loggingCommand(
 		fixture,
 		"uv",
@@ -220,7 +231,7 @@ function installRefreshDependentCommands(fixture) {
 	const toolsBin = join(dirname(fixture.bin), "mise-tools");
 	mkdirSync(available);
 	mkdirSync(toolsBin);
-	loggingCommand(fixture, "node", '[[ "${1:-}" == "--version" ]] && echo "v26.8.1"');
+	loggingCommand(fixture, "node", '[[ "${1:-}" == "--version" ]] && echo "v24.20.0"');
 	writeCommand(available, "uv", '[[ "${1:-}" == "--version" ]] && echo "uv 0.12.6"\ntrue');
 	writeCommand(available, "headroom", '[[ "${1:-}" == "--version" ]] && echo "headroom, version 0.36.5"\ntrue');
 	writeCommand(available, "agent-browser", '[[ "${1:-}" == "--version" ]] && echo "agent-browser 0.34.0"\ntrue');
@@ -259,11 +270,26 @@ function runSync(fixture, ...args) {
 	});
 }
 
+test("sync rejects conflicting component pins before mutation", (t) => {
+	const fixture = createSyncFixture(t);
+	writeFileSync(
+		join(fixture.root, ".mise", "global-environment"),
+		"foundation mise node@24.20.0\nfoundation mise node@26.8.1\n",
+	);
+	installSyncCommands(fixture);
+
+	const result = runSync(fixture, "validate");
+
+	assert.equal(result.status, 1);
+	assert.match(result.stderr, /duplicate desired-state component: mise node/);
+	assert.equal(existsSync(fixture.log), false);
+});
+
 test("sync rejects an unknown phase before mutation", (t) => {
 	const fixture = createSyncFixture(t);
 	writeFileSync(
 		join(fixture.root, ".mise", "global-environment"),
-		"early mise node@26.8.1\n",
+		"early mise node@24.20.0\n",
 	);
 	installSyncCommands(fixture);
 
@@ -286,9 +312,7 @@ test("sync reconciles and verifies the pinned global environment", (t) => {
 		`${result.stderr}\n${result.stdout}\n${readFileSync(fixture.log, "utf8")}`,
 	);
 	assert.deepEqual(readFileSync(fixture.log, "utf8").trim().split("\n"), [
-		"mise\tuse\t--global\tnode@26.8.1",
-		"mise\tenv\t-s\tbash",
-		"mise\tuse\t--global\tnpm:npm@11.19.0",
+		"mise\tuse\t--global\tnode@24.20.0",
 		"mise\tenv\t-s\tbash",
 		"mise\tuse\t--global\tuv@0.12.6",
 		"mise\tenv\t-s\tbash",

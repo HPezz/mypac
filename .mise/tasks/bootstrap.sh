@@ -7,19 +7,8 @@ if ! command -v mise >/dev/null 2>&1; then
 	exit 1
 fi
 
-mise_is_persistent=false
-if [[ -n "${MISE_SHELL:-}" ]]; then
-	mise_is_persistent=true
-else
-	IFS=: read -r -a path_entries <<< "$PATH"
-	for entry in "${path_entries[@]}"; do
-		if [[ "$entry" == */mise/shims ]]; then
-			mise_is_persistent=true
-			break
-		fi
-	done
-fi
-if [[ "$mise_is_persistent" != true ]]; then
+mise_status="$(mise doctor --json 2>/dev/null || true)"
+if ! grep -Eq '"(activated|shims_on_path)"[[:space:]]*:[[:space:]]*true' <<< "$mise_status"; then
 	echo "Error: mise must be persistently available through shell activation or shims before bootstrapping." >&2
 	echo "Configure activation: https://mise.jdx.dev/cli/activate.html" >&2
 	echo "Or configure shims: https://mise.jdx.dev/dev-tools/shims.html" >&2

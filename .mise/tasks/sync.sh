@@ -25,7 +25,7 @@ require_version() {
 phases=()
 managers=()
 specifications=()
-seen_specifications=""
+seen_components=""
 while read -r phase manager specification extra; do
 	if [[ -z "${phase:-}" || "$phase" == \#* ]]; then
 		continue
@@ -50,11 +50,12 @@ while read -r phase manager specification extra; do
 		echo "Error: desired-state specification must have an exact version: $specification" >&2
 		exit 1
 	fi
-	if grep -Fx -- "$specification" <<< "$seen_specifications" >/dev/null; then
-		echo "Error: duplicate desired-state specification: $specification" >&2
+	component="$manager ${specification%@*}"
+	if grep -Fx -- "$component" <<< "$seen_components" >/dev/null; then
+		echo "Error: duplicate desired-state component: $component" >&2
 		exit 1
 	fi
-	seen_specifications+="$specification"$'\n'
+	seen_components+="$component"$'\n'
 	phases+=("$phase")
 	managers+=("$manager")
 	specifications+=("$specification")
@@ -137,6 +138,11 @@ verify_environment() {
 			local command="${package##*:}"
 			require_command "$command" "$command"
 			require_version "$command" "${specification##*@}"
+			if [[ "$command" == node ]]; then
+				# Node 24.20.0 supplies npm 11.19.0; verify it without reconciling a second npm installation.
+				require_command npm npm
+				require_version npm 11.19.0
+			fi
 			continue
 		fi
 		case "$specification" in
