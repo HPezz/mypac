@@ -74,37 +74,71 @@ function createBootstrapFixture(t) {
 	return fixture;
 }
 
-function runBootstrap(fixture) {
+function runBootstrap(fixture, env = {}) {
 	return spawnSync("/bin/bash", [join(fixture.root, ".mise", "tasks", "bootstrap.sh")], {
 		cwd: fixture.root,
-		env: { ...process.env, PATH: `${fixture.bin}:/usr/bin:/bin` },
+		env: { ...process.env, MISE_SHELL: "bash", PATH: `${fixture.bin}:/usr/bin:/bin`, ...env },
 		encoding: "utf8",
 	});
 }
 
-test("bootstrap installs the checkout then invokes global sync", (t) => {
+test("bootstrap accepts mise-reported custom shims and reports a non-fatal Pi pin mismatch", (t) => {
 	const fixture = createBootstrapFixture(t);
-	for (const command of ["npm", "mise", "pi"]) {
-		writeCommand(
-			fixture.bin,
-			command,
-			`printf '${command}\\t%s\\n' "$*" >> ${JSON.stringify(fixture.log)}`,
-		);
-	}
+	writeFileSync(
+		join(fixture.root, ".mise", "tasks", "sync.sh"),
+		`#!/usr/bin/env bash\nprintf 'sync\\t%s\\n' "$1" >> ${JSON.stringify(fixture.log)}\n`,
+	);
+	chmodSync(join(fixture.root, ".mise", "tasks", "sync.sh"), 0o755);
+	writeFileSync(
+		join(fixture.root, "package.json"),
+		'{"devDependencies":{"@earendil-works/pi-coding-agent":"0.84.3"}}\n',
+	);
+	writeCommand(
+		fixture.bin,
+		"npm",
+		`printf 'npm\\t%s\\n' "$*" >> ${JSON.stringify(fixture.log)}`,
+	);
+	writeCommand(
+		fixture.bin,
+		"mise",
+		`printf 'mise\\t%s\\n' "$*" >> ${JSON.stringify(fixture.log)}\n[[ "$*" != "doctor --json" ]] || printf '%s\\n' '{"activated":false,"shims_on_path":true}'`,
+	);
+	writeCommand(
+		fixture.bin,
+		"pi",
+		`printf 'pi\\t%s\\n' "$*" >> ${JSON.stringify(fixture.log)}\n[[ "\${1:-}" == "--version" ]] && echo '0.85.0'`,
+	);
 
-	const result = runBootstrap(fixture);
+	const result = runBootstrap(fixture, {
+		MISE_DATA_DIR: join(fixture.root, "custom-mise-data"),
+		MISE_SHELL: "",
+	});
 
 	assert.equal(result.status, 0, result.stderr);
-	assert.equal(
-		readFileSync(fixture.log, "utf8"),
-		["npm\tci", "mise\tinstall", "mise\trun hooks", "mise\trun sync", ""].join("\n"),
-	);
+	assert.deepEqual(readFileSync(fixture.log, "utf8").trim().split("\n"), [
+		"mise\tdoctor --json",
+		"sync\tvalidate",
+		"sync\tfoundation",
+		"mise\tenv -s bash",
+		"pi\t--version",
+		"npm\tci",
+		"mise\tinstall",
+		"mise\trun hooks",
+		"sync\tapplication",
+		"sync\tpi",
+		"sync\tsetup",
+		"sync\tverify",
+	]);
+	assert.match(result.stdout, /Installed Pi: 0\.85\.0/);
+	assert.match(result.stdout, /mypac tested Pi: 0\.84\.3/);
 });
 
 test("bootstrap fails with actionable guidance when Pi is missing", (t) => {
 	const fixture = createBootstrapFixture(t);
+	writeFileSync(join(fixture.root, ".mise", "tasks", "sync.sh"), "#!/usr/bin/env bash\nexit 0\n");
+	chmodSync(join(fixture.root, ".mise", "tasks", "sync.sh"), 0o755);
 	writeCommand(fixture.bin, "npm", "exit 0");
-	writeCommand(fixture.bin, "mise", "exit 0");
+	writeCommand(fixture.bin, "mise", '[[ "$*" != "doctor --json" ]] || echo \'{"activated":true,"shims_on_path":false}\'');
 
 	const result = runBootstrap(fixture);
 
@@ -112,17 +146,93 @@ test("bootstrap fails with actionable guidance when Pi is missing", (t) => {
 	assert.match(result.stderr, /Pi is required/);
 });
 
-test("checkout declares uv dependency for pipx-backed tools", () => {
-	const config = readFileSync(configSource, "utf8");
-	const environment = readFileSync(environmentSource, "utf8");
-	const globalUvVersion = environment.match(/^mise uv@(\S+)$/m)?.[1];
-	const checkoutUvVersion = config.match(/^uv = "([^"]+)"$/m)?.[1];
-	const yamllintDeclaration = config.match(/^yamllint = \{(.+)\}$/m)?.[1];
+test("bootstrap rejects missing persistent mise integration before mutation", (t) => {
+	const fixture = createBootstrapFixture(t);
+	writeCommand(
+		fixture.bin,
+		"mise",
+		`printf 'mise\\t%s\\n' "$*" >> ${JSON.stringify(fixture.log)}\n[[ "$*" == "doctor --json" ]] && printf '%s\\n' '{"activated":false,"shims_on_path":false}'`,
+	);
 
-	assert.ok(globalUvVersion, "global environment must declare uv");
-	assert.equal(checkoutUvVersion, globalUvVersion);
-	assert.match(yamllintDeclaration ?? "", /depends = "uv"/);
-	assert.doesNotMatch(config, /^jobs\s*=/m);
+	const result = runBootstrap(fixture, { MISE_SHELL: "bash" });
+
+	assert.equal(result.status, 1);
+	assert.match(result.stderr, /shell activation or shims/);
+	assert.match(result.stderr, /mise\.jdx\.dev\/cli\/activate\.html/);
+	assert.equal(readFileSync(fixture.log, "utf8"), "mise\tdoctor --json\n");
+});
+
+test("global environment owns each exact pin once with a closed phase", () => {
+	const config = readFileSync(configSource, "utf8");
+	const declarations = readFileSync(environmentSource, "utf8")
+		.split("\n")
+		.filter((line) => line && !line.startsWith("#"));
+	const parsed = declarations.map((line) => line.split(/\s+/));
+
+	assert.ok(parsed.every((entry) => entry.length === 3));
+	assert.ok(parsed.every(([phase]) => ["foundation", "application", "pi"].includes(phase)));
+	assert.ok(parsed.every(([, , specification]) => /@[0-9]+(?:\.[0-9]+)+$/.test(specification)));
+	assert.equal(new Set(parsed.map(([, , specification]) => specification)).size, parsed.length);
+	assert.deepEqual(
+		parsed.filter(([phase]) => phase === "foundation").map(([, , specification]) => specification),
+		["node@24.20.0", "uv@0.12.6"],
+	);
+	assert.doesNotMatch(config, /^uv\s*=/m);
+	assert.doesNotMatch(config, /depends\s*=\s*"uv"/);
+});
+
+function runPiRuntimeSmoke(agentDir, cwd) {
+	const env = Object.fromEntries(
+		Object.entries(process.env).filter(([key]) => !/(?:API_KEY|AUTH_TOKEN|OAUTH_TOKEN)$/.test(key)),
+	);
+	return spawnSync("pi", ["--offline", "--no-approve", "--no-session", "--print"], {
+		cwd,
+		env: { ...env, PI_CODING_AGENT_DIR: agentDir },
+		input: "",
+		encoding: "utf8",
+	});
+}
+
+test("Pi runtime smoke accepts the registered current mypac package without auth", (t) => {
+	const fixture = createFixture(t);
+	const agentDir = join(fixture.root, "agent");
+	const projectDir = join(fixture.root, "project");
+	mkdirSync(agentDir);
+	mkdirSync(projectDir);
+	writeFileSync(
+		join(agentDir, "settings.json"),
+		JSON.stringify({ packages: [join(scriptsDir, "..")] }),
+	);
+
+	const result = runPiRuntimeSmoke(agentDir, projectDir);
+
+	assert.equal(result.status, 0, result.stderr);
+});
+
+test("Pi runtime smoke fails for a broken registered extension", (t) => {
+	const fixture = createFixture(t);
+	const agentDir = join(fixture.root, "agent");
+	const projectDir = join(fixture.root, "project");
+	const packageDir = join(fixture.root, "broken-package");
+	mkdirSync(agentDir);
+	mkdirSync(projectDir);
+	mkdirSync(packageDir);
+	writeFileSync(
+		join(packageDir, "package.json"),
+		JSON.stringify({
+			name: "broken-pi-runtime-smoke",
+			version: "1.0.0",
+			pi: { extensions: ["./broken.ts"] },
+		}),
+	);
+	writeFileSync(join(packageDir, "broken.ts"), "throw new Error('deliberate runtime smoke failure');\n");
+	writeFileSync(join(agentDir, "settings.json"), JSON.stringify({ packages: [packageDir] }));
+
+	const result = runPiRuntimeSmoke(agentDir, projectDir);
+
+	assert.equal(result.status, 1);
+	assert.match(result.stderr, /Failed to load extension/);
+	assert.match(result.stderr, /deliberate runtime smoke failure/);
 });
 
 function loggingCommand(fixture, name, extra = "") {
@@ -150,6 +260,7 @@ function createSyncFixture(t, suffix = "") {
 
 function installSyncCommands(fixture, { uvVersion = "0.12.6" } = {}) {
 	loggingCommand(fixture, "mise");
+	loggingCommand(fixture, "node", '[[ "${1:-}" == "--version" ]] && echo "v24.20.0"');
 	loggingCommand(
 		fixture,
 		"uv",
@@ -165,7 +276,7 @@ function installSyncCommands(fixture, { uvVersion = "0.12.6" } = {}) {
 	loggingCommand(
 		fixture,
 		"npm",
-		`[[ "$PWD" != ${JSON.stringify(fixture.root)} ]] || { echo "doctor ran from the mypac checkout" >&2; exit 1; }`,
+		`[[ "\${1:-}" == "--version" ]] && echo "11.19.0"\n[[ "\${1:-}" != "exec" || "$PWD" != ${JSON.stringify(fixture.root)} ]] || { echo "doctor ran from the mypac checkout" >&2; exit 1; }`,
 	);
 }
 
@@ -174,6 +285,7 @@ function installRefreshDependentCommands(fixture) {
 	const toolsBin = join(dirname(fixture.bin), "mise-tools");
 	mkdirSync(available);
 	mkdirSync(toolsBin);
+	loggingCommand(fixture, "node", '[[ "${1:-}" == "--version" ]] && echo "v24.20.0"');
 	writeCommand(available, "uv", '[[ "${1:-}" == "--version" ]] && echo "uv 0.12.6"\ntrue');
 	writeCommand(available, "headroom", '[[ "${1:-}" == "--version" ]] && echo "headroom, version 0.36.5"\ntrue');
 	writeCommand(available, "agent-browser", '[[ "${1:-}" == "--version" ]] && echo "agent-browser 0.34.0"\ntrue');
@@ -200,17 +312,47 @@ function installRefreshDependentCommands(fixture) {
 	loggingCommand(
 		fixture,
 		"npm",
-		`[[ "$PWD" != ${JSON.stringify(fixture.root)} ]] || { echo "doctor ran from the mypac checkout" >&2; exit 1; }`,
+		`[[ "\${1:-}" == "--version" ]] && echo "11.19.0"\n[[ "\${1:-}" != "exec" || "$PWD" != ${JSON.stringify(fixture.root)} ]] || { echo "doctor ran from the mypac checkout" >&2; exit 1; }`,
 	);
 }
 
-function runSync(fixture) {
-	return spawnSync("/bin/bash", [join(fixture.root, ".mise", "tasks", "sync.sh")], {
+function runSync(fixture, ...args) {
+	return spawnSync("/bin/bash", [join(fixture.root, ".mise", "tasks", "sync.sh"), ...args], {
 		cwd: fixture.root,
 		env: { ...process.env, HOME: fixture.home, PATH: `${fixture.bin}:/usr/bin:/bin` },
 		encoding: "utf8",
 	});
 }
+
+test("sync rejects conflicting component pins before mutation", (t) => {
+	const fixture = createSyncFixture(t);
+	writeFileSync(
+		join(fixture.root, ".mise", "global-environment"),
+		"foundation mise node@24.20.0\nfoundation mise node@26.8.1\n",
+	);
+	installSyncCommands(fixture);
+
+	const result = runSync(fixture, "validate");
+
+	assert.equal(result.status, 1);
+	assert.match(result.stderr, /duplicate desired-state component: mise node/);
+	assert.equal(existsSync(fixture.log), false);
+});
+
+test("sync rejects an unknown phase before mutation", (t) => {
+	const fixture = createSyncFixture(t);
+	writeFileSync(
+		join(fixture.root, ".mise", "global-environment"),
+		"early mise node@24.20.0\n",
+	);
+	installSyncCommands(fixture);
+
+	const result = runSync(fixture, "validate");
+
+	assert.equal(result.status, 1);
+	assert.match(result.stderr, /unknown desired-state phase: early/);
+	assert.equal(existsSync(fixture.log), false);
+});
 
 test("sync reconciles and verifies the pinned global environment", (t) => {
 	const fixture = createSyncFixture(t);
@@ -224,6 +366,8 @@ test("sync reconciles and verifies the pinned global environment", (t) => {
 		`${result.stderr}\n${result.stdout}\n${readFileSync(fixture.log, "utf8")}`,
 	);
 	assert.deepEqual(readFileSync(fixture.log, "utf8").trim().split("\n"), [
+		"mise\tuse\t--global\tnode@24.20.0",
+		"mise\tenv\t-s\tbash",
 		"mise\tuse\t--global\tuv@0.12.6",
 		"mise\tenv\t-s\tbash",
 		"mise\tuse\t--global\tpipx:headroom-ai[extras=all]@0.36.5",
@@ -233,14 +377,19 @@ test("sync reconciles and verifies the pinned global environment", (t) => {
 		"pi\tinstall\tnpm:pi-agent-browser-native@0.5.0",
 		"pi\tinstall\tnpm:pi-codex-search@0.1.6",
 		`pi\tinstall\t${fixture.root}`,
+		"mise\tenv\t-s\tbash",
 		`mise\tset\t--global\tAGENT_BROWSER_SCREENSHOT_DIR=${fixture.home}/dev/agent-browser/screenshots`,
 		"mise\tenv\t-s\tbash",
 		"agent-browser\tinstall",
+		"npm\texec\t--yes\t--package\tpi-agent-browser-native@0.5.0\t--\tpi-agent-browser-doctor",
+		"mise\tenv\t-s\tbash",
+		"node\t--version",
+		"npm\t--version",
 		"uv\t--version",
 		"headroom\t--version",
 		"agent-browser\t--version",
 		"pi\tlist\t--no-approve",
-		"npm\texec\t--yes\t--package\tpi-agent-browser-native@0.5.0\t--\tpi-agent-browser-doctor",
+		"pi\t--offline\t--no-approve\t--no-session\t--print",
 	]);
 });
 
@@ -307,7 +456,17 @@ test("sync does not remove components deleted from desired state", (t) => {
 
 	assert.equal(result.status, 0, result.stderr);
 	const commands = readFileSync(fixture.log, "utf8");
-	assert.equal(commands, `pi\tinstall\t${fixture.root}\npi\tlist\t--no-approve\n`);
+	assert.equal(
+		commands,
+		[
+			`pi\tinstall\t${fixture.root}`,
+			"mise\tenv\t-s\tbash",
+			"mise\tenv\t-s\tbash",
+			"pi\tlist\t--no-approve",
+			"pi\t--offline\t--no-approve\t--no-session\t--print",
+			"",
+		].join("\n"),
+	);
 	assert.doesNotMatch(commands, /remove|uninstall/);
 });
 
