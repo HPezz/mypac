@@ -1,0 +1,9 @@
+{
+  "id": "guarded-hook",
+  "defaultBranch": "main",
+  "expectedBranch": "guarded/validate-hook",
+  "baselineTag": "fixture-baseline",
+  "messagePattern": "^GUARDED: [a-z][^.]*$",
+  "expectedRemoteBranches": ["main"],
+  "hookState": "checked"
+}
