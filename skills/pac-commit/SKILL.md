@@ -1,6 +1,6 @@
 ---
 name: pac-commit
-description: Create or plan repository-compliant commits from existing changes. Load immediately for a standalone commit, split, fixup, amend, reword, or commit-planning request. In an implementation workflow, load only after a coherent slice exists, proportionate implementation verification is complete, and commit creation is allowed.
+description: Create or plan repository-compliant commits from existing changes. Load immediately for a standalone commit, split, fixup, amend, reword, or commit-planning request. In an implementation workflow, load when commit preparation becomes relevant; this may be before proportionate verification is complete.
 license: MIT
 compatibility: Git repository; gitmoji CLI is optional.
 metadata:
@@ -10,9 +10,11 @@ metadata:
 
 # Create repository-compliant commits
 
-Do not load this skill for implementation tasks or requests to implement and then commit. During an implementation workflow, do not use it to plan, perform, or verify implementation work, and do not load it merely because a commit will eventually be needed. Load it only after a coherent slice exists, proportionate implementation verification is complete, and commit creation is allowed.
+During an implementation workflow, this skill may load when a coherent slice exists and commit preparation becomes relevant, including before proportionate implementation verification is complete. It may assist with inspecting the slice, verification, staging, hooks, and commit preparation. Exact skill read order is a progressive-context efficiency goal, not a safety or correctness guarantee; avoid loading the procedure before commit work is relevant.
 
-Load this skill immediately only for an explicit standalone request whose primary action is Git work on existing changes: commit, split, fixup, amend, reword, or commit planning.
+Load this skill immediately for an explicit standalone request whose primary action is Git work on existing changes: commit, split, fixup, amend, reword, or commit planning.
+
+Before running `git commit`, confirm that a coherent slice exists, proportionate verification is complete or the strongest available evidence has been gathered, and commit creation is allowed by repository and user policy. Do not run `git commit` until all three conditions hold.
 
 ## Conditional history workflows
 

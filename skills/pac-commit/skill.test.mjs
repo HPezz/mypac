@@ -20,7 +20,7 @@ function assertOrdered(text, patterns) {
 	}
 }
 
-test("activation contract distinguishes explicit Git requests from eventual implementation commits", async () => {
+test("activation contract separates progressive loading from the pre-commit safety gate", async () => {
 	const core = await readSkill(skillUrl);
 	const opening = core.slice(0, core.indexOf("## Conditional history workflows"));
 	const description = /^description: (.+)$/m.exec(opening)?.[1] ?? "";
@@ -28,16 +28,14 @@ test("activation contract distinguishes explicit Git requests from eventual impl
 
 	assert.match(description, /commits from existing changes/i);
 	assert.match(description, /load immediately.*standalone.*commit.*split.*fixup.*amend.*reword.*plan/i);
-	assert.match(description, /implementation workflow.*only after.*coherent slice.*proportionate implementation verification is complete.*commit creation.*allowed/i);
-	assertOrdered(guidance, [
-		/do not load.*(?:implementation tasks|implement.*commit)/is,
-		/proportionate implementation verification is complete/is,
-		/load this skill immediately.*explicit standalone request/is,
-	]);
+	assert.match(description, /implementation workflow.*commit preparation becomes relevant/i);
+	assert.match(guidance, /may load.*before.*proportionate.*verification.*complete/i);
+	assert.match(guidance, /assist.*inspect.*verification.*staging.*hooks.*commit preparation/is);
+	assert.match(guidance, /exact.*(?:skill )?read order.*efficiency goal.*not.*(?:safety|correctness) guarantee/is);
+	assert.match(guidance, /before.*git commit.*coherent slice.*(?:proportionate verification.*complete|strongest available evidence.*gathered).*commit creation.*allowed/is);
+	assert.match(guidance, /do not (?:run|create).*git commit.*until/is);
 	assert.match(guidance, /primary action.*Git work.*existing changes/is);
-	assert.match(guidance, /do not (?:use|load).*(?:plan|perform).*verify.*implementation work/is);
-	assert.match(guidance, /(?:must not|do not) load.*merely because.*commit.*eventually/is);
-	assert.doesNotMatch(opening, /whenever creating or planning commits/i);
+	assert.doesNotMatch(opening, /load only after.*verification/i);
 });
 
 test("core skill retains the normal atomic commit safety contract", async () => {
