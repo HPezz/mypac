@@ -2,6 +2,14 @@ amends "package://github.com/jdx/hk/releases/download/v1.38.0/hk@1.38.0#/Config.
 import "package://github.com/jdx/hk/releases/download/v1.38.0/hk@1.38.0#/Builtins.pkl"
 
 hooks {
+    ["commit-msg"] {
+        steps {
+            ["check-commit-message"] {
+                check = "scripts/check-commit-message.sh {{commit_msg_file}}"
+            }
+        }
+    }
+
     ["pre-push"] {
         steps {
             ["prevent-fixup-merge"] {
