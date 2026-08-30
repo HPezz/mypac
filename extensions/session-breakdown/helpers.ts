@@ -1,9 +1,9 @@
 import { createReadStream } from "node:fs";
-import { readFile, readdir, stat } from "node:fs/promises";
 import { homedir } from "node:os";
-import { basename, dirname, join, resolve } from "node:path";
+import { basename } from "node:path";
 import { createInterface } from "node:readline";
 import { getSessionRoot } from "../../lib/agent-dir.ts";
+import { resolveCanonicalDirectoryGroup, walkPiSessionFiles } from "../../lib/pi-session-discovery.ts";
 import {
 	createPiSessionParseState,
 	finalizePiSessionParseState,
@@ -170,10 +170,6 @@ function addDays(date: Date, days: number): Date {
 	const next = new Date(date);
 	next.setDate(next.getDate() + days);
 	return next;
-}
-
-function getErrorCode(error: unknown): string | undefined {
-	return typeof error === "object" && error !== null && "code" in error ? String(error.code) : undefined;
 }
 
 function cleanTitle(value: string): string {
@@ -356,100 +352,6 @@ async function parseSessionFile(filePath: string, signal?: AbortSignal): Promise
 	}
 }
 
-const canonicalDirectoryGroupCache = new Map<string, Promise<string>>();
-
-async function resolveCanonicalDirectoryGroup(cwd: string): Promise<string> {
-	let cached = canonicalDirectoryGroupCache.get(cwd);
-	if (!cached) {
-		cached = resolveCanonicalDirectoryGroupUncached(cwd).catch((error) => {
-			canonicalDirectoryGroupCache.delete(cwd);
-			throw error;
-		});
-		canonicalDirectoryGroupCache.set(cwd, cached);
-	}
-	return cached;
-}
-
-async function resolveCanonicalDirectoryGroupUncached(cwd: string): Promise<string> {
-	const worktreeFallback = inferCanonicalRepoPathFromWorktreePath(cwd);
-	let current = cwd;
-	while (true) {
-		const dotGit = join(current, ".git");
-		try {
-			const metadata = await stat(dotGit);
-			if (metadata.isDirectory()) return current;
-			if (metadata.isFile()) {
-				const text = await readFile(dotGit, "utf8");
-				const match = text.match(/^gitdir:\s*(.+)\s*$/m);
-				if (!match) return current;
-				const gitDir = resolve(current, match[1]);
-				const commonDirText = await readFile(join(gitDir, "commondir"), "utf8").catch(() => "");
-				const commonGitDir = commonDirText.trim() ? resolve(gitDir, commonDirText.trim()) : gitDir;
-				return basename(commonGitDir) === ".git" ? dirname(commonGitDir) : current;
-			}
-		} catch {
-			// Keep walking toward the filesystem root.
-		}
-
-		const parent = dirname(current);
-		if (parent === current) return worktreeFallback ?? cwd;
-		current = parent;
-	}
-}
-
-function inferCanonicalRepoPathFromWorktreePath(path: string): string | null {
-	const normalized = path.replace(/\\/g, "/");
-	const match = normalized.match(/^(.*\/dev)\/worktrees\/([^/]+)\/([^/]+)(?:\/.*)?$/);
-	if (!match) return null;
-	return `${match[1]}/${match[2]}/${match[3]}`;
-}
-
-async function walkSessionFiles(root: string, cutoff: Date | undefined, signal?: AbortSignal): Promise<{ files: string[]; unreadableFiles: number; lastError?: string }> {
-	const files: string[] = [];
-	let unreadableFiles = 0;
-	let lastError: string | undefined;
-	const stack = [root];
-	while (stack.length > 0) {
-		if (signal?.aborted) break;
-		const dir = stack.pop();
-		if (!dir) continue;
-		let entries;
-		try {
-			entries = await readdir(dir, { withFileTypes: true });
-		} catch (error) {
-			if (getErrorCode(error) !== "ENOENT") {
-				unreadableFiles += 1;
-				lastError = `Could not read ${basename(dir)}`;
-			}
-			continue;
-		}
-
-		for (const entry of entries) {
-			const filePath = join(dir, entry.name);
-			if (entry.isDirectory()) {
-				stack.push(filePath);
-				continue;
-			}
-			if (!entry.isFile() || !entry.name.endsWith(".jsonl")) continue;
-
-			const filenameDate = parseSessionStartFromFilename(entry.name);
-			if (filenameDate) {
-				if (cutoff === undefined || localMidnight(filenameDate) >= cutoff) files.push(filePath);
-				continue;
-			}
-
-			try {
-				const stats = await stat(filePath);
-				if (cutoff === undefined || localMidnight(new Date(stats.mtimeMs)) >= cutoff) files.push(filePath);
-			} catch {
-				unreadableFiles += 1;
-				lastError = `Could not stat ${entry.name}`;
-			}
-		}
-	}
-	return { files, unreadableFiles, lastError };
-}
-
 function createRangeAggregate(days: number, now: Date): RangeAggregate {
 	const end = localMidnight(now);
 	const start = addDays(end, -(days - 1));
@@ -588,7 +490,7 @@ export async function analyzeSessionDirectory(options: AnalyzeSessionDirectoryOp
 	const isLifetime = options.lifetime === true;
 	const maxRangeDays = Math.max(...SESSION_BREAKDOWN_RANGES);
 	const cutoff = isLifetime ? undefined : addDays(localMidnight(now), -(maxRangeDays - 1));
-	const scanned = await walkSessionFiles(root, cutoff, options.signal);
+	const scanned = await walkPiSessionFiles(root, cutoff, options.signal);
 	const ranges = new Map<number, RangeAggregate>();
 	for (const days of SESSION_BREAKDOWN_RANGES) ranges.set(days, createRangeAggregate(days, now));
 

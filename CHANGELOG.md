@@ -10,6 +10,7 @@ Versioned sections should match the Git tags and GitHub releases published for t
 
 ### Added
 
+- Added explicit-only `/pac-session-review` with metadata-first discovery, bounded selected-session events, current-artifact verification, and #411 ownership routing while keeping `/session-breakdown` aggregate-only. ([#82](https://github.com/ladislas/mypac/issues/82))
 - Added targeted Pi bash-result compaction for successful `npm run check:pi-compatibility` runs, preserving failures, warnings, and retrievable full output. ([#395](https://github.com/ladislas/mypac/issues/395))
 - Added a deterministic repository-edit evaluation scenario, fixed two-profile smoke matrix, strict external verifier, and complete maintainer workflow documentation. ([#380](https://github.com/ladislas/mypac/issues/380))
 - Added schema-versioned canonical evaluation results and deterministic self-contained HTML comparison reports with offline regeneration, partial-evidence warnings, and lightweight human-review placeholders. ([#379](https://github.com/ladislas/mypac/issues/379))

@@ -1,0 +1,10 @@
+---
+description: "Review one explicitly selected Pi session for actionable setup friction"
+argument-hint: "[session JSONL path | session ID | repository path]"
+---
+
+Run an explicit session review from the optional target. Resolve only enough context to identify a repository or one session; do not treat this command as permission for broad transcript analysis.
+
+Read and follow `skills/pac-session-review/SKILL.md`. Preserve its metadata-first discovery, one selected session, bounded compact events, targeted expansion, current-state verification, #411 ownership routing, privacy, and no-change rules.
+
+**Provided arguments**: $@
