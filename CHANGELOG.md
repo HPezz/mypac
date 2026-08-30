@@ -53,6 +53,7 @@ Versioned sections should match the Git tags and GitHub releases published for t
 
 ### Fixed
 
+- Made clean-room bootstrap install pinned `uv` before pipx-backed checkout tools. ([#423](https://github.com/ladislas/mypac/issues/423))
 - Made `pac-review` keep its default defect and safety rubric concise while loading fix-session guidance conditionally and gathering explicit Standards + Spec context by changed-path applicability. ([#371](https://github.com/ladislas/mypac/issues/371))
 
 - Made `pac-triage` gather issue context progressively by requested action while preserving deep bug-readiness, needs-info, durable-decision, and scope-precedent branches. ([#368](https://github.com/ladislas/mypac/issues/368))
