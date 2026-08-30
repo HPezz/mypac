@@ -1,5 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { visibleWidth } from "@earendil-works/pi-tui";
 import {
 	formatLocationLine,
 	formatModelName,
@@ -59,6 +60,51 @@ test("formatLocationLine separates cwd and branch without parentheses", () => {
 
 test("formatSessionLine keeps short session id and simplified issue name", () => {
 	assert.equal(formatSessionLine({ sessionId: "abc123456789", sessionName: "lwot - issue #265" }), "session abc12345 · lwot #265");
+});
+
+test("long location is truncated to keep session metadata on the first line", () => {
+	const theme = { fg: (_color, text) => text };
+	const home = process.env.HOME || process.env.USERPROFILE;
+	assert.ok(home);
+
+	const lines = renderFooterLines(
+		{
+			cwd: `${home}/dev/ladislas/mypac`,
+			branch: "ladislas/bugfix/423-bootstrap_uv_ordering",
+			sessionId: "01a05268abcdef",
+			sessionName: "llat - issue #423",
+			usage: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, totalCost: 0 },
+			usingSubscription: false,
+		},
+		80,
+		theme,
+	);
+
+	assert.equal(lines.length, 2);
+	assert.equal(visibleWidth(lines[0]), 80);
+	assert.match(lines[0], /01a05268 · llat #423$/);
+	assert.match(lines[0], /\.\.\./);
+	assert.doesNotMatch(lines[0], /bootstrap_uv_ordering/);
+});
+
+test("genuinely narrow footer keeps session metadata on its own line", () => {
+	const theme = { fg: (_color, text) => text };
+	const lines = renderFooterLines(
+		{
+			cwd: "/tmp/project",
+			branch: "long-branch-name",
+			sessionId: "01a05268abcdef",
+			sessionName: "llat - issue #423",
+			usage: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, totalCost: 0 },
+			usingSubscription: false,
+		},
+		27,
+		theme,
+	);
+
+	assert.equal(lines.length, 3);
+	assert.doesNotMatch(lines[0], /01a05268/);
+	assert.equal(lines[1], "01a05268 · llat #423");
 });
 
 test("usage budget color gets more urgent as remaining budget falls", () => {
