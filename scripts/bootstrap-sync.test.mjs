@@ -181,6 +181,60 @@ test("global environment owns each exact pin once with a closed phase", () => {
 	assert.doesNotMatch(config, /depends\s*=\s*"uv"/);
 });
 
+function runPiRuntimeSmoke(agentDir, cwd) {
+	const env = Object.fromEntries(
+		Object.entries(process.env).filter(([key]) => !/(?:API_KEY|AUTH_TOKEN|OAUTH_TOKEN)$/.test(key)),
+	);
+	return spawnSync("pi", ["--offline", "--no-approve", "--no-session", "--print"], {
+		cwd,
+		env: { ...env, PI_CODING_AGENT_DIR: agentDir },
+		input: "",
+		encoding: "utf8",
+	});
+}
+
+test("Pi runtime smoke accepts the registered current mypac package without auth", (t) => {
+	const fixture = createFixture(t);
+	const agentDir = join(fixture.root, "agent");
+	const projectDir = join(fixture.root, "project");
+	mkdirSync(agentDir);
+	mkdirSync(projectDir);
+	writeFileSync(
+		join(agentDir, "settings.json"),
+		JSON.stringify({ packages: [join(scriptsDir, "..")] }),
+	);
+
+	const result = runPiRuntimeSmoke(agentDir, projectDir);
+
+	assert.equal(result.status, 0, result.stderr);
+});
+
+test("Pi runtime smoke fails for a broken registered extension", (t) => {
+	const fixture = createFixture(t);
+	const agentDir = join(fixture.root, "agent");
+	const projectDir = join(fixture.root, "project");
+	const packageDir = join(fixture.root, "broken-package");
+	mkdirSync(agentDir);
+	mkdirSync(projectDir);
+	mkdirSync(packageDir);
+	writeFileSync(
+		join(packageDir, "package.json"),
+		JSON.stringify({
+			name: "broken-pi-runtime-smoke",
+			version: "1.0.0",
+			pi: { extensions: ["./broken.ts"] },
+		}),
+	);
+	writeFileSync(join(packageDir, "broken.ts"), "throw new Error('deliberate runtime smoke failure');\n");
+	writeFileSync(join(agentDir, "settings.json"), JSON.stringify({ packages: [packageDir] }));
+
+	const result = runPiRuntimeSmoke(agentDir, projectDir);
+
+	assert.equal(result.status, 1);
+	assert.match(result.stderr, /Failed to load extension/);
+	assert.match(result.stderr, /deliberate runtime smoke failure/);
+});
+
 function loggingCommand(fixture, name, extra = "") {
 	writeCommand(
 		fixture.bin,
@@ -335,7 +389,7 @@ test("sync reconciles and verifies the pinned global environment", (t) => {
 		"headroom\t--version",
 		"agent-browser\t--version",
 		"pi\tlist\t--no-approve",
-		"pi\t--offline\t--no-approve\t--list-models",
+		"pi\t--offline\t--no-approve\t--no-session\t--print",
 	]);
 });
 
@@ -409,7 +463,7 @@ test("sync does not remove components deleted from desired state", (t) => {
 			"mise\tenv\t-s\tbash",
 			"mise\tenv\t-s\tbash",
 			"pi\tlist\t--no-approve",
-			"pi\t--offline\t--no-approve\t--list-models",
+			"pi\t--offline\t--no-approve\t--no-session\t--print",
 			"",
 		].join("\n"),
 	);

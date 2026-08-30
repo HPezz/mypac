@@ -157,7 +157,7 @@ verify_environment() {
 		fi
 	done
 	grep -F -- "$root" <<< "$pi_list" >/dev/null
-	pi --offline --no-approve --list-models >/dev/null
+	pi --offline --no-approve --no-session --print </dev/null >/dev/null
 	echo "Global Pi environment is in sync."
 }
 
