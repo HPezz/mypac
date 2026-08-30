@@ -1,5 +1,5 @@
 import { execFileSync } from "node:child_process";
-import { mkdir, rm } from "node:fs/promises";
+import { mkdir, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 
 const root = process.cwd();
@@ -8,6 +8,7 @@ const git = (cwd, ...args) => execFileSync("git", args, { cwd, encoding: "utf8",
 
 await rm(path.dirname(remote), { recursive: true, force: true });
 await mkdir(path.dirname(remote), { recursive: true });
+await writeFile(path.join(path.dirname(remote), "user-pull-request-body.md"), "## Summary\n\nImplement the requested change.\n");
 git(root, "init", "--bare", "-q", remote);
 git(root, "remote", "add", "origin", remote);
 const defaultBranch = git(root, "branch", "--show-current");

@@ -1,0 +1,11 @@
+{
+  "id": "multi-commit-local",
+  "defaultBranch": "develop",
+  "expectedBranch": "downstream/validate-history",
+  "baselineTag": "fixture-baseline",
+  "messagePattern": "^DOWNSTREAM: [a-z][^.]*$",
+  "expectedRemoteBranches": ["develop"],
+  "taskFiles": ["task-a.txt", "task-b.txt"],
+  "commitDispositions": ["refs", "closes"],
+  "pullRequestDisposition": "minimal"
+}

@@ -15,12 +15,12 @@ async function build() {
 	return root;
 }
 
-test("builds three disposable downstream Git repositories with the intended policy shapes", async (t) => {
+test("builds four disposable downstream Git repositories with the intended policy shapes", async (t) => {
 	const root = await build();
 	t.after(() => rm(root, { recursive: true, force: true }));
 	const git = (repository, ...args) => execFileSync("git", args, { cwd: repository, encoding: "utf8" }).trim();
 
-	for (const [id, defaultBranch] of [["main-fallback", "main"], ["develop-local", "develop"], ["guarded-hook", "main"]]) {
+	for (const [id, defaultBranch] of [["main-fallback", "main"], ["develop-local", "develop"], ["guarded-hook", "main"], ["multi-commit-local", "develop"]]) {
 		const repository = path.join(root, "repositories", id);
 		assert.equal(git(repository, "branch", "--show-current"), defaultBranch);
 		assert.equal(git(repository, "status", "--porcelain=v1"), "");
@@ -39,18 +39,22 @@ test("builds three disposable downstream Git repositories with the intended poli
 test("generated fresh-session manifests cover natural-language and pac-lwot without a Cartesian product", async (t) => {
 	const root = await build();
 	t.after(() => rm(root, { recursive: true, force: true }));
-	const manifests = await Promise.all(["main-fallback", "develop-local", "guarded-hook"].map(async (id) =>
+	const manifests = await Promise.all(["main-fallback", "develop-local", "guarded-hook", "multi-commit-local"].map(async (id) =>
 		JSON.parse(await readFile(path.join(root, "manifests", `${id}.json`), "utf8"))));
 
 	assert.deepEqual(manifests.map(({ profiles }) => profiles[0].workflow ?? "natural-language"), [
 		"natural-language",
 		"/pac-lwot",
 		"natural-language",
+		"/pac-lwot",
 	]);
 	assert.ok(manifests.every(({ profiles, scenarios }) => profiles.length === 1 && scenarios.length === 1));
 	assert.match(manifests[0].scenarios[0].prompt, /not authorized to push or merge/i);
+	assert.match(manifests[1].scenarios[0].prompt, /complete issue #9001 implementation/i);
+	assert.doesNotMatch(manifests[1].scenarios[0].prompt, /write.*pull.request body/i);
 	assert.match(manifests[1].scenarios[0].prompt, /push only.*feature branch.*do not merge/i);
 	assert.match(manifests[2].scenarios[0].prompt, /authorize pushing.*stronger repository restrictions/is);
+	assert.match(manifests[3].scenarios[0].prompt, /partial.*then.*completing commits/i);
 });
 
 test("static contracts assign policy ownership and keep commit, closure, and authorization gates separate", async () => {
@@ -67,6 +71,10 @@ test("static contracts assign policy ownership and keep commit, closure, and aut
 	assert.match(commit, /repository message format.*authoritative.*wins/is);
 	assert.match(commit, /mypac.*final fallback/is);
 	assert.match(commit, /association separately.*closure/is);
+	assert.match(commit, /coherent.*verified.*commit slice.*Closes #N/is);
+	assert.match(commit, /(?:partial.*Refs #N|Refs #N.*partial)/is);
+	assert.match(commit, /earlier commits?.*Refs #N.*completing commit.*Closes #N/is);
+	assert.match(commit, /pull request body.*(?:not required|does not depend|independent)|(?:not required|does not depend|independent).*pull request body/is);
 	assert.match(commit, /push, merge.*each require explicit authorization/is);
 	assert.match(commit, /re-check.*state.*hook/is);
 	assert.match(lwot, /reuse applicable repository.*policy already available/is);

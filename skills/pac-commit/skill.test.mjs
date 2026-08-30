@@ -107,6 +107,19 @@ test("core separates issue association from authoritative closure decisions", as
 	assert.match(core, /re-?check.*state.*(?:hook|verification)|(?:hook|verification).*re-?check.*state/i);
 });
 
+test("core puts issue closure in the completing commit without depending on a pull request body", async () => {
+	const core = await readSkill(skillUrl);
+
+	assert.match(core, /coherent.*verified.*commit slice.*`?Closes #N`?|`?Closes #N`?.*coherent.*verified.*commit slice/is);
+	assert.match(core, /commit body/i);
+	assert.match(core, /pull request body.*(?:not required|does not depend|independent)|(?:not required|does not depend|independent).*pull request body/is);
+	assert.match(core, /(?:partial|supporting|preparatory).*(?:`?Refs #N`?|non-closing)|(?:`?Refs #N`?|non-closing).*(?:partial|supporting|preparatory)/is);
+	assert.match(core, /earlier commits?.*Refs #N.*(?:final|completing) commit.*Closes #N/is);
+	assert.match(core, /pull request.*(?:creation|finalization).*Closes #N|Closes #N.*pull request.*(?:creation|finalization)/is);
+	assert.match(core, /repository-local.*(?:convention|policy).*(?:differs|override)|(?:differs|override).*repository-local.*(?:convention|policy)/i);
+	assert.match(core, /do not decide.*(?:target resolution|early)|(?:target resolution|early).*do not decide/i);
+});
+
 test("core routes only explicit history work to the conditional fixup reference", async () => {
 	const core = await readSkill(skillUrl);
 

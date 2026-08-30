@@ -4,5 +4,7 @@
   "branchPattern": ".+",
   "baselineTag": "fixture-baseline",
   "messagePattern": "^[^A-Za-z0-9\\s]+ (?:feat|fix|docs|refactor|test|chore|perf)(?:\\([a-z0-9-]+\\))?: [A-Z][^.]*$",
-  "expectedRemoteBranches": ["main"]
+  "expectedRemoteBranches": ["main"],
+  "commitDispositions": ["refs"],
+  "pullRequestDisposition": "refs"
 }
