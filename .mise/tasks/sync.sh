@@ -126,30 +126,48 @@ setup_packages() {
 	done
 }
 
+verification_command() {
+	local package="${1%@*}"
+	case "$package" in
+		aqua:max-sixty/worktrunk) echo wt ;;
+		pipx:headroom-ai*) echo headroom ;;
+		*) echo "${package##*[:/]}" ;;
+	esac
+}
+
+require_mise_command() {
+	local command="$1" version="$2" effective_path mise_path
+	require_command "$command" "$command"
+	effective_path="$(command -v "$command")"
+	mise_path="$(mise which "$command")"
+	if [[ "$effective_path" != "$mise_path" ]]; then
+		echo "Error: $command must resolve to the mise-owned executable: $mise_path (got $effective_path)" >&2
+		exit 1
+	fi
+	require_version "$command" "$version"
+}
+
 verify_environment() {
-	local specification index pi_list
+	local specification index pi_list command worktrunk_declared=false
 	require_command mise mise
 	require_command pi Pi
 	activate_mise
 	for index in "${!specifications[@]}"; do
 		specification="${specifications[$index]}"
-		if [[ "${phases[$index]}" == foundation ]]; then
-			local package="${specification%@*}"
-			local command="${package##*:}"
-			require_command "$command" "$command"
-			require_version "$command" "${specification##*@}"
+		if [[ "${managers[$index]}" == mise ]]; then
+			command="$(verification_command "$specification")"
+			require_mise_command "$command" "${specification##*@}"
 			if [[ "$command" == node ]]; then
 				# Node 24.20.0 supplies npm 11.19.0; verify it without reconciling a second npm installation.
-				require_command npm npm
-				require_version npm 11.19.0
+				require_mise_command npm 11.19.0
+			elif [[ "$command" == wt ]]; then
+				worktrunk_declared=true
 			fi
-			continue
 		fi
-		case "$specification" in
-			pipx:headroom-ai*@*) require_command headroom Headroom; require_version headroom "${specification##*@}" ;;
-			npm:agent-browser@*) require_command agent-browser agent-browser; require_version agent-browser "${specification##*@}" ;;
-		esac
 	done
+	if [[ "$worktrunk_declared" == true ]]; then
+		wt list --format=json >/dev/null
+	fi
 	pi_list="$(pi list --no-approve)"
 	for index in "${!phases[@]}"; do
 		if [[ "${phases[$index]}" == pi ]]; then

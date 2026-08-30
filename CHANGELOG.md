@@ -73,6 +73,7 @@ Versioned sections should match the Git tags and GitHub releases published for t
 
 ### Changed
 
+- Added pinned mise-managed GitHub CLI and prebuilt Worktrunk applications with executable-ownership checks, a non-destructive Worktrunk smoke test, and fresh-shell setup documentation. ([#432](https://github.com/ladislas/mypac/issues/432))
 - Phased bootstrap around mise-managed Node 24 LTS (including bundled npm) and uv foundation tools, with pre-mutation mise integration checks and explicit Pi runtime compatibility verification. ([#431](https://github.com/ladislas/mypac/issues/431))
 - Split `pac-commit` fixup and history-rewrite guidance into an on-demand reference while retaining normal atomic-commit safety in the core skill. ([#370](https://github.com/ladislas/mypac/issues/370))
 - Made `pac-pi-extension` verify pinned Pi APIs through targeted installed documentation sections and examples before broad fallback reads. ([#365](https://github.com/ladislas/mypac/issues/365))

@@ -177,6 +177,15 @@ test("global environment owns each exact pin once with a closed phase", () => {
 		parsed.filter(([phase]) => phase === "foundation").map(([, , specification]) => specification),
 		["node@24.20.0", "uv@0.12.6"],
 	);
+	assert.deepEqual(
+		parsed.filter(([phase]) => phase === "application").map(([, , specification]) => specification),
+		[
+			"gh@2.98.0",
+			"aqua:max-sixty/worktrunk@0.75.0",
+			"pipx:headroom-ai[extras=all]@0.36.5",
+			"npm:agent-browser@0.34.0",
+		],
+	);
 	assert.doesNotMatch(config, /^uv\s*=/m);
 	assert.doesNotMatch(config, /depends\s*=\s*"uv"/);
 });
@@ -258,13 +267,25 @@ function createSyncFixture(t, suffix = "") {
 	return fixture;
 }
 
-function installSyncCommands(fixture, { uvVersion = "0.12.6" } = {}) {
-	loggingCommand(fixture, "mise");
+function installSyncCommands(fixture, { uvVersion = "0.12.6", wtMisePath = join(fixture.bin, "wt") } = {}) {
+	loggingCommand(
+		fixture,
+		"mise",
+		`if [[ "\${1:-}" == "which" ]]; then
+			[[ "\${2:-}" == "wt" ]] && printf '%s\\n' ${JSON.stringify(wtMisePath)} || command -v "\${2:-}"
+		fi`,
+	);
 	loggingCommand(fixture, "node", '[[ "${1:-}" == "--version" ]] && echo "v24.20.0"');
 	loggingCommand(
 		fixture,
 		"uv",
 		`[[ "\${1:-}" == "--version" ]] && echo "uv ${uvVersion}"`,
+	);
+	loggingCommand(fixture, "gh", '[[ "${1:-}" == "--version" ]] && echo "gh version 2.98.0"');
+	loggingCommand(
+		fixture,
+		"wt",
+		'[[ "${1:-}" == "--version" ]] && echo "wt 0.75.0"\n[[ "$*" == "list --format=json" ]] && echo "[]"',
 	);
 	loggingCommand(fixture, "headroom", '[[ "${1:-}" == "--version" ]] && echo "headroom, version 0.36.5"');
 	loggingCommand(fixture, "agent-browser", '[[ "${1:-}" == "--version" ]] && echo "agent-browser 0.34.0"');
@@ -287,6 +308,8 @@ function installRefreshDependentCommands(fixture) {
 	mkdirSync(toolsBin);
 	loggingCommand(fixture, "node", '[[ "${1:-}" == "--version" ]] && echo "v24.20.0"');
 	writeCommand(available, "uv", '[[ "${1:-}" == "--version" ]] && echo "uv 0.12.6"\ntrue');
+	writeCommand(available, "gh", '[[ "${1:-}" == "--version" ]] && echo "gh version 2.98.0"\ntrue');
+	writeCommand(available, "wt", '[[ "${1:-}" == "--version" ]] && echo "wt 0.75.0"\ntrue');
 	writeCommand(available, "headroom", '[[ "${1:-}" == "--version" ]] && echo "headroom, version 0.36.5"\ntrue');
 	writeCommand(available, "agent-browser", '[[ "${1:-}" == "--version" ]] && echo "agent-browser 0.34.0"\ntrue');
 	writeCommand(
@@ -298,10 +321,13 @@ function installRefreshDependentCommands(fixture) {
 			`printf '\\n' >> ${JSON.stringify(fixture.log)}`,
 			'case "$*" in',
 			`  "use --global uv@0.12.6") cp ${JSON.stringify(join(available, "uv"))} ${JSON.stringify(join(toolsBin, "uv"))} ;;`,
+			`  "use --global gh@2.98.0") cp ${JSON.stringify(join(available, "gh"))} ${JSON.stringify(join(toolsBin, "gh"))} ;;`,
+			`  "use --global aqua:max-sixty/worktrunk@0.75.0") cp ${JSON.stringify(join(available, "wt"))} ${JSON.stringify(join(toolsBin, "wt"))} ;;`,
 			`  "use --global pipx:headroom-ai[extras=all]@0.36.5") command -v uv >/dev/null; cp ${JSON.stringify(join(available, "headroom"))} ${JSON.stringify(join(toolsBin, "headroom"))} ;;`,
 			`  "use --global npm:agent-browser@0.34.0") cp ${JSON.stringify(join(available, "agent-browser"))} ${JSON.stringify(join(toolsBin, "agent-browser"))} ;;`,
 			`  "env -s bash") printf 'export PATH=%q\\n' ${JSON.stringify(`${toolsBin}:$PATH`)} ;;`,
 			'esac',
+			'[[ "${1:-}" != "which" ]] || command -v "${2:-}"',
 		].join("\n"),
 	);
 	loggingCommand(
@@ -370,6 +396,10 @@ test("sync reconciles and verifies the pinned global environment", (t) => {
 		"mise\tenv\t-s\tbash",
 		"mise\tuse\t--global\tuv@0.12.6",
 		"mise\tenv\t-s\tbash",
+		"mise\tuse\t--global\tgh@2.98.0",
+		"mise\tenv\t-s\tbash",
+		"mise\tuse\t--global\taqua:max-sixty/worktrunk@0.75.0",
+		"mise\tenv\t-s\tbash",
 		"mise\tuse\t--global\tpipx:headroom-ai[extras=all]@0.36.5",
 		"mise\tenv\t-s\tbash",
 		"mise\tuse\t--global\tnpm:agent-browser@0.34.0",
@@ -383,14 +413,38 @@ test("sync reconciles and verifies the pinned global environment", (t) => {
 		"agent-browser\tinstall",
 		"npm\texec\t--yes\t--package\tpi-agent-browser-native@0.5.0\t--\tpi-agent-browser-doctor",
 		"mise\tenv\t-s\tbash",
+		"mise\twhich\tnode",
 		"node\t--version",
+		"mise\twhich\tnpm",
 		"npm\t--version",
+		"mise\twhich\tuv",
 		"uv\t--version",
+		"mise\twhich\tgh",
+		"gh\t--version",
+		"mise\twhich\twt",
+		"wt\t--version",
+		"mise\twhich\theadroom",
 		"headroom\t--version",
+		"mise\twhich\tagent-browser",
 		"agent-browser\t--version",
+		"wt\tlist\t--format=json",
 		"pi\tlist\t--no-approve",
 		"pi\t--offline\t--no-approve\t--no-session\t--print",
 	]);
+});
+
+test("sync rejects a shadowing non-mise Worktrunk executable", (t) => {
+	const fixture = createSyncFixture(t);
+	const miseOwnedBin = join(dirname(fixture.bin), "mise-owned");
+	mkdirSync(miseOwnedBin);
+	writeCommand(miseOwnedBin, "wt", 'echo "wt 0.75.0"');
+	installSyncCommands(fixture, { wtMisePath: join(miseOwnedBin, "wt") });
+
+	const result = runSync(fixture, "verify");
+
+	assert.equal(result.status, 1);
+	assert.match(result.stderr, /wt must resolve to the mise-owned executable/);
+	assert.doesNotMatch(readFileSync(fixture.log, "utf8"), /wt\tlist\t--format=json/);
 });
 
 test("sync persists the browser screenshot directory through mise", (t) => {

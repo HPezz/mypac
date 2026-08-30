@@ -4,11 +4,23 @@ This guide covers contributor setup and repository maintenance. For package usag
 
 ## Prerequisites
 
-The repository uses Node.js, [Pi](https://github.com/earendil-works/pi), [`mise`](https://mise.jdx.dev/), and Git. On macOS, install mise with:
+The host substrate is Git, [Pi](https://github.com/earendil-works/pi), and [`mise`](https://mise.jdx.dev/). Host-provided Node.js is not required; bootstrap installs the pinned Node/npm foundation through mise before running npm.
+
+On macOS, Homebrew may provide the host substrate:
 
 ```sh
-brew install mise
+brew install git mise
 ```
+
+Configure [mise activation](https://mise.jdx.dev/cli/activate.html) or [mise shims](https://mise.jdx.dev/dev-tools/shims.html) persistently before bootstrap. This is a hard prerequisite; mypac verifies it and never edits shell startup files.
+
+For a fresh machine, prefer Pi's standalone installer so installing Pi does not require Node:
+
+```sh
+curl -fsSL https://pi.dev/install.sh | sh
+```
+
+An existing npm-installed Pi remains supported.
 
 ## Repository setup
 
@@ -18,13 +30,15 @@ From a fresh clone, run:
 ./scripts/install.sh
 ```
 
-The script checks for mise and delegates to `mise run bootstrap`, which:
+The script checks the inherited mise integration, then delegates to `mise run bootstrap`. Bootstrap runs these fixed phases:
 
-1. verifies Pi is available;
-2. installs Node dependencies with `npm ci`;
-3. installs checkout-local mise tools;
-4. installs Git hooks; and
-5. runs `mise run sync` to reconcile the pinned global environment.
+1. validate the single desired-state declaration;
+2. reconcile the Node/npm and uv foundation, then activate it in the bootstrap process;
+3. verify Pi is available and report its installed and mypac-tested versions;
+4. install checkout npm dependencies, checkout-local mise tools, and Git hooks;
+5. reconcile gh, Worktrunk, Headroom, and agent-browser applications;
+6. reconcile Pi packages and register mypac;
+7. run agent-browser-owned browser setup and final runtime verification.
 
 Current mise behavior auto-trusts the active configuration for explicit `mise run` and `mise install` commands, so no separate pre-trust step is required.
 
@@ -47,17 +61,38 @@ mise run lint:fix
 npm run check:pi-compatibility # verify pinned Pi versions, types, and behavior
 ```
 
-Global desired state lives in [`.mise/global-environment`](../.mise/global-environment). Change its exact package specification, commit it, and rerun `mise run sync` to apply an upgrade or downgrade. Removing a declaration stops future reconciliation but does not uninstall the existing global component.
+Global desired state lives in [`.mise/global-environment`](../.mise/global-environment). To upgrade a managed tool, change only its exact specification there, then run `mise run sync` and the repository tests. Removing a declaration stops future reconciliation but does not uninstall an existing global component.
 
-Responsibility is intentionally split between native managers:
+Ownership remains deliberately narrow:
 
 ```text
-mise  → globally required CLI tools, including Python CLIs through pipx
-uv    → mypac Python workflows and mise's pipx installation backend
-Pi    → globally required Pi packages
-npm   → mypac checkout dependencies
-mypac → desired-state declaration and thin orchestration
+Homebrew/OS → Git, mise, Pi, shell/system software, optional system capabilities
+mise        → Node/npm, uv, gh, Worktrunk, Headroom, agent-browser
+Pi          → mypac, pi-agent-browser-native, pi-codex-search
+npm         → mypac checkout dependencies
+mypac       → desired-state declaration and thin phase orchestration
 ```
+
+Bootstrap does not run `wt config shell install` or edit shell files. Worktrunk shell integration is optional when invoking raw `wt` commands that must switch the parent shell's directory. It is unnecessary for mypac's current `/worktree` extension, which uses `--no-cd` and prints an explicit `cd` command.
+
+Bootstrap can activate newly installed tools only inside its own child process; it cannot prove how a future parent shell will initialize. After setup, test a fresh login shell from an unrelated repository:
+
+```sh
+acceptance_dir="$(mktemp -d)"
+git -C "$acceptance_dir" init --quiet
+(
+  cd "$acceptance_dir"
+  "$SHELL" -lic '
+    set -e
+    for command in node uv gh wt headroom agent-browser; do
+      command -v "$command"
+      "$command" --version
+    done
+  '
+)
+```
+
+Each command must resolve normally and report the declared version. If it does not, fix mise activation or shim ordering in the user-owned shell configuration and start another fresh shell.
 
 CI runs the Pi compatibility gate after `npm ci`, so its version, type, and behavior checks execute against a clean dependency installation. Run the same command locally before upgrading Pi dependencies.
 
