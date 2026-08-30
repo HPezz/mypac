@@ -5,5 +5,7 @@
   "baselineTag": "fixture-baseline",
   "messagePattern": "^GUARDED: [a-z][^.]*$",
   "expectedRemoteBranches": ["main"],
-  "hookState": "checked"
+  "hookState": "checked",
+  "commitDispositions": ["refs"],
+  "pullRequestDisposition": "refs"
 }

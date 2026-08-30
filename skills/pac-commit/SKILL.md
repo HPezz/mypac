@@ -1,6 +1,6 @@
 ---
 name: pac-commit
-description: Create or plan repository-compliant commits from existing changes. Load immediately for a standalone commit, split, fixup, amend, reword, or commit-planning request. In an implementation workflow, load when commit preparation becomes relevant; this may be before proportionate verification is complete.
+description: Create or plan repository-compliant commits from existing changes and select commit or pull-request issue links. Load immediately for a standalone commit, split, fixup, amend, reword, commit-planning, or pull-request-finalization request. In an implementation workflow, load when commit preparation becomes relevant; this may be before proportionate verification is complete.
 license: MIT
 compatibility: Git repository; gitmoji CLI is optional.
 metadata:
@@ -85,8 +85,13 @@ git commit \
 Treat issue association separately from issue closure:
 
 - Never guess an issue number.
-- Use a closing keyword only when authoritative evidence shows the completed artifact fully resolves the issue and the repository workflow permits closing references in this commit.
-- Otherwise, use the repository's non-closing reference convention, such as `refs #123`, when association is useful; omit a reference if repository policy requires it elsewhere.
+- Carry known issue identity through planning, but do not decide closure during target resolution or other early workflow stages.
+- Decide completeness when the coherent, verified commit slice is ready. If authoritative evidence shows that slice fully resolves the issue, default to `Closes #N` in the commit body when repository policy permits closing links. The resolved issue scope, completed implementation, and successful verification are normally sufficient; do not demand unusual extra proof.
+- Use the non-closing reference `Refs #N` in the commit body for intermediate, partial, supporting or evidence-only, and preparatory slices that leave issue work unfinished.
+- For work completed across multiple commits, earlier commits use `Refs #N` and the final completing commit uses `Closes #N`.
+- Issue closure does not depend on a pull request body. A user-created minimal pull request must still close the issue after merge through the completing commit.
+- During pull request creation or finalization, Pi may also include `Closes #N` for a completed issue or `Refs #N` for partial work, but this is additional linkage rather than the exclusive closure mechanism.
+- Preserve a repository-local convention or policy that explicitly differs. If completeness remains materially ambiguous when the commit is ready, ask rather than guessing.
 - Re-check issue and repository state if verification or hooks mutate files or otherwise change the evidence used for the closure decision.
 
 ## Common gitmoji shortlist
@@ -127,9 +132,12 @@ Use the closest match. If none fits and `gitmoji` is installed, `gitmoji list` m
    - Stage the file list explicitly for the current unit.
    - Verify the staged file list and diff match the intended scope.
    - Run the smallest relevant verification plus mandatory repository checks not already run.
+   - Once the coherent, verified commit slice is ready, decide whether its commit body uses `Closes #N` or `Refs #N` under the issue-reference rules above.
    - Re-check state if verification mutates files. Commit with the resolved message and issue reference.
    - Let hooks run; never bypass them. Re-check state if a hook mutates files before deciding whether the slice is complete.
-5. **Report results**
+5. **Finalize optional pull request links when applicable**
+   - At pull request creation or finalization, use the issue-reference rules above without making the PR body the only closure owner.
+6. **Report results**
    - Share each commit hash and subject.
    - Mention intentionally uncommitted files and any reason the work stopped.
 

@@ -53,6 +53,7 @@ Versioned sections should match the Git tags and GitHub releases published for t
 
 ### Fixed
 
+- Made `pac-commit` put `Closes #N` in completing issue-backed commit bodies and `Refs #N` in partial or supporting commits, independently of PR-body generation. ([#426](https://github.com/ladislas/mypac/issues/426))
 - Prevented commits containing literal `\\n` text with a repository-local hk `commit-msg` check while preserving genuine multiline messages. ([#425](https://github.com/ladislas/mypac/issues/425))
 - Made clean-room bootstrap install pinned `uv` before pipx-backed checkout tools. ([#423](https://github.com/ladislas/mypac/issues/423))
 - Made `pac-review` keep its default defect and safety rubric concise while loading fix-session guidance conditionally and gathering explicit Standards + Spec context by changed-path applicability. ([#371](https://github.com/ladislas/mypac/issues/371))

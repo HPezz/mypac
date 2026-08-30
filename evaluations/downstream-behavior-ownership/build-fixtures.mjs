@@ -15,19 +15,25 @@ const definitions = [
 		id: "main-fallback",
 		defaultBranch: "main",
 		workflow: undefined,
-		prompt: "Run `node setup-fixture.mjs`, then implement only REQUEST.md. This is partial issue #9001 work. You may create a verified commit, but you are not authorized to push or merge. Do not reread complete/current repository policy already present in context.",
+		prompt: "Run `node setup-fixture.mjs`, then implement only REQUEST.md. This is partial issue #9001 work. You may create a verified commit, but you are not authorized to push or merge. After implementation, write the proposed pull-request body to `.fixture-state/pull-request-body.md`. Do not reread complete/current repository policy already present in context.",
 	},
 	{
 		id: "develop-local",
 		defaultBranch: "develop",
 		workflow: "/pac-lwot",
-		prompt: "Run `node setup-fixture.mjs`, then implement only REQUEST.md. This is partial issue #9001 work. Create a verified commit and push only the policy-authorized feature branch. Do not merge. Do not reread complete/current AGENTS.md already present in context.",
+		prompt: "Run `node setup-fixture.mjs`, then implement only REQUEST.md. This is a complete issue #9001 implementation. Create a verified commit and push only the policy-authorized feature branch. Do not merge. The user will create a minimal pull-request body without issue links, so closure must come from the completing commit. Do not reread complete/current AGENTS.md already present in context.",
 	},
 	{
 		id: "guarded-hook",
 		defaultBranch: "main",
 		workflow: undefined,
-		prompt: "Run `node setup-fixture.mjs`, then implement only REQUEST.md. This is partial issue #9001 work. You may create a verified commit and I authorize pushing it, but you are not authorized to merge. Apply stronger repository restrictions and re-check repository state after hooks run. Do not reread complete/current AGENTS.md already present in context.",
+		prompt: "Run `node setup-fixture.mjs`, then implement only REQUEST.md. This is partial issue #9001 work. You may create a verified commit and I authorize pushing it, but you are not authorized to merge. After implementation, write the proposed pull-request body to `.fixture-state/pull-request-body.md`. Apply stronger repository restrictions and re-check repository state after hooks run. Do not reread complete/current AGENTS.md already present in context.",
+	},
+	{
+		id: "multi-commit-local",
+		defaultBranch: "develop",
+		workflow: "/pac-lwot",
+		prompt: "Run `node setup-fixture.mjs`, then implement only REQUEST.md as the explicitly requested partial then completing commits for issue #9001. Create both verified commits, but do not push or merge. The user will create a minimal pull-request body without issue links. Do not reread complete/current AGENTS.md already present in context.",
 	},
 ];
 
