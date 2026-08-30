@@ -11,6 +11,11 @@ test("session review stays explicit, progressive, evidence-based, and ownership-
 	assert.match(skill, /metadata-only.*(?:first|before)/is);
 	assert.match(skill, /one selected session/i);
 	assert.match(skill, /bounded.*events/i);
+	assert.match(skill, /24 events.*240 characters/i);
+	assert.match(skill, /startSequence.*without preceding events.*nextStartSequence/is);
+	assert.match(skill, /reuse the selected metadata file path.*do not substitute.*PI_SESSION_FILE/is);
+	assert.match(skill, /never call the `read` tool on session JSONL/i);
+	assert.match(skill, /prints only.*parseCompactPiSessionEvents/is);
 	assert.match(skill, /targeted expansion.*only/i);
 	assert.match(skill, /normal exploration.*TDD.*diagnosis/is);
 	assert.match(skill, /current authoritative artifact/i);

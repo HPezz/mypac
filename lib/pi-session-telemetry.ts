@@ -369,6 +369,7 @@ export interface CompactPiSessionEvent {
 export interface CompactPiSessionEvents {
 	events: CompactPiSessionEvent[];
 	totalEvents: number;
+	nextStartSequence: number | null;
 	truncated: boolean;
 	skippedLines: number;
 }
@@ -382,10 +383,11 @@ function compactEventText(value: unknown, maxLength: number): { text?: string; t
 
 export function parseCompactPiSessionEvents(
 	content: string,
-	options: { maxEvents?: number; maxTextLength?: number } = {},
+	options: { startSequence?: number; maxEvents?: number; maxTextLength?: number } = {},
 ): CompactPiSessionEvents {
-	const maxEvents = Math.max(0, options.maxEvents ?? 200);
-	const maxTextLength = Math.max(1, options.maxTextLength ?? 500);
+	const startSequence = Math.max(1, Math.floor(options.startSequence ?? 1));
+	const maxEvents = Math.max(1, Math.floor(options.maxEvents ?? 24));
+	const maxTextLength = Math.max(1, Math.floor(options.maxTextLength ?? 240));
 	const events: CompactPiSessionEvent[] = [];
 	let skippedLines = 0;
 
@@ -435,5 +437,14 @@ export function parseCompactPiSessionEvents(
 		if (event.kind === "tool-result") event.linked = Boolean(event.toolCallId && callIds.has(event.toolCallId));
 	}
 
-	return { events: events.slice(0, maxEvents), totalEvents: events.length, truncated: events.length > maxEvents, skippedLines };
+	const startIndex = startSequence - 1;
+	const endIndex = Math.min(events.length, startIndex + maxEvents);
+	const nextStartSequence = endIndex < events.length ? endIndex + 1 : null;
+	return {
+		events: events.slice(startIndex, endIndex),
+		totalEvents: events.length,
+		nextStartSequence,
+		truncated: nextStartSequence !== null,
+		skippedLines,
+	};
 }
