@@ -24,7 +24,7 @@ Process:
    - `/pac-llat`, `/pac-explore`, `/pac-grill-with-docs`, `/pac-to-prd`, or `/pac-to-issues` when the request needs more planning instead of coding.
 6. Implement the smallest slice that satisfies the request. Keep changes surgical and directly tied to the target. Avoid unrelated refactors.
 7. Verify with the smallest relevant checks. Report what changed, what was verified, and any remaining follow-up.
-8. Carry any explicitly referenced issue identity forward without deciding whether the change closes it. Load and follow `skills/pac-commit/SKILL.md` only when a coherent slice is ready, proportionately verified, and commit creation is allowed by repository and user policy. Do not infer push or merge authorization from implementation or commit progression.
+8. Carry any explicitly referenced issue identity forward without deciding whether the change closes it. When a coherent slice exists and commit preparation becomes relevant, load and follow `skills/pac-commit/SKILL.md`; it may assist with inspection, verification, staging, hooks, and commit preparation. Exact skill read order is a progressive-context efficiency goal, not a safety or correctness guarantee. Before running `git commit`, confirm that a coherent slice exists, proportionate verification is complete or the strongest available evidence has been gathered, and commit creation is allowed by repository and user policy. Do not infer push or merge authorization from implementation or commit progression.
 
 Use GitHub context and linked artifacts as supporting material, not permission to expand scope.
 

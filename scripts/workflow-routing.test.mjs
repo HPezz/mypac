@@ -86,7 +86,11 @@ test("pac-lwot gates execution before loading implementation context", async () 
 	assert.doesNotMatch(prompt, /deferring whether a work branch is required/i);
 	assert.match(prompt, /implementation skills.*only after.*execution/i);
 	assert.match(prompt, /carry.*issue identity.*without deciding.*clos/i);
-	assert.match(prompt, /pac-commit.*only when.*coherent.*verified.*commit creation.*allowed/is);
+	assert.match(prompt, /(?:pac-commit.*commit preparation.*relevant|commit preparation.*relevant.*pac-commit)/is);
+	assert.match(prompt, /may.*inspect.*verification.*staging.*hooks/is);
+	assert.match(prompt, /before.*git commit.*coherent slice.*(?:proportionate verification.*complete|strongest available evidence.*gathered).*commit creation.*allowed/is);
+	assert.match(prompt, /exact.*(?:skill )?read order.*efficiency goal.*not.*(?:safety|correctness) guarantee/is);
+	assert.doesNotMatch(prompt, /pac-commit.*only when.*verified/is);
 	assert.match(prompt, /do not infer.*push.*merge.*authorization/is);
 	assert.doesNotMatch(prompt, /do not work directly on `main`/i);
 });
