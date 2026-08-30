@@ -53,6 +53,7 @@ Versioned sections should match the Git tags and GitHub releases published for t
 
 ### Fixed
 
+- Prevented resumed `/pac-lwot` workflows from drifting beyond their authoritative target by re-grounding before implementation and checking target-to-slice closure before commit preparation. ([#438](https://github.com/ladislas/mypac/issues/438))
 - Made `pac-commit` put `Closes #N` in completing issue-backed commit bodies and `Refs #N` in partial or supporting commits, independently of PR-body generation. ([#426](https://github.com/ladislas/mypac/issues/426))
 - Prevented commits containing literal `\\n` text with a repository-local hk `commit-msg` check while preserving genuine multiline messages. ([#425](https://github.com/ladislas/mypac/issues/425))
 - Made clean-room bootstrap install pinned `uv` before pipx-backed checkout tools. ([#423](https://github.com/ladislas/mypac/issues/423))

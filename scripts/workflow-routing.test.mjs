@@ -96,6 +96,29 @@ test("pac-lwot gates execution before loading implementation context", async () 
 	assert.doesNotMatch(prompt, /do not work directly on `main`/i);
 });
 
+test("pac-lwot preserves authoritative issue scope across blocked-workflow resume and commit preparation", async () => {
+	const prompt = await readRepoFile("prompts", "pac-lwot.md");
+	const resumeHandling = prompt.search(/resume or material state transition/i);
+	const reGrounding = prompt.search(/re-ground.*authoritative target/i);
+	const implementationContinuation = prompt.search(/before (?:continuing|resuming) implementation/i);
+	const closureCheck = prompt.search(/target-to-slice closure check/i);
+	const commitPreparation = prompt.search(/commit preparation becomes relevant/i);
+
+	assert.ok(resumeHandling >= 0, "resume handling should be explicit");
+	assert.ok(reGrounding > resumeHandling, "re-grounding should follow targeted transition verification");
+	assert.ok(implementationContinuation > reGrounding, "the target contract should be restored before implementation continues");
+	assert.ok(closureCheck > implementationContinuation, "closure should be checked after implementation");
+	assert.ok(closureCheck < commitPreparation, "closure should be checked before commit preparation");
+	assert.match(prompt, /blocker.*changed.*verify only.*changed.*state/is);
+	assert.match(prompt, /reuse.*already-resolved.*authoritative target/is);
+	assert.match(prompt, /re-grounding.*not.*re-fetching/is);
+	assert.match(prompt, /requirements.*acceptance criteria.*non-goals/is);
+	assert.match(prompt, /do not introduce.*cannot be traced.*target.*decision.*user instruction/is);
+	assert.match(prompt, /applicable requirements.*satisfied.*explicitly unresolved/is);
+	assert.match(prompt, /omitted.*requirement/is);
+	assert.match(prompt, /material additions.*outside.*target.*surface/is);
+});
+
 test("workflow-only skills stay out of model context but explicit prompts still load them", async () => {
 	const { skills, diagnostics } = loadSkillsFromDir({
 		dir: path.join(repoRoot, "skills"),
