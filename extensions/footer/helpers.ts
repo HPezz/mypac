@@ -231,7 +231,7 @@ interface RenderParts {
 
 function renderWideLines(parts: RenderParts, width: number, theme: any): string[] | null {
 	const lines: string[] = [];
-	const first = joinColumns(theme.fg("dim", parts.location), theme.fg("dim", parts.sessionMeta), width);
+	const first = joinFirstLine(theme.fg("dim", parts.location), theme.fg("dim", parts.sessionMeta), width);
 	if (!first) return null;
 	if (parts.location) lines.push(first);
 
@@ -259,6 +259,17 @@ function renderNarrowLines(parts: RenderParts, width: number, theme: any): strin
 	return lines;
 }
 
+
+function joinFirstLine(left: string, right: string, width: number): string | null {
+	const minGap = 4;
+	const minLocationWidth = 4;
+	const rightWidth = visibleWidth(right);
+	if (!left || !right || visibleWidth(left) + minGap + rightWidth <= width) return joinColumns(left, right, width);
+	if (minLocationWidth + minGap + rightWidth > width) return null;
+
+	const truncatedLeft = truncateToWidth(left, width - minGap - rightWidth);
+	return truncatedLeft + " ".repeat(width - visibleWidth(truncatedLeft) - rightWidth) + right;
+}
 
 function joinColumns(left: string, right: string, width: number): string | null {
 	const leftWidth = visibleWidth(left);
