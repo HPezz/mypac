@@ -1,9 +1,8 @@
 [tools]
-uv = "0.12.6"
 hk = "1.56.1"
 pkl = "0.32.1"
 markdownlint-cli2 = { version = "0.23.2", trust_policy_excludes = ["fastq@1.20.2"] }
-yamllint = { version = "1.38.0", depends = "uv" }
+yamllint = "1.38.0"
 
 [tasks]
 test = "npm test"
