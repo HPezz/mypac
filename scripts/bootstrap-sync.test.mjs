@@ -19,6 +19,7 @@ import test from "node:test";
 const scriptsDir = dirname(fileURLToPath(import.meta.url));
 const installSource = join(scriptsDir, "install.sh");
 const bootstrapSource = join(scriptsDir, "..", ".mise", "tasks", "bootstrap.sh");
+const configSource = join(scriptsDir, "..", ".mise", "config.toml");
 const syncSource = join(scriptsDir, "..", ".mise", "tasks", "sync.sh");
 const environmentSource = join(scriptsDir, "..", ".mise", "global-environment");
 
@@ -109,6 +110,19 @@ test("bootstrap fails with actionable guidance when Pi is missing", (t) => {
 
 	assert.equal(result.status, 1);
 	assert.match(result.stderr, /Pi is required/);
+});
+
+test("checkout declares uv dependency for pipx-backed tools", () => {
+	const config = readFileSync(configSource, "utf8");
+	const environment = readFileSync(environmentSource, "utf8");
+	const globalUvVersion = environment.match(/^mise uv@(\S+)$/m)?.[1];
+	const checkoutUvVersion = config.match(/^uv = "([^"]+)"$/m)?.[1];
+	const yamllintDeclaration = config.match(/^yamllint = \{(.+)\}$/m)?.[1];
+
+	assert.ok(globalUvVersion, "global environment must declare uv");
+	assert.equal(checkoutUvVersion, globalUvVersion);
+	assert.match(yamllintDeclaration ?? "", /depends = "uv"/);
+	assert.doesNotMatch(config, /^jobs\s*=/m);
 });
 
 function loggingCommand(fixture, name, extra = "") {
