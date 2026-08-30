@@ -1,0 +1,8 @@
+{
+  "id": "develop-local",
+  "defaultBranch": "develop",
+  "expectedBranch": "downstream/validate-policy",
+  "baselineTag": "fixture-baseline",
+  "messagePattern": "^DOWNSTREAM: [a-z][^.]*$",
+  "expectedRemoteBranches": ["develop", "downstream/validate-policy"]
+}

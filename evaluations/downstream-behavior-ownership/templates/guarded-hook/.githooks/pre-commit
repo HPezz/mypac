@@ -1,0 +1,6 @@
+#!/bin/sh
+set -eu
+if grep -qx pending hook-state.txt; then
+	printf 'checked\n' > hook-state.txt
+	git add hook-state.txt
+fi
