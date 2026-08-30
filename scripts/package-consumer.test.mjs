@@ -20,13 +20,13 @@ const expectedSkills = [
 	"pac-caveman", "pac-changelog", "pac-commit", "pac-diagnose", "pac-explore", "pac-github",
 	"pac-github-issue-create", "pac-grill-me", "pac-grill-with-docs", "pac-handoff", "pac-improve-architecture",
 	"pac-librarian", "pac-pi-extension", "pac-pi-prompt", "pac-pi-skill", "pac-review",
-	"pac-review-standards-spec", "pac-tdd", "pac-to-issues", "pac-to-prd", "pac-triage",
+	"pac-review-standards-spec", "pac-session-review", "pac-tdd", "pac-to-issues", "pac-to-prd", "pac-triage",
 	"pac-upstream-checkpoints", "pac-uv", "pac-zoom-out",
 ];
 const expectedPrompts = [
 	"pac-caveman", "pac-diagnose", "pac-explore", "pac-fix-copilot-review", "pac-grill-me",
 	"pac-grill-with-docs", "pac-handoff", "pac-hello-world", "pac-improve-architecture",
-	"pac-llat", "pac-lwot", "pac-to-issues", "pac-to-prd", "pac-triage", "pac-upstream-checkpoints",
+	"pac-llat", "pac-lwot", "pac-session-review", "pac-to-issues", "pac-to-prd", "pac-triage", "pac-upstream-checkpoints",
 	"pac-zoom-out",
 ];
 const expectedThemes = ["gruvbox-dark", "nightowl", "nord"];

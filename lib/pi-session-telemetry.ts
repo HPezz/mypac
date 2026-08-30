@@ -353,3 +353,98 @@ export function parsePiSessionLines(content: string, filePath = "session.jsonl")
 	for (const line of content.split(/\r?\n/)) parsePiSessionLine(state, line);
 	return finalizePiSessionParseState(state);
 }
+
+export interface CompactPiSessionEvent {
+	sequence: number;
+	kind: "user" | "tool-call" | "tool-result";
+	toolCallId?: string;
+	toolName?: string;
+	text?: string;
+	isError?: boolean;
+	aborted?: boolean;
+	linked?: boolean;
+	truncated?: boolean;
+}
+
+export interface CompactPiSessionEvents {
+	events: CompactPiSessionEvent[];
+	totalEvents: number;
+	nextStartSequence: number | null;
+	truncated: boolean;
+	skippedLines: number;
+}
+
+function compactEventText(value: unknown, maxLength: number): { text?: string; truncated?: boolean } {
+	const text = typeof value === "string" ? textContent(value) : textContent(value) ?? (value === undefined ? null : JSON.stringify(value));
+	if (!text) return {};
+	if (text.length <= maxLength) return { text };
+	return { text: `${text.slice(0, Math.max(0, maxLength - 1))}…`, truncated: true };
+}
+
+export function parseCompactPiSessionEvents(
+	content: string,
+	options: { startSequence?: number; maxEvents?: number; maxTextLength?: number } = {},
+): CompactPiSessionEvents {
+	const startSequence = Math.max(1, Math.floor(options.startSequence ?? 1));
+	const maxEvents = Math.max(1, Math.floor(options.maxEvents ?? 24));
+	const maxTextLength = Math.max(1, Math.floor(options.maxTextLength ?? 240));
+	const events: CompactPiSessionEvent[] = [];
+	let skippedLines = 0;
+
+	for (const line of content.split(/\r?\n/)) {
+		if (!line.trim()) continue;
+		let entry: any;
+		try { entry = JSON.parse(line); } catch { skippedLines += 1; continue; }
+		if (entry?.type !== "message") continue;
+		const message = entry?.message ?? entry;
+		const role = message?.role;
+		if (role === "user") {
+			events.push({ sequence: events.length + 1, kind: "user", ...compactEventText(message.content, maxTextLength) });
+			continue;
+		}
+		if (role === "assistant") {
+			const aborted = message.stopReason === "aborted" || entry.stopReason === "aborted";
+			if (!Array.isArray(message.content)) continue;
+			for (const part of message.content) {
+				if (part?.type !== "toolCall") continue;
+				events.push({
+					sequence: events.length + 1,
+					kind: "tool-call",
+					toolCallId: typeof part.id === "string" ? part.id : undefined,
+					toolName: typeof part.name === "string" ? part.name : undefined,
+					...compactEventText(part.arguments, maxTextLength),
+					...(aborted ? { aborted: true } : {}),
+				});
+			}
+			continue;
+		}
+		if (role === "toolResult") {
+			events.push({
+				sequence: events.length + 1,
+				kind: "tool-result",
+				toolCallId: typeof message.toolCallId === "string" ? message.toolCallId : undefined,
+				toolName: typeof message.toolName === "string" ? message.toolName : undefined,
+				...compactEventText(message.content, maxTextLength),
+				isError: message.isError === true || entry.isError === true,
+			});
+		}
+	}
+
+	const callIds = new Set(events.filter((event) => event.kind === "tool-call" && event.toolCallId).map((event) => event.toolCallId as string));
+	const resultIds = new Set(events.filter((event) => event.kind === "tool-result" && event.toolCallId).map((event) => event.toolCallId as string));
+	for (const event of events) {
+		if (event.kind === "tool-call") event.linked = Boolean(event.toolCallId && resultIds.has(event.toolCallId));
+		if (event.kind === "tool-result") event.linked = Boolean(event.toolCallId && callIds.has(event.toolCallId));
+	}
+
+	const startIndex = startSequence - 1;
+	const endIndex = Math.min(events.length, startIndex + maxEvents);
+	const nextStartSequence = endIndex < events.length ? endIndex + 1 : null;
+	return {
+		events: events.slice(startIndex, endIndex),
+		totalEvents: events.length,
+		nextStartSequence,
+		truncated: nextStartSequence !== null,
+		skippedLines,
+	};
+}

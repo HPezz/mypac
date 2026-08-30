@@ -10,6 +10,7 @@ const workflowOnlySkills = [
 	"pac-explore",
 	"pac-grill-me",
 	"pac-grill-with-docs",
+	"pac-session-review",
 	"pac-to-issues",
 	"pac-to-prd",
 ];

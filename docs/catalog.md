@@ -51,6 +51,7 @@ Skills contain reusable instructions. Pi may load model-invocable skills when a 
 | [`pac-pi-skill`](../skills/pac-pi-skill/SKILL.md) | Author and refactor Pi skills |
 | [`pac-review`](../skills/pac-review/SKILL.md) | Review code changes using the project rubric |
 | [`pac-review-standards-spec`](../skills/pac-review-standards-spec/SKILL.md) | Follow up a review against standards and specifications |
+| [`pac-session-review`](../skills/pac-session-review/SKILL.md) | Review one selected Pi session for actionable setup friction |
 | [`pac-tdd`](../skills/pac-tdd/SKILL.md) | Implement behavior changes in tested vertical slices |
 | [`pac-to-issues`](../skills/pac-to-issues/SKILL.md) | Decompose plans into independently grabbable issues |
 | [`pac-to-prd`](../skills/pac-to-prd/SKILL.md) | Synthesize context into a PRD |
@@ -76,6 +77,7 @@ Prompts are the slash-command entry points you type in Pi.
 | [`/pac-improve-architecture`](../prompts/pac-improve-architecture.md) | Explore architecture-deepening opportunities |
 | [`/pac-llat`](../prompts/pac-llat.md) | Classify a target and route it to the appropriate workflow |
 | [`/pac-lwot`](../prompts/pac-lwot.md) | Execute work from available context |
+| [`/pac-session-review`](../prompts/pac-session-review.md) | Review one explicitly selected Pi session |
 | [`/pac-to-issues`](../prompts/pac-to-issues.md) | Split a plan or PRD into implementation issues |
 | [`/pac-to-prd`](../prompts/pac-to-prd.md) | Turn context into a PRD |
 | [`/pac-triage`](../prompts/pac-triage.md) | Triage GitHub issues |
