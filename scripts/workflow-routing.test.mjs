@@ -4,6 +4,7 @@ import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { formatSkillsForPrompt, loadSkillsFromDir } from "@earendil-works/pi-coding-agent";
+import { runBlockedIssueResumeFixture } from "./test-support/lwot-resume-fixture.mjs";
 
 const repoRoot = fileURLToPath(new URL("../", import.meta.url));
 const workflowOnlySkills = [
@@ -94,6 +95,67 @@ test("pac-lwot gates execution before loading implementation context", async () 
 	assert.doesNotMatch(prompt, /pac-commit.*only when.*verified/is);
 	assert.match(prompt, /do not infer.*push.*merge.*authorization/is);
 	assert.doesNotMatch(prompt, /do not work directly on `main`/i);
+});
+
+test("pac-lwot prompt contract requires resume re-grounding and pre-commit closure", async () => {
+	const prompt = await readRepoFile("prompts", "pac-lwot.md");
+	const resumeHandling = prompt.search(/resume or material state transition/i);
+	const reGrounding = prompt.search(/re-ground.*authoritative target/i);
+	const implementationContinuation = prompt.search(/before (?:continuing|resuming) implementation/i);
+	const closureCheck = prompt.search(/target-to-slice closure check/i);
+	const commitPreparation = prompt.search(/commit preparation becomes relevant/i);
+
+	assert.ok(resumeHandling >= 0, "resume handling should be explicit");
+	assert.ok(reGrounding > resumeHandling, "re-grounding should follow targeted transition verification");
+	assert.ok(implementationContinuation > reGrounding, "the target contract should be restored before implementation continues");
+	assert.ok(closureCheck > implementationContinuation, "closure should be checked after implementation");
+	assert.ok(closureCheck < commitPreparation, "closure should be checked before commit preparation");
+	assert.match(prompt, /blocker.*changed.*verify only.*changed.*state/is);
+	assert.match(prompt, /reuse.*already-resolved.*authoritative target/is);
+	assert.match(prompt, /re-grounding.*not.*re-fetching/is);
+	assert.match(prompt, /requirements.*acceptance criteria.*non-goals/is);
+	assert.match(prompt, /do not introduce.*cannot be traced.*target.*decision.*user instruction/is);
+	assert.match(prompt, /applicable requirements.*satisfied.*explicitly unresolved/is);
+	assert.match(prompt, /omitted.*requirement/is);
+	assert.match(prompt, /material additions.*outside.*target.*surface/is);
+});
+
+test("pac-lwot blocked-resume fixture preserves target scope and surfaces closure drift before commit preparation", () => {
+	const authoritativeContract = {
+		requirements: [
+			{ id: "preserve-scope", text: "Reuse the original issue contract after resume" },
+			{ id: "check-closure", text: "Check target-to-slice closure before commit preparation" },
+		],
+		nonGoals: ["Refactor unrelated workflow routing"],
+	};
+	let bodyFetches = 0;
+	let blockerStateFetches = 0;
+
+	const result = runBlockedIssueResumeFixture({
+		readIssue: () => {
+			bodyFetches += 1;
+			return { contract: authoritativeContract, blocker: "waiting-for-policy" };
+		},
+		readBlockerState: () => {
+			blockerStateFetches += 1;
+			return "resolved";
+		},
+		candidateSlice: {
+			satisfiedRequirementIds: ["preserve-scope"],
+			changes: [
+				{ description: "Restore the original contract", requirementId: "preserve-scope", material: true },
+				{ description: "Refactor unrelated workflow routing", requirementId: null, material: true },
+			],
+		},
+	});
+
+	assert.equal(bodyFetches, 1, "resume should reuse the complete issue body read");
+	assert.equal(blockerStateFetches, 1, "resume should verify only the changed blocker state");
+	assert.deepEqual(result.blockerTransition, { from: "waiting-for-policy", to: "resolved" });
+	assert.deepEqual(result.executionContract, authoritativeContract);
+	assert.deepEqual(result.closure.omittedRequirements, [authoritativeContract.requirements[1]]);
+	assert.deepEqual(result.closure.unrelatedAdditions, ["Refactor unrelated workflow routing"]);
+	assert.ok(result.events.indexOf("closure-drift-surfaced") < result.events.indexOf("commit-preparation-blocked"));
 });
 
 test("workflow-only skills stay out of model context but explicit prompts still load them", async () => {
