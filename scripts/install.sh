@@ -7,4 +7,5 @@ if ! command -v mise >/dev/null 2>&1; then
 fi
 
 cd "$(dirname "$0")/.."
+export MISE_TASK_RUN_AUTO_INSTALL=false
 exec mise run bootstrap

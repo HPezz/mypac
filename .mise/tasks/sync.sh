@@ -145,10 +145,27 @@ require_mise_command() {
 		exit 1
 	fi
 	require_version "$command" "$version"
+	printf '%s\n' "$mise_path"
+}
+
+require_bundled_npm() {
+	local node_path="$1" npm_path effective_path
+	require_command npm npm
+	npm_path="$(mise which npm)"
+	if [[ "$(dirname "$node_path")" != "$(dirname "$npm_path")" ]]; then
+		echo "Error: npm must be supplied by the pinned mise-managed Node installation: $node_path (got $npm_path)" >&2
+		exit 1
+	fi
+	effective_path="$(command -v npm)"
+	if [[ "$effective_path" != "$npm_path" ]]; then
+		echo "Error: npm must resolve to the Node-bundled mise executable: $npm_path (got $effective_path)" >&2
+		exit 1
+	fi
+	npm --version >/dev/null
 }
 
 verify_environment() {
-	local specification index pi_list command worktrunk_declared=false
+	local specification index pi_list command worktrunk_declared=false mise_path
 	require_command mise mise
 	require_command pi Pi
 	activate_mise
@@ -156,10 +173,9 @@ verify_environment() {
 		specification="${specifications[$index]}"
 		if [[ "${managers[$index]}" == mise ]]; then
 			command="$(verification_command "$specification")"
-			require_mise_command "$command" "${specification##*@}"
+			mise_path="$(require_mise_command "$command" "${specification##*@}")"
 			if [[ "$command" == node ]]; then
-				# Node 24.20.0 supplies npm 11.19.0; verify it without reconciling a second npm installation.
-				require_mise_command npm 11.19.0
+				require_bundled_npm "$mise_path"
 			elif [[ "$command" == wt ]]; then
 				worktrunk_declared=true
 			fi
