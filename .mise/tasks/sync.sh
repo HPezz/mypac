@@ -196,6 +196,7 @@ verify_environment() {
 }
 
 if [[ "$mode" == foundation || "$mode" == all ]]; then reconcile_mise_phase foundation; fi
+if [[ "$mode" == all ]]; then require_command pi Pi; fi
 if [[ "$mode" == application || "$mode" == all ]]; then reconcile_mise_phase application; fi
 if [[ "$mode" == pi || "$mode" == all ]]; then reconcile_pi; fi
 if [[ "$mode" == setup || "$mode" == all ]]; then setup_packages; fi
