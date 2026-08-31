@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { execFile } from "node:child_process";
-import { access, mkdtemp, mkdir, readFile, writeFile } from "node:fs/promises";
+import { access, mkdtemp, mkdir, readFile, watch, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
@@ -267,6 +267,7 @@ await writeFile(join(sessionDir, "session.jsonl"), [
   JSON.stringify({ type: "message", id: "3", message: { role: "user", content: "fixture prompt" } }),
   JSON.stringify({ type: "message", id: "4", message: { role: "assistant", provider, model, usage: { input: 10, output: 5, cacheRead: 3, cacheWrite: 2, totalTokens: 20, contextTokens: 15, maxContextTokens: 100, cost: { total: 0.2 } } } }),
 ].join("\\n") + "\\n");
+if (process.env.FAKE_TIMEOUT_READY) await writeFile(process.env.FAKE_TIMEOUT_READY, "ready\\n");
 await writeFile("implementation.txt", "changed\\n");
 await writeFile("result.txt", "artifact\\n");
 console.log("fake pi stdout", JSON.stringify({
@@ -356,7 +357,7 @@ test("execution isolates the checkout, verifies externally, and retains normaliz
   await assert.rejects(access(join(retainedRunDirectory, "agent-config")));
 });
 
-test("failed, timed-out, mismatched, and verification-failed children retain normalized results", async () => {
+test("failed, timed-out, mismatched, and verification-failed children retain normalized results", async (context) => {
   const cases = [
     { name: "failure", environment: { FAKE_FAILURE: "1" }, expected: "child_failed" },
     { name: "timeout", environment: { FAKE_TIMEOUT: "1" }, expected: "timed_out", timeoutMs: 50 },
@@ -377,10 +378,27 @@ test("failed, timed-out, mismatched, and verification-failed children retain nor
       ? [{ command: process.execPath, args: ["-e", "process.exit(3)"], timeoutMs: 1000 }]
       : [];
 
-    const [result] = await runEvaluation(manifest, {
+    const timeoutReady = fixture.name === "timeout" ? join(directory, "timeout-ready") : undefined;
+    const readyWatcher = timeoutReady ? watch(directory) : undefined;
+    if (timeoutReady) context.mock.timers.enable({ apis: ["setTimeout"] });
+    const evaluation = runEvaluation(manifest, {
       piCommand: { command: process.execPath, leadingArgs: [fakePi] },
-      environment: fixture.environment,
+      environment: { ...fixture.environment, FAKE_TIMEOUT_READY: timeoutReady },
     });
+    if (timeoutReady && readyWatcher) {
+      for await (const _event of readyWatcher) {
+        try {
+          await access(timeoutReady);
+          break;
+        } catch (error) {
+          if (error.code !== "ENOENT") throw error;
+        }
+      }
+      await readyWatcher.return();
+      context.mock.timers.tick(fixture.timeoutMs);
+    }
+    const [result] = await evaluation;
+    if (timeoutReady) context.mock.timers.reset();
 
     assert.equal(result.status, fixture.expected, fixture.name);
     assert.equal(JSON.parse(await readFile(join(manifest.outputDirectory, result.paths.result), "utf8")).status, fixture.expected);
