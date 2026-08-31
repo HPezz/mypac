@@ -267,12 +267,23 @@ function createSyncFixture(t, suffix = "") {
 	return fixture;
 }
 
-function installSyncCommands(fixture, { uvVersion = "0.12.6", wtMisePath = join(fixture.bin, "wt") } = {}) {
+function installSyncCommands(
+	fixture,
+	{
+		uvVersion = "0.12.6",
+		wtMisePath = join(fixture.bin, "wt"),
+		npmMisePath = join(fixture.bin, "npm"),
+	} = {},
+) {
 	loggingCommand(
 		fixture,
 		"mise",
 		`if [[ "\${1:-}" == "which" ]]; then
-			[[ "\${2:-}" == "wt" ]] && printf '%s\\n' ${JSON.stringify(wtMisePath)} || command -v "\${2:-}"
+			case "\${2:-}" in
+				wt) printf '%s\\n' ${JSON.stringify(wtMisePath)} ;;
+				npm) printf '%s\\n' ${JSON.stringify(npmMisePath)} ;;
+				*) command -v "\${2:-}" ;;
+			esac
 		fi`,
 	);
 	loggingCommand(fixture, "node", '[[ "${1:-}" == "--version" ]] && echo "v24.20.0"');
@@ -431,6 +442,35 @@ test("sync reconciles and verifies the pinned global environment", (t) => {
 		"pi\tlist\t--no-approve",
 		"pi\t--offline\t--no-approve\t--no-session\t--print",
 	]);
+});
+
+test("sync stops after foundation when Pi is missing", (t) => {
+	const fixture = createSyncFixture(t);
+	installSyncCommands(fixture);
+	rmSync(join(fixture.bin, "pi"));
+
+	const result = runSync(fixture);
+
+	assert.equal(result.status, 1);
+	assert.match(result.stderr, /Pi is required/);
+	assert.deepEqual(readFileSync(fixture.log, "utf8").trim().split("\n"), [
+		"mise\tuse\t--global\tnode@24.20.0",
+		"mise\tenv\t-s\tbash",
+		"mise\tuse\t--global\tuv@0.12.6",
+		"mise\tenv\t-s\tbash",
+	]);
+});
+
+test("sync rejects npm from a different installation than the pinned Node executable", (t) => {
+	const fixture = createSyncFixture(t);
+	const otherInstallation = join(dirname(fixture.bin), "other-node", "bin", "npm");
+	installSyncCommands(fixture, { npmMisePath: otherInstallation });
+
+	const result = runSync(fixture, "verify");
+
+	assert.equal(result.status, 1);
+	assert.match(result.stderr, /npm must be supplied by the pinned mise-managed Node installation/);
+	assert.doesNotMatch(readFileSync(fixture.log, "utf8"), /npm\t--version/);
 });
 
 test("sync rejects a shadowing non-mise Worktrunk executable", (t) => {

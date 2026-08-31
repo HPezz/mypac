@@ -6,7 +6,7 @@ The [`headroom`](../extensions/headroom/) extension can route supported Pi provi
 
 ### Install
 
-`./scripts/install.sh` and `mise run sync` install the exact Headroom specification declared in [`.mise/global-environment`](../.mise/global-environment) through mise's pipx backend. The backend uses the globally declared `uv` installation, so no separate Headroom installation step is required.
+`./scripts/install.sh` and `mise run --skip-tools sync` install the exact Headroom specification declared in [`.mise/global-environment`](../.mise/global-environment) through mise's pipx backend. The backend uses the globally declared `uv` installation, so no separate Headroom installation step is required.
 
 ### Use from Pi
 
@@ -32,19 +32,13 @@ Merge the following key into `~/.pi/agent/settings.json` without replacing other
 
 When `enabled` is absent or `false`, Headroom does not start automatically. Manual `/headroom` commands remain available.
 
-### Uninstall
-
-```sh
-uv tool uninstall headroom-ai
-```
-
 See the [upstream Headroom documentation](https://headroom-docs.vercel.app/docs) for provider support and detailed usage.
 
 ## Browser automation
 
 The [`pi-agent-browser-native`](https://github.com/fitchmultz/pi-agent-browser-native) package exposes the external [`agent-browser`](https://agent-browser.dev/) runtime as a native Pi tool.
 
-`./scripts/install.sh` and `mise run sync` manage the complete required setup:
+`./scripts/install.sh` and `mise run --skip-tools sync` manage the complete required setup:
 
 - mise installs the declared `agent-browser` version globally;
 - `agent-browser install` provisions or repairs its Chrome for Testing payload;

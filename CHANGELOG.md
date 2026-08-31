@@ -53,6 +53,7 @@ Versioned sections should match the Git tags and GitHub releases published for t
 
 ### Fixed
 
+- Completed the phased runtime-environment closure by preflighting Pi before application sync, enforcing bundled npm installation ownership behaviorally, and correcting phase-safe sync and Headroom documentation. ([#430](https://github.com/ladislas/mypac/issues/430))
 - Stabilized pac-eval timeout telemetry coverage by synchronizing timeout delivery after the fake child writes its partial session. ([#440](https://github.com/ladislas/mypac/issues/440))
 - Prevented resumed `/pac-lwot` workflows from drifting beyond their authoritative target by re-grounding before implementation and checking target-to-slice closure before commit preparation. ([#438](https://github.com/ladislas/mypac/issues/438))
 - Made `pac-commit` put `Closes #N` in completing issue-backed commit bodies and `Refs #N` in partial or supporting commits, independently of PR-body generation. ([#426](https://github.com/ladislas/mypac/issues/426))

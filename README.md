@@ -17,7 +17,7 @@ See the complete [asset catalog](docs/catalog.md).
 
 ### 1. Clone and set up the environment
 
-Install [`mise`](https://mise.jdx.dev/) and [Pi](https://github.com/earendil-works/pi) first, then run:
+Install [`mise`](https://mise.jdx.dev/) and [Pi](https://github.com/earendil-works/pi) first. Configure persistent [mise activation](https://mise.jdx.dev/cli/activate.html) or [shims](https://mise.jdx.dev/dev-tools/shims.html), then run:
 
 ```sh
 git clone https://github.com/ladislas/mypac.git
@@ -30,7 +30,7 @@ The setup installs checkout dependencies and Git hooks, registers mypac with Pi,
 After pulling changes, reapply the declared global environment with:
 
 ```sh
-mise run sync
+mise run --skip-tools sync
 ```
 
 Sync installs declared versions but never automatically removes components deleted from the declaration. Use the relevant native package manager when intentional cleanup is needed.
