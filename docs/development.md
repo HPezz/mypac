@@ -4,7 +4,7 @@ This guide covers contributor setup and repository maintenance. For package usag
 
 ## Prerequisites
 
-The host substrate is Git, [Pi](https://github.com/earendil-works/pi), and [`mise`](https://mise.jdx.dev/). Host-provided Node.js is not required; bootstrap installs the pinned Node/npm foundation through mise before running npm.
+The host substrate is Git, [Pi](https://github.com/earendil-works/pi), and [`mise`](https://mise.jdx.dev/). Host-provided Node.js or npm are not required; bootstrap installs the exact Node foundation (including its bundled npm) and uv through mise before running checkout npm commands.
 
 On macOS, Homebrew may provide the host substrate:
 
@@ -30,10 +30,10 @@ From a fresh clone, run:
 ./scripts/install.sh
 ```
 
-The script checks the inherited mise integration, then delegates to `mise run bootstrap`. Bootstrap runs these fixed phases:
+The script sets `MISE_TASK_RUN_AUTO_INSTALL=false` before invoking `mise run bootstrap`, disabling mise task auto-install so checkout-local tools cannot be installed before bootstrap owns the phase ordering. Bootstrap then runs these fixed phases:
 
-1. validate the single desired-state declaration;
-2. reconcile the Node/npm and uv foundation, then activate it in the bootstrap process;
+1. validate persistent mise integration and the single desired-state declaration;
+2. reconcile the exact Node foundation (including bundled npm) and uv, then activate it in the bootstrap process;
 3. verify Pi is available and report its installed and mypac-tested versions;
 4. install checkout npm dependencies, checkout-local mise tools, and Git hooks;
 5. reconcile gh, Worktrunk, Headroom, and agent-browser applications;
@@ -53,21 +53,21 @@ If Pi was already running when package files changed, use `/reload` or restart i
 ## Tooling
 
 ```sh
-mise install     # install checkout-local development tools
-mise run sync    # reconcile the checked-in global environment
-mise run hooks   # install Git hooks
-mise run lint    # run repository linters
+mise install                   # install checkout-local development tools
+mise run --skip-tools sync     # reconcile global runtime state without pre-installing checkout tools
+mise run hooks                 # install Git hooks
+mise run lint                  # run repository linters
 mise run lint:fix
 npm run check:pi-compatibility # verify pinned Pi versions, types, and behavior
 ```
 
-Global desired state lives in [`.mise/global-environment`](../.mise/global-environment). To upgrade a managed tool, change only its exact specification there, then run `mise run sync` and the repository tests. Removing a declaration stops future reconciliation but does not uninstall an existing global component.
+Global desired state lives in [`.mise/global-environment`](../.mise/global-environment). To upgrade a managed tool, change only its exact specification there, then run `mise run --skip-tools sync` and the repository tests. The Node declaration owns the Node artifact and its bundled npm; npm has no separate desired-state pin. Final verification checks that npm resolves from the same mise-managed Node installation without hard-coding a second npm version. Removing a declaration stops future reconciliation but does not uninstall an existing global component.
 
 Ownership remains deliberately narrow:
 
 ```text
 Homebrew/OS → Git, mise, Pi, shell/system software, optional system capabilities
-mise        → Node/npm, uv, gh, Worktrunk, Headroom, agent-browser
+mise        → Node (including bundled npm), uv, gh, Worktrunk, Headroom, agent-browser
 Pi          → mypac, pi-agent-browser-native, pi-codex-search
 npm         → mypac checkout dependencies
 mypac       → desired-state declaration and thin phase orchestration
@@ -84,7 +84,7 @@ git -C "$acceptance_dir" init --quiet
   cd "$acceptance_dir"
   "$SHELL" -lic '
     set -e
-    for command in node uv gh wt headroom agent-browser; do
+    for command in node npm uv gh wt headroom agent-browser; do
       command -v "$command"
       "$command" --version
     done
@@ -92,7 +92,7 @@ git -C "$acceptance_dir" init --quiet
 )
 ```
 
-Each command must resolve normally and report the declared version. If it does not, fix mise activation or shim ordering in the user-owned shell configuration and start another fresh shell.
+Each independently declared command must report its declared version; npm must resolve alongside the pinned Node installation and report the version bundled with that Node artifact. If resolution is wrong, fix mise activation or shim ordering in the user-owned shell configuration and start another fresh shell.
 
 CI runs the Pi compatibility gate after `npm ci`, so its version, type, and behavior checks execute against a clean dependency installation. Run the same command locally before upgrading Pi dependencies.
 
