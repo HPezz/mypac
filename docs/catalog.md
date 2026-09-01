@@ -37,6 +37,7 @@ Skills contain reusable instructions. Pi may load model-invocable skills when a 
 | [`pac-caveman`](../skills/pac-caveman/SKILL.md) | Ultra-compressed communication mode |
 | [`pac-changelog`](../skills/pac-changelog/SKILL.md) | Maintain the repository changelog |
 | [`pac-commit`](../skills/pac-commit/SKILL.md) | Plan and create atomic commits |
+| [`pac-deep-read`](../skills/pac-deep-read/SKILL.md) | Analyze documents for hidden implications, tensions, takeaways, and blind spots |
 | [`pac-diagnose`](../skills/pac-diagnose/SKILL.md) | Diagnose bugs and performance regressions systematically |
 | [`pac-explore`](../skills/pac-explore/SKILL.md) | Explore ideas and options without implementing |
 | [`pac-github`](../skills/pac-github/SKILL.md) | Interact with GitHub through `gh` |
@@ -67,6 +68,7 @@ Prompts are the slash-command entry points you type in Pi.
 | Prompt | Purpose |
 | --- | --- |
 | [`/pac-caveman`](../prompts/pac-caveman.md) | Enter ultra-compressed communication mode |
+| [`/pac-deep-read`](../prompts/pac-deep-read.md) | Deep-read a document beyond ordinary summary |
 | [`/pac-diagnose`](../prompts/pac-diagnose.md) | Investigate a bug or performance regression |
 | [`/pac-explore`](../prompts/pac-explore.md) | Enter open-ended exploration mode |
 | [`/pac-fix-copilot-review`](../prompts/pac-fix-copilot-review.md) | Address GitHub Copilot PR review comments |
