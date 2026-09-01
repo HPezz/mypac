@@ -19,6 +19,7 @@ const autoInvocableCapabilitySkills = [
 	"pac-caveman",
 	"pac-changelog",
 	"pac-commit",
+	"pac-deep-read",
 	"pac-diagnose",
 	"pac-github",
 	"pac-github-issue-create",
