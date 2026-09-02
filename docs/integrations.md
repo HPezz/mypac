@@ -48,3 +48,23 @@ The [`pi-agent-browser-native`](https://github.com/fitchmultz/pi-agent-browser-n
 Screenshots created without an explicit output path are stored in `$HOME/dev/agent-browser/screenshots`. Sync creates this directory and persists it as `AGENT_BROWSER_SCREENSHOT_DIR` through mise's global environment. This does not change `pi-agent-browser-native`'s secure temporary spill-file handling.
 
 Optional capabilities such as `ffmpeg` are not installed by mypac.
+
+## ChatGPT Agent Skills
+
+mypac exports a deliberately small set of runtime-neutral workflows as individual Agent Skills while keeping each canonical `skills/<name>/SKILL.md` as the source of truth.
+
+Generate the uploadable archives:
+
+```sh
+npm run export:chatgpt-skills
+```
+
+The command validates the allowlist and portable content, then writes deterministic archives to `dist/chatgpt-skills/packages/`. Upload each `<skill-name>.zip` individually through ChatGPT's skill settings; the aggregate directory is only local build output, not a bulk installer.
+
+For an additional compatibility check against the pinned Agent Skills reference implementation, run:
+
+```sh
+npm run validate:chatgpt-skills:reference
+```
+
+This check requires `uvx`. The reference implementation is supplementary; the export command's stricter validation remains authoritative for mypac portability rules.

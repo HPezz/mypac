@@ -3,21 +3,10 @@ description: "Explore an idea, problem, or design option without implementing"
 argument-hint: "[idea, issue URL, code area, problem, or question]"
 ---
 
-Enter exploration mode.
-
-Explore mode is for open-ended thinking, codebase investigation, option comparison, and problem clarification. It is not an implementation workflow.
-
 Read and follow `skills/pac-explore/SKILL.md`.
 
-Use the optional argument after `/pac-explore` as the thing to explore. It may be:
+Use the optional argument as the topic to explore; infer it from the conversation when omitted and ask only if unclear.
 
-- a vague idea
-- a concrete problem
-- a code area or file path
-- a GitHub issue or PR URL
-- a design option to compare
-- nothing, in which case infer the topic from conversation and ask only if unclear
-
-Do not edit files, create commits, or publish GitHub changes while in explore mode. If the user becomes ready to act, summarize the current understanding and suggest the appropriate next workflow.
+When routing a next step in Pi, use `/pac-grill-me` for conversational pressure testing, `/pac-grill-with-docs` for issue-backed durable refinement, `/pac-to-prd` for PRD synthesis, `/pac-to-issues` for issue decomposition, or `/pac-lwot` for implementation.
 
 **Provided arguments**: $@

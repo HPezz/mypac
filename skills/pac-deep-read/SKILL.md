@@ -2,7 +2,6 @@
 name: pac-deep-read
 description: "Analyze substantial documents beyond summary by inferring implications, surfacing tensions, extracting a core takeaway, and identifying blind spots. Use when the user explicitly asks for a deep or critical reading, hidden implications, tensions, contradictions, or blind spots—not for an ordinary summary."
 license: MIT
-compatibility: Pi coding agent
 metadata:
   author: mypac
   stage: shared

@@ -51,12 +51,13 @@ Every `SKILL.md` must open with this frontmatter block:
 name: pac-<name>
 description: "<one-sentence capability>. Use when <concrete triggers>."
 license: MIT
-compatibility: Pi coding agent
 metadata:
   author: mypac
   stage: shared
 ---
 ```
+
+Add `compatibility` only when the skill has real environment requirements. Runtime-neutral skills should omit it; do not use it merely to name the client where the skill originated.
 
 Rules for this repo:
 

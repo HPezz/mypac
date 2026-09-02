@@ -3,7 +3,6 @@ name: pac-grill-me
 disable-model-invocation: true
 description: "Interview the user relentlessly about a plan or design until reaching shared understanding, resolving each branch of the decision tree one question at a time. Use when user wants to stress-test a plan, get grilled on a design, or mentions 'grill me'."
 license: MIT
-compatibility: Pi coding agent
 metadata:
   author: mypac
   stage: shared
