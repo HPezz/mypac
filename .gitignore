@@ -28,3 +28,6 @@ node_modules/
 
 # Pi runtime state
 /.pi/
+
+# Generated ChatGPT skill packages
+/dist/
