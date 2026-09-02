@@ -3,7 +3,6 @@ name: pac-explore
 disable-model-invocation: true
 description: "Explore ideas, problems, or design options without implementing. Use when the user wants open-ended discovery, codebase investigation, trade-off mapping, or to decide whether work should become a PRD, issue breakdown, grilling session, or implementation task."
 license: MIT
-compatibility: Pi coding agent
 metadata:
   author: mypac
   stage: shared
@@ -15,9 +14,9 @@ Enter explore mode: think deeply, visualize freely, and follow the conversation 
 
 ## Guardrail
 
-Explore mode is for thinking, not implementing. You may read files, search code, inspect GitHub context, and investigate the codebase, but you must not write code, edit files, create commits, or publish GitHub changes unless the user explicitly exits exploration and asks for a concrete write action.
+Explore mode is for thinking, not implementing. When the environment provides them, you may use project files, source search, or issue context to investigate, but you must not write code, edit files, create commits, or publish remote changes unless the user explicitly exits exploration and asks for a concrete write action.
 
-If the user asks you to implement something, summarize the current understanding and suggest a handoff to `/pac-lwot` or another implementation workflow.
+If the user asks you to implement something, summarize the current understanding and suggest a handoff to an implementation workflow.
 
 ## Stance
 
@@ -80,11 +79,11 @@ Depending on what the user brings, you might:
 
 Explore mode helps decide what should happen next:
 
-- Use `/pac-grill-me` when the user wants relentless one-question-at-a-time pressure testing.
-- Use `/pac-grill-with-docs` when exploration is issue-backed and outcomes should become GitHub issue updates, PRD comments, ADR comments, or stable `CONTEXT.md` additions.
-- Use `/pac-to-prd` when the known context is ready to synthesize into a PRD.
-- Use `/pac-to-issues` when a plan is ready to split into tracer-bullet implementation issues.
-- Use `/pac-lwot` when the user is ready to plan or implement concrete work.
+- Use a one-question-at-a-time grilling workflow when the user wants relentless pressure testing.
+- Use issue-backed refinement when outcomes should become durable issue updates, PRD comments, or decision records.
+- Use PRD synthesis when the known context is ready to become a product requirements document.
+- Use issue decomposition when a plan is ready to split into tracer-bullet implementation issues.
+- Use an implementation workflow when the user is ready to plan or implement concrete work.
 
 Do not force a handoff. Exploration may end with clarity only.
 
@@ -97,7 +96,7 @@ Help the user discover the shape of the idea before turning it into a plan.
 Example:
 
 ```text
-User: /pac-explore realtime collaboration
+User: Explore realtime collaboration
 Assistant: Maps the collaboration spectrum, asks where the value is, and compares presence, cursors, comments, and full sync without picking an implementation prematurely.
 ```
 
@@ -108,7 +107,7 @@ Read the relevant code or issue context, map the current state, and identify the
 Example:
 
 ```text
-User: /pac-explore the auth flow feels tangled
+User: Explore why the auth flow feels tangled
 Assistant: Reads the auth modules, sketches the current flow, names the coupling points, and asks which knot is most painful.
 ```
 
@@ -119,7 +118,7 @@ Investigate the uncertainty without editing code. Summarize options and suggest 
 Example:
 
 ```text
-User: /pac-explore this issue got bigger than expected
+User: Explore why this issue got bigger than expected
 Assistant: Reviews the issue and relevant files, separates discovered scope from original scope, and recommends whether to grill, draft a PRD, split issues, or continue implementation.
 ```
 
@@ -130,7 +129,7 @@ Make the tradeoffs concrete for the user's actual context rather than giving a g
 Example:
 
 ```text
-User: /pac-explore sqlite vs postgres for this CLI
+User: Explore SQLite vs. Postgres for this CLI
 Assistant: Checks the product constraints, compares deployment and operational costs, and recommends the simpler fit unless sync or multi-user requirements change the tradeoff.
 ```
 
@@ -147,7 +146,7 @@ When things crystallize, optionally summarize:
 **Suggested next step:** ...
 ```
 
-Possible next steps include: keep exploring, use `/pac-grill-with-docs`, draft a PRD, break work into issues, start `/pac-lwot`, or stop.
+Possible next steps include: keep exploring, use issue-backed refinement, draft a PRD, break work into issues, start implementation, or stop.
 
 ## Guardrails
 
