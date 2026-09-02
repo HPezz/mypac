@@ -117,6 +117,9 @@ function localReferences(source: string): string[] {
 	const references = new Set<string>();
 	for (const match of source.matchAll(/\[[^\]]*\]\(([^)]+)\)/g)) references.add(match[1]);
 	for (const match of source.matchAll(/`((?:assets|references|scripts)\/[^`\s]+)`/g)) references.add(match[1]);
+	for (const match of source.matchAll(/(?:^|[\s("'=:])((?:assets|references|scripts)\/[^\s`"'<>()[\]{}]+)/gm)) {
+		references.add(match[1].replace(/[.,;:!?]+$/, ""));
+	}
 	return [...references];
 }
 

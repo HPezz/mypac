@@ -4,7 +4,7 @@ import { createHash } from "node:crypto";
 import { mkdtemp, mkdir, readdir, readFile, rm, writeFile } from "node:fs/promises";
 import { spawnSync } from "node:child_process";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import { unzipSync } from "fflate";
 import { exportChatgptSkills } from "./export-chatgpt-skills.ts";
 
@@ -55,10 +55,15 @@ test("export command produces four deterministic canonical skill packages", asyn
 	assert.deepEqual(await archiveHashes(), firstHashes);
 });
 
-async function fixture(skillSource, manifest = { skills: ["portable-skill"] }) {
+async function fixture(skillSource, manifest = { skills: ["portable-skill"] }, resources = {}) {
 	const directory = await mkdtemp(join(tmpdir(), "mypac-chatgpt-export-"));
-	await mkdir(join(directory, "skills", "portable-skill"), { recursive: true });
-	await writeFile(join(directory, "skills", "portable-skill", "SKILL.md"), skillSource);
+	const skillDirectory = join(directory, "skills", "portable-skill");
+	await mkdir(skillDirectory, { recursive: true });
+	await writeFile(join(skillDirectory, "SKILL.md"), skillSource);
+	for (const [path, content] of Object.entries(resources)) {
+		await mkdir(dirname(join(skillDirectory, path)), { recursive: true });
+		await writeFile(join(skillDirectory, path), content);
+	}
 	await writeFile(join(directory, "chatgpt-skills.json"), `${JSON.stringify(manifest)}\n`);
 	return directory;
 }
@@ -89,6 +94,21 @@ test("export fails closed on incompatible metadata and references", async (t) =>
 		await assert.rejects(exportChatgptSkills({ repository: directory }), expected);
 		await assert.rejects(readdir(join(directory, "dist", "chatgpt-skills")), { code: "ENOENT" });
 	}
+});
+
+test("plain supported-directory references must resolve to packaged resources", async (t) => {
+	const missingDirectory = await fixture(`${validSkill}\nRun the extraction script:\nscripts/missing.py\n`);
+	t.after(() => rm(missingDirectory, { recursive: true, force: true }));
+	await assert.rejects(exportChatgptSkills({ repository: missingDirectory }), /referenced resource is not packaged: scripts\/missing\.py/);
+
+	const packagedDirectory = await fixture(
+		`${validSkill}\nRun the extraction script:\nscripts/extract.py\n`,
+		{ skills: ["portable-skill"] },
+		{ "scripts/extract.py": "print('ok')\n" },
+	);
+	t.after(() => rm(packagedDirectory, { recursive: true, force: true }));
+	await exportChatgptSkills({ repository: packagedDirectory });
+	assert.equal(await readFile(join(packagedDirectory, "dist", "chatgpt-skills", "portable-skill", "scripts", "extract.py"), "utf8"), "print('ok')\n");
 });
 
 test("known Pi-only workflow cannot enter the export manifest", async (t) => {
