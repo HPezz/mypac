@@ -61,10 +61,4 @@ mise run chatgpt-skills:export
 
 The task reconciles checkout-local Node dependencies, validates the allowlist and portable content, writes deterministic archives to `dist/chatgpt-skills/packages/`, and validates every archive with the pinned Agent Skills reference implementation. A successful export is ready to upload. Upload each `<skill-name>.zip` individually through ChatGPT's skill settings; the aggregate directory is only local build output, not a bulk installer.
 
-To rerun reference validation against existing artifacts without rebuilding them, use:
-
-```sh
-mise run chatgpt-skills:validate
-```
-
-Both tasks handle checkout dependencies automatically. The reference check requires `uvx`. The reference implementation is supplementary; the exporter's stricter validation remains authoritative for mypac portability rules.
+The task handles checkout dependencies automatically. The reference check requires `uvx`. The reference implementation is supplementary; the exporter's stricter validation remains authoritative for mypac portability rules.

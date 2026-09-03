@@ -60,7 +60,6 @@ mise run hooks                     # install Git hooks
 mise run lint                      # run repository linters
 mise run lint:fix
 mise run chatgpt-skills:export     # build and reference-validate upload-ready skill packages
-mise run chatgpt-skills:validate   # reference-validate existing skill packages
 npm run check:pi-compatibility     # verify pinned Pi versions, types, and behavior
 ```
 

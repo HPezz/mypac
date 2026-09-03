@@ -1,6 +1,15 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { chmodSync, cpSync, mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import {
+	chmodSync,
+	cpSync,
+	existsSync,
+	mkdtempSync,
+	mkdirSync,
+	readFileSync,
+	rmSync,
+	writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -51,13 +60,9 @@ test("ChatGPT export depends on checkout dependencies and includes reference val
 	]);
 });
 
-test("ChatGPT validation checks existing artifacts without rebuilding", (t) => {
-	const source = readFileSync(join(tasksDir, "chatgpt-skills", "validate.sh"), "utf8");
+test("ChatGPT export is the only maintainer-facing ChatGPT mise task", () => {
 	const packageJson = JSON.parse(readFileSync(join(rootDir, "package.json"), "utf8"));
-	const { result, log } = runTask(t, join("chatgpt-skills", "validate"));
 
-	assert.match(source, /^#MISE depends=\["deps"\]$/m);
+	assert.equal(existsSync(join(tasksDir, "chatgpt-skills", "validate.sh")), false);
 	assert.doesNotMatch(packageJson.scripts["validate:chatgpt-skills:reference"], /export:chatgpt-skills/);
-	assert.equal(result.status, 0, result.stderr);
-	assert.equal(readFileSync(log, "utf8"), "npm\trun validate:chatgpt-skills:reference\n");
 });
