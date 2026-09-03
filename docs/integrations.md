@@ -51,7 +51,7 @@ Optional capabilities such as `ffmpeg` are not installed by mypac.
 
 ## ChatGPT Agent Skills
 
-mypac exports a deliberately small set of runtime-neutral workflows as individual Agent Skills while keeping each canonical `skills/<name>/SKILL.md` as the source of truth.
+mypac exports five runtime-neutral workflows—`pac-deep-read`, `pac-grill-me`, `pac-zoom-out`, `pac-explore`, and `pac-slidedeck`—as individual Agent Skills while keeping each canonical `skills/<name>/SKILL.md` as the source of truth.
 
 Build upload-ready archives through the maintainer-facing mise workflow:
 

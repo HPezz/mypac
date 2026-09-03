@@ -1,4 +1,5 @@
 import path from "node:path";
+import { readFileSync } from "node:fs";
 import { pathToFileURL } from "node:url";
 import { resolveAgentDir } from "../../lib/agent-dir.ts";
 
@@ -679,6 +680,12 @@ window.addEventListener("keydown", (event) => {
 render();
 `;
 
+const SLIDEDECK_SKILL_URL = new URL("../../skills/pac-slidedeck/SKILL.md", import.meta.url);
+
+export function loadSlidedeckSkillGuidance(): string {
+	return readFileSync(SLIDEDECK_SKILL_URL, "utf8").trim();
+}
+
 export function buildSlidedeckPrompt(
 	input: string,
 	options: { sessionDeckDir?: string; currentDeckPath?: string; pendingDeckPath?: string } = {},
@@ -694,13 +701,16 @@ export function buildSlidedeckPrompt(
 	return [
 		"Create or refine a presentation-style HTML slidedeck for this work.",
 		"",
+		"## Portable presentation-design guidance",
+		loadSlidedeckSkillGuidance(),
+		"",
+		"## Pi runtime mechanics",
 		"## Modes",
 		"### New deck creation",
 		"- Use the save_slidedeck tool exactly once with the final deck.",
 		"- Do not emit a full <html> document in chat.",
 		"- Do not use write, edit, or bash to create or mutate deck files for a new deck.",
 		"- The tool provides the outer HTML, CSS, and navigation — only supply slide content when creating a new deck.",
-		"- Provide a concise deck title and 4–10 focused slides unless the material clearly needs a different count.",
 		"- Each slide needs a short `title` and an HTML `body` fragment.",
 		"- `title` and `eyebrow` are plain text — do not use HTML entities (write `&` not `&amp;`). The tool handles escaping.",
 		"- Optionally set `eyebrow` on each slide for a category label (e.g. 'Problem', 'Solution', 'Timeline'). Omit to use the default 'Slide N'.",
@@ -718,9 +728,6 @@ export function buildSlidedeckPrompt(
 		"- Allow only plain edit, edit.multi, or a single-file edit.patch `Update File` against that one target file.",
 		"- Do not use write for refinement.",
 		"- Do not use shell commands to mutate deck files other than the validated copy command.",
-		"- Preserve untouched slides verbatim when refining an existing deck.",
-		"- Optimize for clarity, scanability, and discussion/review use.",
-		"- If the request is too ambiguous, ask at most one brief clarifying question before calling the tool.",
 		...(currentDeckPath ? [currentDeckPath] : []),
 		...(pendingDeckPath ? [pendingDeckPath] : []),
 		...(sessionDeckDir ? [sessionDeckDir] : []),
