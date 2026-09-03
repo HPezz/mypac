@@ -53,12 +53,14 @@ If Pi was already running when package files changed, use `/reload` or restart i
 ## Tooling
 
 ```sh
-mise install                   # install checkout-local development tools
-mise run --skip-tools sync     # reconcile global runtime state without pre-installing checkout tools
-mise run hooks                 # install Git hooks
-mise run lint                  # run repository linters
+mise install                       # install checkout-local development tools
+mise run deps                      # reconcile checkout-local Node dependencies
+mise run --skip-tools sync         # reconcile global runtime state without pre-installing checkout tools
+mise run hooks                     # install Git hooks
+mise run lint                      # run repository linters
 mise run lint:fix
-npm run check:pi-compatibility # verify pinned Pi versions, types, and behavior
+mise run chatgpt-skills:export     # build and reference-validate upload-ready skill packages
+npm run check:pi-compatibility     # verify pinned Pi versions, types, and behavior
 ```
 
 Global desired state lives in [`.mise/global-environment`](../.mise/global-environment). To upgrade a managed tool, change only its exact specification there, then run `mise run --skip-tools sync` and the repository tests. The Node declaration owns the Node artifact and its bundled npm; npm has no separate desired-state pin. Final verification checks that npm resolves from the same mise-managed Node installation without hard-coding a second npm version. Removing a declaration stops future reconciliation but does not uninstall an existing global component.
