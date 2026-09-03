@@ -53,18 +53,18 @@ Optional capabilities such as `ffmpeg` are not installed by mypac.
 
 mypac exports a deliberately small set of runtime-neutral workflows as individual Agent Skills while keeping each canonical `skills/<name>/SKILL.md` as the source of truth.
 
-Generate the uploadable archives:
+Build upload-ready archives through the maintainer-facing mise workflow:
 
 ```sh
-npm run export:chatgpt-skills
+mise run chatgpt-skills:export
 ```
 
-The command validates the allowlist and portable content, then writes deterministic archives to `dist/chatgpt-skills/packages/`. Upload each `<skill-name>.zip` individually through ChatGPT's skill settings; the aggregate directory is only local build output, not a bulk installer.
+The task reconciles checkout-local Node dependencies, validates the allowlist and portable content, writes deterministic archives to `dist/chatgpt-skills/packages/`, and validates every archive with the pinned Agent Skills reference implementation. A successful export is ready to upload. Upload each `<skill-name>.zip` individually through ChatGPT's skill settings; the aggregate directory is only local build output, not a bulk installer.
 
-For an additional compatibility check against the pinned Agent Skills reference implementation, run:
+To rerun reference validation against existing artifacts without rebuilding them, use:
 
 ```sh
-npm run validate:chatgpt-skills:reference
+mise run chatgpt-skills:validate
 ```
 
-This check requires `uvx`. The reference implementation is supplementary; the export command's stricter validation remains authoritative for mypac portability rules.
+Both tasks handle checkout dependencies automatically. The reference check requires `uvx`. The reference implementation is supplementary; the exporter's stricter validation remains authoritative for mypac portability rules.
