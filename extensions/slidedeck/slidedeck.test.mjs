@@ -65,7 +65,7 @@ test("buildSlidedeckPrompt uses provided source material at the end", () => {
 	assert.match(prompt, /Allow only plain edit, edit\.multi, or a single-file edit\.patch `Update File`/);
 	assert.match(prompt, /Use these patterns exactly/);
 	assert.match(prompt, /A Markdown link in the exact format `\[slidedeck\]\(<saved file path>\)`/);
-	assert.match(prompt, /Preserve untouched slides verbatim/);
+	assert.match(prompt, /Preserve untouched slides and content/);
 	assert.match(prompt, /Current deck tracked for this session: \/Users\/tester\/\.pi\/agent\/slidedecks\/session-123\/20260428-123456-deck-for-issue-131\.html/);
 	assert.match(prompt, /Pending fresh refinement copy for this session: \/Users\/tester\/\.pi\/agent\/slidedecks\/session-123\/20260428-123456-deck-for-issue-131-v2\.html/);
 	assert.match(prompt, /Current session deck directory: \/Users\/tester\/\.pi\/agent\/slidedecks\/session-123/);

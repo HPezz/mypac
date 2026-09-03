@@ -10,6 +10,7 @@ Versioned sections should match the Git tags and GitHub releases published for t
 
 ### Added
 
+- Added a canonical runtime-neutral `pac-slidedeck` presentation-design skill, consumed by the Pi slidedeck extension and exported as the fifth ChatGPT Agent Skill. ([#452](https://github.com/ladislas/mypac/issues/452))
 - Added a first-class mise task that installs checkout dependencies and builds and validates upload-ready ChatGPT Agent Skills packages. ([#451](https://github.com/ladislas/mypac/issues/451))
 - Added deterministic ChatGPT Agent Skills exports for `pac-deep-read`, `pac-grill-me`, `pac-zoom-out`, and `pac-explore`, with fail-closed portability validation and uploadable per-skill archives. ([#447](https://github.com/ladislas/mypac/issues/447))
 - Added explicit-only `/pac-session-review` with metadata-first discovery, bounded selected-session events, current-artifact verification, and #411 ownership routing while keeping `/session-breakdown` aggregate-only. ([#82](https://github.com/ladislas/mypac/issues/82))
