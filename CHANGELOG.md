@@ -8,6 +8,8 @@ Versioned sections should match the Git tags and GitHub releases published for t
 
 ## [Unreleased]
 
+## [1.0.0] - 2026-09-03
+
 ### Added
 
 - Added a canonical runtime-neutral `pac-slidedeck` presentation-design skill, consumed by the Pi slidedeck extension and exported as the fifth ChatGPT Agent Skill. ([#452](https://github.com/ladislas/mypac/issues/452))
