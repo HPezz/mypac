@@ -17,13 +17,14 @@ Break a plan into independently-grabbable GitHub issues using vertical slices (t
 
 ### 1. Gather context
 
-Work from whatever is already in the conversation. If the user passes a GitHub issue number or URL, fetch it with:
+Work from whatever is already in the conversation. If the user passes a GitHub issue/PR or GitLab issue/MR URL, resolve the explicit forge first and fetch the source with one matching structured read:
 
 ```bash
 gh issue view <number> --repo <owner/repo> --comments
+glab issue view <full-issue-url> --output json --comments --per-page 100
 ```
 
-Note the issue number — it becomes the parent for all created sub-issues.
+For change requests, use `gh pr view` or `glab mr view` and provider-native terminology. Note a source issue's number — it becomes the parent for all created sub-issues.
 
 If the input is a free-form plan or PRD with no parent issue, skip parent wiring steps.
 

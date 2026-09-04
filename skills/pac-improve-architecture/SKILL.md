@@ -12,7 +12,7 @@ metadata:
 
 Surface architectural friction and propose **deepening opportunities** — refactors that turn shallow modules into deep ones. The aim is testability and **locality** — changes, bugs, and understanding concentrated where they belong.
 
-This skill is standalone-first but issue-aware. When the work comes from a GitHub issue, PR, or todo, treat that context as scope and constraint input. Do not turn this skill into a GitHub write-back workflow — use `pac-grill-with-docs` when the user wants durable PRD or ADR updates.
+This skill is standalone-first but issue-aware. When the work comes from a GitHub issue/PR, GitLab issue/MR, or todo, treat that context as scope and constraint input. Do not turn this skill into a forge write-back workflow — use `pac-grill-with-docs` when the user wants durable PRD or ADR updates.
 
 ## Glossary
 
@@ -33,17 +33,17 @@ Key principles (see [LANGUAGE.md](LANGUAGE.md) for the full list):
 - **The interface is the test surface.**
 - **One adapter = hypothetical seam. Two adapters = real seam.**
 
-This skill is informed by the project's domain model — `CONTEXT.md`, plus any issue comments or PR notes that capture settled decisions. The domain language gives names to good seams; issue-backed decisions record constraints the skill should not casually re-litigate.
+This skill is informed by the project's domain model — `CONTEXT.md`, plus any issue comments or pull/merge-request notes that capture settled decisions. The domain language gives names to good seams; issue-backed decisions record constraints the skill should not casually re-litigate.
 
 ## Process
 
 ### 1. Resolve context and constraints
 
-Resolve the work from the explicit issue/PR URL, todo, or current conversation.
+Resolve the work from the explicit issue/change-request URL, todo, or current conversation. Use pull request for GitHub and merge request for GitLab.
 
 When issue-backed context exists:
 
-- Read the issue or PR title, body, status, and the most relevant comments before exploring.
+- Read the issue or pull/merge-request title, body, status, and the most relevant comments before exploring.
 - Treat linked PRD comments as planning context and linked ADR comments or `## Decisions` notes as constraints.
 - Prefer the newest linked artifact that actually contains the expected marker when several iterations exist.
 - If a linked artifact is missing, stale, or unreadable, say so plainly and fall back to the minimum direct context needed.
@@ -104,4 +104,4 @@ Side effects stay proposal-first:
 - **Want durable PRD or ADR write-back?** Suggest switching to or chaining with `pac-grill-with-docs`.
 - **Want to explore alternative interfaces for the deepened module?** See [INTERFACE-DESIGN.md](INTERFACE-DESIGN.md).
 
-Do not auto-write GitHub comments, ADRs, PRDs, or `CONTEXT.md` changes from this skill alone.
+Do not auto-write forge comments, ADRs, PRDs, or `CONTEXT.md` changes from this skill alone.

@@ -27,7 +27,7 @@ Agents/clankers must never force push to this repository. Force pushing rewrites
 
 Branches follow the pattern: `<firstname>/<type>/<topic-more_info>`
 
-For work that originates from a GitHub issue, include the issue number in the topic:
+For work that originates from a forge issue, include the issue number in the topic:
 
 ```text
 <firstname>/<type>/<issue-number>-<topic-more_info>
@@ -86,11 +86,11 @@ For behavior-changing implementation work, feature slices, or bug fixes where re
 
 For disciplined bug diagnosis or performance-regression investigation, load `skills/pac-diagnose/SKILL.md`.
 
-For GitHub issue triage, label-state recommendations, ready-for-agent briefs, needs-info comments, wontfix decisions, or out-of-scope scope-boundary comments, load `skills/pac-triage/SKILL.md`.
+For forge issue triage, label-state recommendations, ready-for-agent briefs, needs-info comments, wontfix decisions, or out-of-scope scope-boundary comments, load `skills/pac-triage/SKILL.md`.
 
 ## Planning Workflow
 
-- Use GitHub-native planning workflows for meaningful multi-step work.
+- Use forge-native planning workflows for meaningful multi-step work.
 - Prefer issue-backed PRD comments, ADR comments, and implementation issues over repo-local planning artifacts.
 - For non-trivial work, keep the human in the loop: exploration, PRDs, issue breakdowns, and decisions should guide implementation rather than replace review and manual judgment.
 - Use atomic commits for coherent manual task groups or work slices once they are complete and verified.

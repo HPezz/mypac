@@ -1,6 +1,6 @@
 ---
 description: "Synthesize current context into a structured PRD draft or publishable PRD"
-argument-hint: "[GitHub issue/PR | local draft path | free text]"
+argument-hint: "[issue/change-request URL | local draft path | free text]"
 ---
 
 Read and follow `skills/pac-to-prd/SKILL.md`.

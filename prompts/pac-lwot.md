@@ -1,15 +1,15 @@
 ---
 description: "Start implementation from a note, issue, PR, todo, PRD, URL, or conversation context"
-argument-hint: "[note | issue/PR URL | PRD | todo ID | free text]"
+argument-hint: "[note | issue/change-request URL | PRD | todo ID | free text]"
 ---
 
 Let's work on that.
 
-Use this prompt when the user wants execution from the available context. The target may be conversation history, a GitHub issue or PR, a todo, a PRD, a URL, a note, or a concrete request. If the user is still exploring, debating scope, asking whether something is worth doing, or asking for options, recommend `/pac-llat` instead of starting implementation.
+Use this prompt when the user wants execution from the available context. The target may be conversation history, a GitHub issue/PR, a GitLab issue/MR, a todo, a PRD, a URL, a note, or a concrete request. If the user is still exploring, debating scope, asking whether something is worth doing, or asking for options, recommend `/pac-llat` instead of starting implementation.
 
 Process:
 
-1. Resolve the target. Prefer explicit arguments, then current conversation context. Start with the smallest authoritative artifact needed to understand the request and its current state. For a GitHub issue, make the initial structured read include the body and execution-gate metadata. Reuse that complete result for target resolution and the execution gate: fields already present must not be re-fetched through another command or API shape. Before any second read of the same target, identify the specific materially missing fact that the initial result did not contain. Targeted follow-up reads remain allowed only when information is materially missing, potentially stale, or needs verification after a state transition. For a GitHub PR, read that target first with enough state and resolution metadata to recognize an obvious merged result. For a todo, read the todo first.
+1. Resolve the target. Prefer explicit arguments, then current conversation context. Resolve an explicit forge URL before repository remotes; otherwise prefer the current branch tracking remote, then `origin`, and ask rather than guessing if still ambiguous. Start with the smallest authoritative artifact needed to understand the request and its current state. For a GitHub or GitLab issue, make the initial structured read include the body and execution-gate metadata, using `gh` or `glab` for the resolved provider. Load `skills/pac-gitlab/SKILL.md` only for GitLab. Reuse that complete result for target resolution and the execution gate: fields already present must not be re-fetched through another command or API shape. Before any second read of the same target, identify the specific materially missing fact that the initial result did not contain. Targeted follow-up reads remain allowed only when information is materially missing, potentially stale, or needs verification after a state transition. For a GitHub PR or GitLab MR, read that target first with enough state and resolution metadata to recognize an obvious merged result. For a todo, read the todo first.
 2. Before repository preparation, decide whether execution is required. Keep this execution gate progressive and cheap:
    - If authoritative evidence shows no work is needed or no execution is required, report the evidence concisely and stop.
    - Do not create or switch branches, load implementation or commit skills, inspect broad comments or history, or search source files merely to double-check an obvious no-op.
@@ -27,6 +27,6 @@ Process:
 8. Verify with the smallest relevant checks. Before commit preparation, perform a lightweight target-to-slice closure check: confirm applicable requirements are satisfied or explicitly unresolved, surface any omitted target requirement, and ensure material additions outside the target are surfaced instead of silently accepted. Report what changed, what was verified, and any remaining follow-up.
 9. Carry any explicitly referenced issue identity forward without deciding whether the change closes it. When a coherent slice exists and commit preparation becomes relevant, load and follow `skills/pac-commit/SKILL.md`; it may assist with inspection, verification, staging, hooks, and commit preparation. Exact skill read order is a progressive-context efficiency goal, not a safety or correctness guarantee. Before running `git commit`, confirm that a coherent slice exists, proportionate verification is complete or the strongest available evidence has been gathered, and commit creation is allowed by repository and user policy. Do not infer push or merge authorization from implementation or commit progression.
 
-Use GitHub context and linked artifacts as supporting material, not permission to expand scope.
+Use forge context and linked artifacts as supporting material, not permission to expand scope.
 
 **Provided arguments**: $@

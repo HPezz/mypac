@@ -42,6 +42,7 @@ Skills contain reusable instructions. Pi may load model-invocable skills when a 
 | [`pac-explore`](../skills/pac-explore/SKILL.md) | Explore ideas and options without implementing |
 | [`pac-github`](../skills/pac-github/SKILL.md) | Interact with GitHub through `gh` |
 | [`pac-github-issue-create`](../skills/pac-github-issue-create/SKILL.md) | Create GitHub issues from Pi (legacy provider-specific workflow) |
+| [`pac-gitlab`](../skills/pac-gitlab/SKILL.md) | Work with GitLab issues and merge requests through `glab` |
 | [`pac-issue-create`](../skills/pac-issue-create/SKILL.md) | Create structured GitHub or GitLab issues from Pi |
 | [`pac-grill-me`](../skills/pac-grill-me/SKILL.md) | Stress-test a plan one question at a time |
 | [`pac-grill-with-docs`](../skills/pac-grill-with-docs/SKILL.md) | Refine issue-backed work and preserve decisions |

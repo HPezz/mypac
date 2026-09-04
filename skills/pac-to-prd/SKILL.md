@@ -1,7 +1,7 @@
 ---
 name: pac-to-prd
 disable-model-invocation: true
-description: "Synthesize current context into a structured PRD draft or publishable PRD artifact using a shared template. Use when the user wants a PRD from conversation context, a GitHub issue, or a saved draft path."
+description: "Synthesize current context into a structured PRD draft or publishable PRD artifact using a shared template. Use when the user wants a PRD from conversation context, a forge issue or change request, or a saved draft path."
 license: MIT
 compatibility: Pi coding agent
 metadata:
@@ -22,7 +22,7 @@ If a critical ambiguity blocks a useful draft, ask at most one narrow follow-up 
 The input may be:
 
 - current conversation context
-- a GitHub issue or PR URL
+- a GitHub issue/PR or GitLab issue/MR URL
 - a local draft path under `~/.pi/agent/prds/`
 - short free text that points at the work
 
@@ -42,7 +42,7 @@ Default to `draft-only` unless the user clearly asks for GitHub publication.
 
 1. Resolve the source material.
 
-   - If given an issue or PR URL, read the minimum relevant context first.
+   - If given an issue or change-request URL, read the minimum relevant context first through `gh` or `glab`; call it a pull request on GitHub and a merge request on GitLab.
    - If given a local draft path, read the file and use it as the authoritative source.
    - Otherwise, use the current conversation plus focused repo exploration.
    - If the user wants `comment-on-issue` and no target issue is obvious, ask one narrow follow-up question.

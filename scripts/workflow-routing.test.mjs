@@ -23,7 +23,9 @@ const autoInvocableCapabilitySkills = [
 	"pac-diagnose",
 	"pac-github",
 	"pac-github-issue-create",
+	"pac-gitlab",
 	"pac-handoff",
+	"pac-issue-create",
 	"pac-librarian",
 	"pac-pi-extension",
 	"pac-pi-prompt",
@@ -330,11 +332,26 @@ test("shared guidance requires progressive context disclosure", async () => {
 	assert.match(shared, /materially needed for the next decision/i);
 });
 
-test("shared guidance prefers structured GitHub tooling over browser automation", async () => {
+test("generic workflows accept GitHub and GitLab targets without losing provider language", async () => {
+	const files = ["pac-llat.md", "pac-lwot.md", "pac-explore.md", "pac-diagnose.md", "pac-improve-architecture.md", "pac-zoom-out.md"];
+	for (const file of files) {
+		const prompt = await readRepoFile("prompts", file);
+		assert.match(prompt, /GitHub issue\/PR/i, file);
+		assert.match(prompt, /GitLab issue\/MR/i, file);
+	}
+
+	const lwot = await readRepoFile("prompts", "pac-lwot.md");
+	assert.match(lwot, /explicit forge URL.*tracking remote.*origin.*ask rather than guessing/i);
+	assert.match(lwot, /`gh` or `glab`/i);
+	assert.match(lwot, /pull request for GitHub|GitHub PR/i);
+	assert.match(lwot, /merge request for GitLab|GitLab MR/i);
+});
+
+test("shared guidance prefers structured forge tooling over browser automation", async () => {
 	const shared = await readRepoFile("shared", "SHARED_APPEND_SYSTEM.md");
 
 	assert.match(shared, /structured, purpose-built tools over browser automation/i);
-	assert.match(shared, /GitHub issues.*pull requests.*comments.*checks/i);
+	assert.match(shared, /GitHub issues and pull requests.*`gh`.*GitLab issues and merge requests.*`glab`/i);
 	assert.match(shared, /do not use `agent_browser` merely to read or inspect/i);
 	assert.match(shared, /rendered browser or UI behavior/i);
 	assert.match(shared, /unavailable through structured tooling/i);

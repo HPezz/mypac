@@ -1,7 +1,7 @@
 ---
 name: pac-grill-with-docs
 disable-model-invocation: true
-description: "Grill issue-backed work against the codebase and project language, then persist durable outcomes to GitHub issue updates, ADR comments, PRD comments, and sparing CONTEXT.md edits. Use when working from a GitHub issue/PR or when the user wants grilling plus durable notes."
+description: "Grill issue-backed work against the codebase and project language, then persist durable outcomes to issue updates, ADR comments, PRD comments, and sparing CONTEXT.md edits. Use when working from a GitHub issue/PR, GitLab issue/MR, or when the user wants grilling plus durable notes."
 license: MIT
 compatibility: Pi coding agent
 metadata:
@@ -19,8 +19,8 @@ If the codebase, issue history, or current docs can answer a question, explore t
 
 ## Default flow
 
-1. Resolve the target from the explicit issue/PR URL, todo, or current conversation.
-2. Read the issue title, body, status, and most relevant comments before questioning.
+1. Resolve the target from the explicit issue/change-request URL, todo, or current conversation. Use `gh` for GitHub and `glab` for GitLab.
+2. Read the issue or pull/merge-request title, body, status, and most relevant comments before questioning.
 3. Pick grilling depth from scope:
    - tiny clear issue or one-line bug -> ask only a few confirming questions
    - fuzzy, strategic, or multi-step work -> grill more deeply

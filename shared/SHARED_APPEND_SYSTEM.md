@@ -98,9 +98,9 @@ The test: could a focused change be understood and implemented by reading a smal
 
 Prefer structured, purpose-built tools over browser automation when they expose the required information directly.
 
-- For GitHub issues, pull requests, repository metadata, comments, checks, and API data, prefer `gh`, the GitHub API, local Git, or repository files over `agent_browser`.
-- Do not use `agent_browser` merely to read or inspect a GitHub issue or pull request.
-- Use browser automation for GitHub only when the task depends on rendered browser or UI behavior, or information unavailable through structured tooling.
+- For GitHub issues and pull requests, prefer `gh`; for GitLab issues and merge requests, prefer `glab`. Use the matching forge API, local Git, or repository files before `agent_browser`.
+- Do not use `agent_browser` merely to read or inspect a forge issue, pull request, or merge request.
+- Use browser automation for a forge only when the task depends on rendered browser or UI behavior, or information unavailable through structured tooling.
 
 ## 8. Browser Screenshots
 

@@ -1,6 +1,6 @@
 # mypac
 
-`mypac` is Ladislas's personal Pi package: an opinionated collection of reusable Pi assets and workflow conventions for planning, implementation, review, and GitHub-backed agent work.
+`mypac` is Ladislas's personal Pi package: an opinionated collection of reusable Pi assets and workflow conventions for planning, implementation, review, and forge-backed agent work.
 
 It exists both as a personal lab and as a browsable catalog others can copy or install.
 
@@ -22,16 +22,24 @@ _Avoid_: Prompt, command
 A slash command entrypoint under `prompts/` that activates a focused workflow, often by loading one or more skills.
 _Avoid_: Skill, extension
 
+**Resolved forge**:
+The GitHub or GitLab host and project selected by explicit URL, then current tracking remote, then `origin`; ambiguity is surfaced instead of guessed.
+_Avoid_: GitHub by default, silent provider fallback
+
+**Change request**:
+Provider-neutral planning language before forge resolution. After resolution, say pull request (PR) for GitHub and merge request (MR) for GitLab.
+_Avoid_: Calling every change request a PR
+
 **Issue-backed workflow**:
-A way of working where GitHub issues hold exploration, scope refinement, PRDs, and important decision records.
+A way of working where issues on the repository's resolved forge hold exploration, scope refinement, PRDs, and important decision records.
 _Avoid_: Repo-doc-first workflow, local-planning-artifact-first workflow
 
 **ADR comment**:
-A GitHub issue comment that records one important hard-to-reverse decision and why it was made.
+An issue comment on the resolved forge that records one important hard-to-reverse decision and why it was made.
 _Avoid_: Repo ADR file, design note
 
 **PRD comment**:
-A GitHub issue comment that captures a more developed implementation plan when work is not ready to build yet.
+An issue comment on the resolved forge that captures a more developed implementation plan when work is not ready to build yet.
 _Avoid_: ADR, issue body note
 
 ## Behavior ownership
@@ -53,7 +61,7 @@ Behavior ownership is compositional, not a linear precedence stack:
 - A **Prompt** often activates one or more **Skills**.
 - An **Extension** changes Pi runtime behavior, while a **Skill** changes how the agent reasons about a task.
 - An **Issue-backed workflow** may produce **PRD comments** and, more sparingly, **ADR comments**.
-- `CONTEXT.md` stores stable local context, while GitHub issues store evolving discussion and planning.
+- `CONTEXT.md` stores stable local context, while forge issues store evolving discussion and planning.
 
 ## Example dialogue
 
@@ -63,4 +71,4 @@ Behavior ownership is compositional, not a linear precedence stack:
 ## Flagged ambiguities
 
 - "prompt" and "skill" are easy to blur — resolved: a **Prompt** is the slash-command entrypoint, while a **Skill** is the reusable instruction payload it may load.
-- "ADR" in this repo should mean an **ADR comment** on a GitHub issue, not a repo-local file under `docs/adr/`.
+- "ADR" in this repo should mean an **ADR comment** on a forge issue, not a repo-local file under `docs/adr/`.
