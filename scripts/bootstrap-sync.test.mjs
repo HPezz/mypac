@@ -182,7 +182,7 @@ test("global environment owns each exact pin once with a closed phase", () => {
 		[
 			"gh@2.98.0",
 			"aqua:max-sixty/worktrunk@0.75.0",
-			"pipx:headroom-ai[extras=all]@0.36.5",
+			"pipx:headroom-ai[extras=all]@0.37.0",
 			"npm:agent-browser@0.34.0",
 		],
 	);
@@ -298,7 +298,7 @@ function installSyncCommands(
 		"wt",
 		'[[ "${1:-}" == "--version" ]] && echo "wt 0.75.0"\n[[ "$*" == "list --format=json" ]] && echo "[]"',
 	);
-	loggingCommand(fixture, "headroom", '[[ "${1:-}" == "--version" ]] && echo "headroom, version 0.36.5"');
+	loggingCommand(fixture, "headroom", '[[ "${1:-}" == "--version" ]] && echo "headroom, version 0.37.0"');
 	loggingCommand(fixture, "agent-browser", '[[ "${1:-}" == "--version" ]] && echo "agent-browser 0.34.0"');
 	loggingCommand(
 		fixture,
@@ -321,7 +321,7 @@ function installRefreshDependentCommands(fixture) {
 	writeCommand(available, "uv", '[[ "${1:-}" == "--version" ]] && echo "uv 0.12.6"\ntrue');
 	writeCommand(available, "gh", '[[ "${1:-}" == "--version" ]] && echo "gh version 2.98.0"\ntrue');
 	writeCommand(available, "wt", '[[ "${1:-}" == "--version" ]] && echo "wt 0.75.0"\ntrue');
-	writeCommand(available, "headroom", '[[ "${1:-}" == "--version" ]] && echo "headroom, version 0.36.5"\ntrue');
+	writeCommand(available, "headroom", '[[ "${1:-}" == "--version" ]] && echo "headroom, version 0.37.0"\ntrue');
 	writeCommand(available, "agent-browser", '[[ "${1:-}" == "--version" ]] && echo "agent-browser 0.34.0"\ntrue');
 	writeCommand(
 		fixture.bin,
@@ -334,7 +334,7 @@ function installRefreshDependentCommands(fixture) {
 			`  "use --global uv@0.12.6") cp ${JSON.stringify(join(available, "uv"))} ${JSON.stringify(join(toolsBin, "uv"))} ;;`,
 			`  "use --global gh@2.98.0") cp ${JSON.stringify(join(available, "gh"))} ${JSON.stringify(join(toolsBin, "gh"))} ;;`,
 			`  "use --global aqua:max-sixty/worktrunk@0.75.0") cp ${JSON.stringify(join(available, "wt"))} ${JSON.stringify(join(toolsBin, "wt"))} ;;`,
-			`  "use --global pipx:headroom-ai[extras=all]@0.36.5") command -v uv >/dev/null; cp ${JSON.stringify(join(available, "headroom"))} ${JSON.stringify(join(toolsBin, "headroom"))} ;;`,
+			`  "use --global pipx:headroom-ai[extras=all]@0.37.0") command -v uv >/dev/null; cp ${JSON.stringify(join(available, "headroom"))} ${JSON.stringify(join(toolsBin, "headroom"))} ;;`,
 			`  "use --global npm:agent-browser@0.34.0") cp ${JSON.stringify(join(available, "agent-browser"))} ${JSON.stringify(join(toolsBin, "agent-browser"))} ;;`,
 			`  "env -s bash") printf 'export PATH=%q\\n' ${JSON.stringify(`${toolsBin}:$PATH`)} ;;`,
 			'esac',
@@ -411,7 +411,7 @@ test("sync reconciles and verifies the pinned global environment", (t) => {
 		"mise\tenv\t-s\tbash",
 		"mise\tuse\t--global\taqua:max-sixty/worktrunk@0.75.0",
 		"mise\tenv\t-s\tbash",
-		"mise\tuse\t--global\tpipx:headroom-ai[extras=all]@0.36.5",
+		"mise\tuse\t--global\tpipx:headroom-ai[extras=all]@0.37.0",
 		"mise\tenv\t-s\tbash",
 		"mise\tuse\t--global\tnpm:agent-browser@0.34.0",
 		"mise\tenv\t-s\tbash",
@@ -518,7 +518,7 @@ test("sync refreshes PATH between ordered mise declarations", (t) => {
 		0,
 		`${result.stderr}\n${result.stdout}\n${readFileSync(fixture.log, "utf8")}`,
 	);
-	assert.match(readFileSync(fixture.log, "utf8"), /mise\tuse\t--global\tpipx:headroom-ai\[extras=all\]@0\.36\.5/);
+	assert.match(readFileSync(fixture.log, "utf8"), /mise\tuse\t--global\tpipx:headroom-ai\[extras=all\]@0\.37\.0/);
 });
 
 test("sync applies a changed checked-in version and remains safe to rerun", (t) => {

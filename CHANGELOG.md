@@ -10,6 +10,7 @@ Versioned sections should match the Git tags and GitHub releases published for t
 
 ### Dependencies
 
+- Upgrade the pinned Headroom runtime from 0.36.5 to 0.37.0 ([#461](https://github.com/ladislas/mypac/issues/461)).
 - Upgrade the tested Pi package contract from 0.84.3 to 0.85.0 ([#459](https://github.com/ladislas/mypac/issues/459)).
 
 ## [1.0.0] - 2026-09-03
