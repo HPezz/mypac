@@ -9,7 +9,7 @@ metadata:
   stage: shared
 ---
 
-# Grill with GitHub-backed docs
+# Grill with forge-backed docs
 
 Interview me relentlessly about the plan until we reach shared understanding. Walk each design branch one-by-one. For each question, give your recommended answer.
 
@@ -20,15 +20,15 @@ If the codebase, issue history, or current docs can answer a question, explore t
 ## Default flow
 
 1. Resolve the target from the explicit issue/change-request URL, todo, or current conversation. Use `gh` for GitHub and `glab` for GitLab.
-2. Read the issue or pull/merge-request title, body, status, and most relevant comments before questioning.
+2. Read the issue or pull/merge-request title, body, status, and most relevant comments before questioning. PRs and MRs are context only: resolve a linked issue for durable artifacts, or ask the user for an issue target without creating one automatically.
 3. Pick grilling depth from scope:
    - tiny clear issue or one-line bug -> ask only a few confirming questions
    - fuzzy, strategic, or multi-step work -> grill more deeply
 4. End with a concise recommended next step: implement, rewrite issue scope, add PRD, add ADR, update `CONTEXT.md`, or stop.
 
-## GitHub-first persistence
+## Issue-first persistence
 
-GitHub issues are the primary scratchpad for exploration, scope refinement, and decision-making.
+Issues on the resolved GitHub or GitLab forge are the primary scratchpad for exploration, scope refinement, and decision-making. Pull request and merge request discussions never receive PRD or ADR artifacts.
 
 Prefer storing planning outputs back into the issue over creating repo-local planning docs.
 
@@ -38,7 +38,7 @@ If grilling shows the issue title/body is unclear or wrong, offer to rewrite it 
 
 - Preserve freeform notes when possible.
 - It is safe to manage small reserved sections in the body such as `## Decisions` and `## PRDs`.
-- Rely on GitHub edit history instead of duplicating old wording in comments unless the user asks.
+- Rely on forge edit history instead of duplicating old wording in comments unless the user asks.
 
 ### ADR comments
 
@@ -52,7 +52,7 @@ Offer an ADR only when all three are true:
 
 When the user wants an ADR:
 
-- create **one GitHub comment per decision**
+- create **one issue comment per decision** through `gh issue comment` or `glab issue note create`
 - use [`ADR-FORMAT.md`](./ADR-FORMAT.md)
 - prepend hidden marker `<!-- pac:adr -->`
 - add issue label `pac:adr` when that label already exists
@@ -66,7 +66,7 @@ If several important decisions exist, create several ADR comments. Do not keep o
 When the work needs more planning than immediate implementation, offer a PRD comment instead of code.
 
 - use [`PRD-FORMAT.md`](./PRD-FORMAT.md) for the PRD body
-- create one GitHub comment per PRD iteration
+- create one issue comment per PRD iteration through the selected provider
 - prepend hidden marker `<!-- pac:prd -->`
 - add or keep issue label `pac:prd` when that label already exists
 - never create missing labels automatically; if `pac:prd` is missing, warn clearly and tell the user to run `/pac-setup-workflows`
@@ -94,6 +94,8 @@ Keep one repo-root `CONTEXT.md` for stable reusable project language, invariants
 
 ## Before writing back
 
-- If GitHub access fails, say so plainly and ask the user to paste the missing context.
-- Read the latest issue body/comments before editing so you do not stomp newer context.
+- If `gh` or `glab` access fails, say so plainly and ask the user to paste the missing context. Never fall back across providers.
+- Read the latest issue body, comments, and labels immediately before mutation so reserved sections do not stomp newer context.
+- Show the exact remote write set and require explicit user confirmation before comments, issue-body edits, or label changes.
+- Missing artifact labels are non-blocking: report them, skip them, and direct the user to `/pac-setup-workflows`.
 - Keep repo changes minimal and tied to settled outcomes only.

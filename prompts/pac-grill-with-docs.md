@@ -1,5 +1,5 @@
 ---
-description: "Grill issue-backed work and persist durable outcomes to GitHub issue comments and sparing local context"
+description: "Grill issue-backed work and persist durable outcomes to forge issue comments and sparing local context"
 argument-hint: "[issue/change-request URL | todo ID | free text]"
 ---
 

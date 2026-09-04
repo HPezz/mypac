@@ -1,6 +1,6 @@
 # ADR Comment Format
 
-ADRs for this workflow live as GitHub comments on the relevant issue.
+ADRs for this workflow live as comments on the relevant GitHub or GitLab issue.
 
 Do not create repo-local `docs/adr/` files when following `pac-grill-with-docs`.
 
@@ -38,7 +38,7 @@ Example:
 ```md
 ## Decisions
 
-- [Use GitHub issue comments for ADRs](https://github.com/owner/repo/issues/123#issuecomment-0000000000)
+- [Use forge issue comments for ADRs](https://forge.example/owner/repo/issues/123#comment-0000000000)
 ```
 
 ## When to offer an ADR

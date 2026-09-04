@@ -6,7 +6,7 @@ Keep publication wrappers outside this file:
 
 - local draft metadata
 - `<!-- pac:prd -->` comment markers
-- GitHub labels
+- forge labels
 - issue-body `## PRDs` link maintenance
 
 `pac-grill-with-docs` and `pac-to-prd` should both reuse this body format.
@@ -20,7 +20,7 @@ Keep publication wrappers outside this file:
 
 - Main issue: #{number} — {title}
 - Related issue: #{number} — {title}
-- Related PR: #{number} — {title}
+- Related PR/MR: #{number} — {title}
 - Draft source: {local draft path or URL}
 
 ## Problem Statement
