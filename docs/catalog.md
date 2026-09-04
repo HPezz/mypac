@@ -12,7 +12,7 @@ mypac groups reusable Pi assets by how they affect a session. Repo-local prompts
 | [`context`](../extensions/context/) | `/context` | Loaded-context and skill visibility |
 | [`files`](../extensions/files/) | `/files`, shortcuts | Repository and session file browsing actions |
 | [`footer`](../extensions/footer/) | Footer | Model, context, cache, cost, and provider-usage status |
-| [`ghi`](../extensions/ghi/) | `/ghi` | GitHub issue creation through `gh` |
+| [`ghi`](../extensions/ghi/) | `/issue-create`, `/ghi` | Forge-neutral issue creation through `gh` or `glab` |
 | [`headroom`](../extensions/headroom/) | `/headroom` | Optional local Headroom proxy lifecycle and status |
 | [`notify`](../extensions/notify/) | `/notify-test`, background behavior | Terminal notifications when Pi is ready for input |
 | [`pac-setup-workflows`](../extensions/pac-setup-workflows/) | `/pac-setup-workflows` | GitHub workflow label inspection and setup |
@@ -41,7 +41,8 @@ Skills contain reusable instructions. Pi may load model-invocable skills when a 
 | [`pac-diagnose`](../skills/pac-diagnose/SKILL.md) | Diagnose bugs and performance regressions systematically |
 | [`pac-explore`](../skills/pac-explore/SKILL.md) | Explore ideas and options without implementing |
 | [`pac-github`](../skills/pac-github/SKILL.md) | Interact with GitHub through `gh` |
-| [`pac-github-issue-create`](../skills/pac-github-issue-create/SKILL.md) | Create GitHub issues from Pi |
+| [`pac-github-issue-create`](../skills/pac-github-issue-create/SKILL.md) | Create GitHub issues from Pi (legacy provider-specific workflow) |
+| [`pac-issue-create`](../skills/pac-issue-create/SKILL.md) | Create structured GitHub or GitLab issues from Pi |
 | [`pac-grill-me`](../skills/pac-grill-me/SKILL.md) | Stress-test a plan one question at a time |
 | [`pac-grill-with-docs`](../skills/pac-grill-with-docs/SKILL.md) | Refine issue-backed work and preserve decisions |
 | [`pac-handoff`](../skills/pac-handoff/SKILL.md) | Prepare concise context for another session or agent |
