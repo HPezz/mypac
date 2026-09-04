@@ -41,3 +41,24 @@ test("deep triage branches retain their required evidence", async () => {
 	assert.match(skill, /out-of-scope.*precedent.*only when.*scope-boundary/is);
 	assert.match(skill, /maintainer approval.*explicit state-change request/is);
 });
+
+test("triage preserves one state machine across GitHub and GitLab", async () => {
+	const skill = await readSkill();
+
+	assert.match(skill, /GitHub or GitLab issues through one durable state machine/i);
+	assert.match(skill, /explicit URL first.*tracking remote.*origin.*ask rather than guessing/i);
+	assert.match(skill, /`gh` for GitHub and `glab` for GitLab/i);
+	assert.match(skill, /Unlabeled.*pac:needs_triage.*pac:needs_info.*reporter activity/is);
+	assert.match(skill, /latest reporter activity.*latest AI triage-notes comment/i);
+	assert.match(skill, /AI during triage/);
+});
+
+test("GitLab inherited labels and provider failures remain safe", async () => {
+	const skill = await readSkill();
+
+	assert.match(skill, /inherited GitLab group label satisfies.*read-only/i);
+	assert.match(skill, /never add, remove, rename, or edit the group label/i);
+	assert.match(skill, /Surface provider failures without an unsafe fallback/i);
+	assert.match(skill, /Expected pac workflow label is missing/);
+	assert.match(skill, /\/pac-setup-workflows/);
+});

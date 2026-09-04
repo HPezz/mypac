@@ -1,6 +1,6 @@
 # Writing Out-of-Scope Comments
 
-Out-of-scope decisions are GitHub-native scope-boundary records. They replace Matt's local `.out-of-scope/*.md` knowledge base with issue comments plus the `pac:out_of_scope` label.
+Out-of-scope decisions are forge-native scope-boundary records. They replace Matt's local `.out-of-scope/*.md` knowledge base with issue comments plus the `pac:out_of_scope` label.
 
 Use this outcome when the request crosses a durable project boundary. This is different from `wontfix`:
 

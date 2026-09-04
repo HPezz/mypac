@@ -85,7 +85,7 @@ Prompts are the slash-command entry points you type in Pi.
 | [`/pac-session-review`](../prompts/pac-session-review.md) | Review one explicitly selected Pi session |
 | [`/pac-to-issues`](../prompts/pac-to-issues.md) | Split a plan or PRD into implementation issues |
 | [`/pac-to-prd`](../prompts/pac-to-prd.md) | Turn context into a PRD |
-| [`/pac-triage`](../prompts/pac-triage.md) | Triage GitHub issues |
+| [`/pac-triage`](../prompts/pac-triage.md) | Triage GitHub or GitLab issues |
 | [`/pac-upstream-checkpoints`](../prompts/pac-upstream-checkpoints.md) | Review tracked upstream inspiration sources |
 | [`/pac-zoom-out`](../prompts/pac-zoom-out.md) | Map an unfamiliar code area |
 
