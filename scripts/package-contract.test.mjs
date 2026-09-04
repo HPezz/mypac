@@ -4,10 +4,11 @@ import { readFileSync } from "node:fs";
 
 const packageJson = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8"));
 const expectedHostDependencies = {
-	"@earendil-works/pi-agent-core": "0.84.3",
-	"@earendil-works/pi-ai": "0.84.3",
-	"@earendil-works/pi-coding-agent": "0.84.3",
-	"@earendil-works/pi-tui": "0.84.3",
+	"@earendil-works/pi-agent-core": "0.85.0",
+	"@earendil-works/pi-ai": "0.85.0",
+	"@earendil-works/pi-coding-agent": "0.85.0",
+	"@earendil-works/pi-server": "0.85.0",
+	"@earendil-works/pi-tui": "0.85.0",
 	typebox: "1.3.7",
 };
 
@@ -22,7 +23,7 @@ test("Pi host dependencies have exact development pins", () => {
 	}
 });
 
-test("directly imported host dependencies are declared as exact peers", () => {
+test("runtime-required host dependencies are declared as exact peers", () => {
 	for (const [name, version] of Object.entries(expectedHostDependencies)) {
 		assert.equal(packageJson.peerDependencies[name], version, `${name} peer version`);
 	}
