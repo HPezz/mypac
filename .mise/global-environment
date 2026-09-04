@@ -2,6 +2,7 @@
 foundation mise node@24.20.0
 foundation mise uv@0.12.6
 application mise gh@2.98.0
+application mise glab@1.116.0
 application mise aqua:max-sixty/worktrunk@0.75.0
 application mise pipx:headroom-ai[extras=all]@0.37.0
 application mise npm:agent-browser@0.34.0

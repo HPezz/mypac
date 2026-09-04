@@ -11,7 +11,7 @@ Versioned sections should match the Git tags and GitHub releases published for t
 ### Multi-forge workflows
 
 - Added shared GitHub/GitLab forge resolution, `/issue-create` with `/ghi` compatibility, multi-forge worktrees, label setup, planning artifacts, issue graphs, checkpoints, triage, and PR/MR review workflows. ([#2](https://github.com/HPezz/mypac/issues/2)–[#10](https://github.com/HPezz/mypac/issues/10))
-- Added safe GitLab.com and self-hosted GitLab support through `glab`, including nested namespaces, inherited read-only group labels, provider-native MR terminology, and structured regression coverage.
+- Added safe GitLab.com and self-hosted GitLab support through pinned `glab`, including nested namespaces, inherited read-only group labels, provider-native MR terminology, and structured regression coverage.
 
 ### Dependencies
 

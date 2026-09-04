@@ -36,7 +36,7 @@ The script sets `MISE_TASK_RUN_AUTO_INSTALL=false` before invoking `mise run boo
 2. reconcile the exact Node foundation (including bundled npm) and uv, then activate it in the bootstrap process;
 3. verify Pi is available and report its installed and mypac-tested versions;
 4. install checkout npm dependencies, checkout-local mise tools, and Git hooks;
-5. reconcile gh, Worktrunk, Headroom, and agent-browser applications;
+5. reconcile gh, glab, Worktrunk, Headroom, and agent-browser applications;
 6. reconcile Pi packages and register mypac;
 7. run agent-browser-owned browser setup and final runtime verification.
 
@@ -69,7 +69,7 @@ Ownership remains deliberately narrow:
 
 ```text
 Homebrew/OS → Git, mise, Pi, shell/system software, optional system capabilities
-mise        → Node (including bundled npm), uv, gh, Worktrunk, Headroom, agent-browser
+mise        → Node (including bundled npm), uv, gh, glab, Worktrunk, Headroom, agent-browser
 Pi          → mypac, pi-agent-browser-native, pi-codex-search
 npm         → mypac checkout dependencies
 mypac       → desired-state declaration and thin phase orchestration
@@ -86,7 +86,7 @@ git -C "$acceptance_dir" init --quiet
   cd "$acceptance_dir"
   "$SHELL" -lic '
     set -e
-    for command in node npm uv gh wt headroom agent-browser; do
+    for command in node npm uv gh glab wt headroom agent-browser; do
       command -v "$command"
       "$command" --version
     done
