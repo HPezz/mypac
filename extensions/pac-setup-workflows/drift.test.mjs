@@ -82,6 +82,43 @@ test("buildApplyPlan renames legacy labels instead of also creating their target
 	assert.equal(plan.creates.some((item) => item.name === "pac:prd"), false);
 });
 
+test("inherited GitLab labels satisfy requirements without project mutations", () => {
+	const expected = required("pac:prd");
+	const result = analyzeLabels([
+		{ ...label("pac:prd", "000000", "group-owned metadata"), id: 10, scope: "group" },
+	]);
+	const plan = buildApplyPlan(result);
+
+	assert.equal(result.missing.some((item) => item.name === "pac:prd"), false);
+	assert.equal(result.drifted.some((item) => item.expected.name === "pac:prd"), false);
+	assert.equal(plan.creates.some((item) => item.name === "pac:prd"), false);
+	assert.equal(plan.updates.some((item) => item.expected.name === "pac:prd"), false);
+	assert.deepEqual(result.inherited.map((item) => item.name), ["pac:prd"]);
+	assert.ok(expected);
+});
+
+test("project and inherited label conflicts are reported and skipped", () => {
+	const expected = required("pac:prd");
+	const result = analyzeLabels([
+		{ ...label("pac:prd", "000000", "project drift"), id: 11, scope: "project" },
+		{ ...label("pac:prd", expected.color, expected.description), id: 12, scope: "group" },
+	]);
+	const plan = buildApplyPlan(result);
+
+	assert.equal(result.ownershipConflicts.length, 1);
+	assert.equal(result.ownershipConflicts[0].projectLabel.id, 11);
+	assert.equal(result.ownershipConflicts[0].inheritedLabel.id, 12);
+	assert.equal(plan.updates.some((item) => item.expected.name === "pac:prd"), false);
+});
+
+test("inherited legacy labels are never selected for rename", () => {
+	const result = analyzeLabels([{ ...label("prd", "C5DEF5", "group legacy"), id: 13, scope: "group" }]);
+	const plan = buildApplyPlan(result);
+
+	assert.equal(plan.renames.length, 0);
+	assert.equal(plan.creates.some((item) => item.name === "pac:prd"), true);
+});
+
 test("unexpected pac labels are noticed but not managed", () => {
 	const result = analyzeLabels([label("pac:custom_state", "123456", "custom")]);
 	assert.deepEqual(result.unexpectedPacLabels.map((item) => item.name), ["pac:custom_state"]);

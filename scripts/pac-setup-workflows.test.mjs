@@ -14,6 +14,14 @@ test("parseCliCommand parses check with repo", () => {
 	});
 });
 
+test("parseCliCommand accepts nested self-hosted GitLab project URLs", () => {
+	assert.deepEqual(parseCliCommand(["labels", "check", "--repo", "https://git.example.com/group/subgroup/app"]), {
+		action: "check",
+		repo: "https://git.example.com/group/subgroup/app",
+		yes: false,
+	});
+});
+
 test("parseCliCommand parses apply with explicit yes", () => {
 	assert.deepEqual(parseCliCommand(["labels", "apply", "--repo=ladislas/mypac", "--yes"]), {
 		action: "apply",

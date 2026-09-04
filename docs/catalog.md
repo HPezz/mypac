@@ -15,7 +15,7 @@ mypac groups reusable Pi assets by how they affect a session. Repo-local prompts
 | [`ghi`](../extensions/ghi/) | `/issue-create`, `/ghi` | Forge-neutral issue creation through `gh` or `glab` |
 | [`headroom`](../extensions/headroom/) | `/headroom` | Optional local Headroom proxy lifecycle and status |
 | [`notify`](../extensions/notify/) | `/notify-test`, background behavior | Terminal notifications when Pi is ready for input |
-| [`pac-setup-workflows`](../extensions/pac-setup-workflows/) | `/pac-setup-workflows` | GitHub workflow label inspection and setup |
+| [`pac-setup-workflows`](../extensions/pac-setup-workflows/) | `/pac-setup-workflows` | GitHub and GitLab workflow label inspection and setup |
 | [`personas`](../extensions/personas/) | `/persona` | Runtime persona discovery and selection |
 | [`review`](../extensions/review/) | `/review-start`, `/review-end` | Guided code-review sessions |
 | [`session-breakdown`](../extensions/session-breakdown/) | `/session-breakdown` | Session cost, model, directory, cache, and context statistics |

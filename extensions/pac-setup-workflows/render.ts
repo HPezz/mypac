@@ -1,11 +1,11 @@
 import { normalizeColor } from "./drift.ts";
-import type { ApplyOperationResult, ApplyPlan, DriftedLabel, GitHubLabel, LabelCheckResult, LabelSpec } from "./types.ts";
+import type { ApplyOperationResult, ApplyPlan, DriftedLabel, ForgeLabel, LabelCheckResult, LabelSpec } from "./types.ts";
 
 function labelLine(label: LabelSpec): string {
 	return `- \`${label.name}\` #${normalizeColor(label.color)} — ${label.description}`;
 }
 
-function existingLabelLine(label: GitHubLabel): string {
+function existingLabelLine(label: ForgeLabel): string {
 	return `- \`${label.name}\` #${normalizeColor(label.color)} — ${label.description ?? ""}`;
 }
 
@@ -34,7 +34,7 @@ export function renderCheckResult(repo: string, result: LabelCheckResult): strin
 		`# Pac workflow labels — ${repo}`,
 		"",
 		`Required pac labels: ${result.present.length}/${result.required.length} present`,
-		`Missing: ${result.missing.length} · Drifted: ${result.drifted.length} · Migration candidates: ${result.migrationCandidates.length} · Conflicts: ${result.conflicts.length}`,
+		`Missing: ${result.missing.length} · Drifted: ${result.drifted.length} · Migration candidates: ${result.migrationCandidates.length} · Conflicts: ${result.conflicts.length + result.ownershipConflicts.length}`,
 	];
 
 	section(lines, "Missing required pac labels", result.missing.map(labelLine), "None.");
@@ -54,6 +54,20 @@ export function renderCheckResult(repo: string, result: LabelCheckResult): strin
 		result.conflicts.map(
 			(conflict) =>
 				`- \`${conflict.mapping.legacy}\` and \`${conflict.mapping.target}\` both exist; resolve manually before migration.`,
+		),
+		"None.",
+	);
+	section(
+		lines,
+		"Inherited GitLab group labels (read-only)",
+		result.inherited.map(existingLabelLine),
+		"None.",
+	);
+	section(
+		lines,
+		"Inherited/project conflicts",
+		result.ownershipConflicts.map(
+			(conflict) => `- \`${conflict.expected.name}\` exists at both project and group scope; apply mode will not overwrite either label.`,
 		),
 		"None.",
 	);
@@ -77,6 +91,14 @@ export function renderApplyPlan(repo: string, plan: ApplyPlan): string {
 	);
 	section(lines, "Creates", plan.creates.map(labelLine), "None.");
 	section(lines, "Metadata updates", plan.updates.map(driftLine), "None.");
+	section(
+		lines,
+		"Inherited/project conflicts not auto-resolved",
+		plan.ownershipConflicts.map(
+			(conflict) => `- \`${conflict.expected.name}\` exists at project and group scope; apply mode will not overwrite either label.`,
+		),
+		"None.",
+	);
 	section(
 		lines,
 		"Conflicts not auto-resolved",
@@ -110,7 +132,7 @@ export function renderHelp(): string {
 	return [
 		"# /pac-setup-workflows",
 		"",
-		"Check and apply canonical pac GitHub workflow labels.",
+		"Check and apply canonical pac workflow labels on GitHub or GitLab.",
 		"",
 		"Usage:",
 		"",
@@ -120,6 +142,7 @@ export function renderHelp(): string {
 		"/pac-setup-workflows labels apply",
 		"/pac-setup-workflows labels check --repo owner/repo",
 		"/pac-setup-workflows labels apply --repo owner/repo",
+		"/pac-setup-workflows labels check --repo https://gitlab.example/group/project",
 		"```",
 		"",
 		"Check mode is dry-run. Apply mode requires explicit confirmation before creating labels, updating pac:* metadata, or renaming known legacy labels.",

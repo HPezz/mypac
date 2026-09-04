@@ -4,11 +4,16 @@ export type LabelSpec = {
 	description: string;
 };
 
-export type GitHubLabel = {
+export type ForgeLabel = {
+	id?: number | string;
 	name: string;
 	color: string;
 	description?: string | null;
+	scope?: "project" | "group";
 };
+
+/** Backward-compatible alias for the GitHub-only label health workflow. */
+export type GitHubLabel = ForgeLabel;
 
 export type LegacyLabelMapping = {
 	legacy: string;
@@ -19,32 +24,40 @@ export type DriftField = "color" | "description";
 
 export type DriftedLabel = {
 	expected: LabelSpec;
-	actual: GitHubLabel;
+	actual: ForgeLabel;
 	fields: Partial<Record<DriftField, { expected: string; actual: string }>>;
 };
 
 export type LegacyMigrationCandidate = {
 	mapping: LegacyLabelMapping;
-	legacyLabel: GitHubLabel;
+	legacyLabel: ForgeLabel;
 	expected: LabelSpec;
 };
 
 export type LegacyConflict = {
 	mapping: LegacyLabelMapping;
-	legacyLabel: GitHubLabel;
-	targetLabel: GitHubLabel;
+	legacyLabel: ForgeLabel;
+	targetLabel: ForgeLabel;
 	expected: LabelSpec;
+};
+
+export type OwnershipConflict = {
+	expected: LabelSpec;
+	projectLabel: ForgeLabel;
+	inheritedLabel: ForgeLabel;
 };
 
 export type LabelCheckResult = {
 	required: LabelSpec[];
-	present: Array<{ expected: LabelSpec; actual: GitHubLabel }>;
+	present: Array<{ expected: LabelSpec; actual: ForgeLabel }>;
 	missing: LabelSpec[];
 	drifted: DriftedLabel[];
 	migrationCandidates: LegacyMigrationCandidate[];
 	conflicts: LegacyConflict[];
-	hostOwned: GitHubLabel[];
-	unexpectedPacLabels: GitHubLabel[];
+	inherited: ForgeLabel[];
+	ownershipConflicts: OwnershipConflict[];
+	hostOwned: ForgeLabel[];
+	unexpectedPacLabels: ForgeLabel[];
 };
 
 export type ApplyPlan = {
@@ -52,6 +65,7 @@ export type ApplyPlan = {
 	creates: LabelSpec[];
 	updates: DriftedLabel[];
 	conflicts: LegacyConflict[];
+	ownershipConflicts: OwnershipConflict[];
 };
 
 export type ParsedCommand =
