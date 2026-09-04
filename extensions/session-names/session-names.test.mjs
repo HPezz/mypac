@@ -10,7 +10,7 @@ test("normalizeSessionNameSuffix collapses whitespace and strips wrapping quotes
 	assert.equal(normalizeSessionNameSuffix('  "fix   README   install steps"  '), "fix README install steps");
 });
 
-test("normalizeSessionNameSuffix shortens GitHub issue and PR URLs", () => {
+test("normalizeSessionNameSuffix uses provider-native issue and change-request labels", () => {
 	assert.equal(
 		normalizeSessionNameSuffix("https://github.com/ladislas/mypac/issues/126"),
 		"issue #126",
@@ -18,6 +18,14 @@ test("normalizeSessionNameSuffix shortens GitHub issue and PR URLs", () => {
 	assert.equal(
 		normalizeSessionNameSuffix("https://github.com/ladislas/mypac/pull/456/files"),
 		"PR #456",
+	);
+	assert.equal(
+		normalizeSessionNameSuffix("https://gitlab.com/group/subgroup/project/-/issues/789"),
+		"issue #789",
+	);
+	assert.equal(
+		normalizeSessionNameSuffix("https://git.example.com/group/project/-/merge_requests/42/diffs"),
+		"MR #42",
 	);
 });
 

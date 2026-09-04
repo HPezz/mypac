@@ -1,6 +1,8 @@
+import { parseForgeReference, type ForgeReference } from "../../lib/forge.ts";
+
 export type IssueTarget =
 	| { kind: "number"; number: number }
-	| { kind: "url"; owner: string; repo: string; number: number };
+	| { kind: "url"; reference: ForgeReference };
 
 export type WorktrunkListEntry = {
 	branch: string | null;
@@ -43,23 +45,8 @@ export function parseIssueTarget(input: string): IssueTarget | null {
 		return { kind: "number", number: Number(value) };
 	}
 
-	let url: URL;
-	try {
-		url = new URL(value);
-	} catch {
-		return null;
-	}
-
-	if (url.hostname !== "github.com") return null;
-	const parts = url.pathname.split("/").filter(Boolean);
-	if (parts.length < 4 || parts[2] !== "issues" || !/^\d+$/.test(parts[3])) return null;
-
-	return {
-		kind: "url",
-		owner: parts[0],
-		repo: parts[1],
-		number: Number(parts[3]),
-	};
+	const reference = parseForgeReference(value);
+	return reference?.kind === "issue" ? { kind: "url", reference } : null;
 }
 
 export function slugifyIssueTitle(title: string): string {

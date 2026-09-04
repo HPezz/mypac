@@ -11,26 +11,63 @@ import {
 	parseWorktrunkList,
 	slugifyIssueTitle,
 } from "./helpers.ts";
-import { ensureWorktree } from "./index.ts";
+import { ensureWorktree, fetchIssue } from "./index.ts";
 
 test("parses a local issue number", () => {
 	assert.deepEqual(parseIssueTarget("85"), { kind: "number", number: 85 });
 });
 
-test("parses a GitHub issue URL", () => {
+test("parses GitHub and nested self-hosted GitLab issue URLs", () => {
 	assert.deepEqual(parseIssueTarget("https://github.com/ladislas/mypac/issues/85"), {
 		kind: "url",
-		owner: "ladislas",
-		repo: "mypac",
-		number: 85,
+		reference: {
+			provider: "github",
+			host: "github.com",
+			project: "ladislas/mypac",
+			kind: "issue",
+			number: 85,
+			url: "https://github.com/ladislas/mypac/issues/85",
+		},
+	});
+	assert.deepEqual(parseIssueTarget("https://git.example.com/platform/apps/mypac/-/issues/85"), {
+		kind: "url",
+		reference: {
+			provider: "gitlab",
+			host: "git.example.com",
+			project: "platform/apps/mypac",
+			kind: "issue",
+			number: 85,
+			url: "https://git.example.com/platform/apps/mypac/-/issues/85",
+		},
 	});
 });
 
-test("rejects invalid issue targets", () => {
+test("rejects malformed and change-request targets", () => {
 	assert.equal(parseIssueTarget(""), null);
 	assert.equal(parseIssueTarget("not-an-issue"), null);
 	assert.equal(parseIssueTarget("https://example.com/ladislas/mypac/issues/85"), null);
 	assert.equal(parseIssueTarget("https://github.com/ladislas/mypac/pull/85"), null);
+	assert.equal(parseIssueTarget("https://gitlab.com/group/project/-/merge_requests/85"), null);
+});
+
+test("fetches issue metadata through the selected provider", async () => {
+	const calls = [];
+	const pi = {
+		async exec(command, args) {
+			calls.push([command, args]);
+			if (command === "gh") {
+				return { code: 0, stdout: JSON.stringify({ number: 85, title: "GitHub work", url: "https://github.com/acme/app/issues/85" }), stderr: "" };
+			}
+			return { code: 0, stdout: JSON.stringify({ iid: 86, title: "GitLab work", web_url: "https://git.example.com/group/sub/app/-/issues/86" }), stderr: "" };
+		},
+	};
+
+	assert.equal((await fetchIssue(pi, { provider: "github", host: "github.com", project: "acme/app" }, 85)).value.title, "GitHub work");
+	assert.equal((await fetchIssue(pi, { provider: "gitlab", host: "git.example.com", project: "group/sub/app" }, 86)).value.title, "GitLab work");
+	assert.deepEqual(calls, [
+		["gh", ["issue", "view", "85", "--repo", "acme/app", "--json", "number,title,url"]],
+		["glab", ["issue", "view", "86", "--repo", "https://git.example.com/group/sub/app", "--output", "json"]],
+	]);
 });
 
 test("slugifies issue titles", () => {

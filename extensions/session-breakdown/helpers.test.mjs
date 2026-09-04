@@ -870,6 +870,15 @@ test("formatCompactBreakdownReport summarizes GitHub issue URLs in outlier title
 	}
 });
 
+test("parseSessionLines preserves self-hosted GitLab issue links in fallback titles", () => {
+	const parsed = parseSessionLines([
+		JSON.stringify({ type: "session", id: "gitlab-session", cwd: "/tmp/project", timestamp: "2026-05-20T10:00:00.000Z" }),
+		JSON.stringify({ type: "message", message: { role: "user", content: "lwot - https://git.example.com/group/subgroup/project/-/issues/77" } }),
+	].join("\n"), "2026-05-20T10-00-00-000Z_gitlab-session.jsonl");
+
+	assert.equal(parsed?.title, "lwot - [issue #77](https://git.example.com/group/subgroup/project/-/issues/77)");
+});
+
 test("parseSessionLines cleans compact fallback titles from GitHub issue URLs", () => {
 	const cases = [
 		["github.com/ladislas/mypac/issues/279", "issue #279"],

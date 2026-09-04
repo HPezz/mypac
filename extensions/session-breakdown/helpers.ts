@@ -3,6 +3,7 @@ import { homedir } from "node:os";
 import { basename } from "node:path";
 import { createInterface } from "node:readline";
 import { getSessionRoot } from "../../lib/agent-dir.ts";
+import { parseForgeReference } from "../../lib/forge.ts";
 import { resolveCanonicalDirectoryGroup, walkPiSessionFiles } from "../../lib/pi-session-discovery.ts";
 import {
 	createPiSessionParseState,
@@ -229,6 +230,16 @@ function inferDisplayRepo(session: { repo: string | null; cwd?: string | null })
 
 function cleanupCompactSessionTitle(text: string): string {
 	const decoded = safeDecodeText(cleanTitle(text));
+	const explicitUrl = decoded.match(/https?:\/\/[^\s)>\]]+/i);
+	if (explicitUrl) {
+		const reference = parseForgeReference(explicitUrl[0]);
+		if (reference?.kind === "issue") {
+			const prefix = cleanTitle(decoded.slice(0, explicitUrl.index).replace(/[-–—:]\s*$/, ""));
+			const issueLabel = `[issue #${reference.number}](${reference.url})`;
+			return prefix ? `${prefix} - ${issueLabel}` : issueLabel;
+		}
+	}
+
 	const issueUrl = decoded.match(/^(.*?)(?:https?:\/\/)?github\.com\/([^\s/]+)\/([^\s/]+)\/issues\/(\d+)(.*)$/i);
 	if (!issueUrl) return cleanTitle(decoded);
 

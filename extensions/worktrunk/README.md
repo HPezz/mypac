@@ -17,11 +17,12 @@ Examples:
 ```text
 /worktree issue 85
 /worktree issue https://github.com/ladislas/mypac/issues/85
+/worktree issue https://gitlab.com/group/subgroup/project/-/issues/85
 ```
 
 The command:
 
-1. Shows progress while it reads issue metadata with `gh`.
+1. Resolves an explicit URL, then the current tracking remote, then `origin`, and reads issue metadata with `gh` or `glab`.
 2. Builds a branch name from the issue number and title:
 
    ```text
@@ -111,7 +112,7 @@ Because Pi slash commands run non-interactively, create commands pass `--yes` to
 
 ## Requirements
 
-- `gh` authenticated for the target GitHub repository when using `/worktree issue`
+- `gh` or `glab` authenticated for the target forge when using `/worktree issue`
 - `wt` installed and configured
 - `mise` and `npm` available for this repo's `pre-start` hooks
 
@@ -119,7 +120,7 @@ Because Pi slash commands run non-interactively, create commands pass `--yes` to
 
 In scope:
 
-- GitHub issue number or issue URL input
+- GitHub or GitLab issue number or issue URL input
 - Issue-derived branch names
 - Explicit branch input
 - Create-or-reuse Worktrunk worktrees
