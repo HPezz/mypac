@@ -1,6 +1,6 @@
 # Writing Agent Briefs
 
-An agent brief is a structured GitHub issue comment posted when an issue moves to `pac:ready_for_agent`. It is the authoritative implementation contract. The original issue body and discussion are context; the brief is what a future agent can work from.
+An agent brief is a structured forge issue comment posted when an issue moves to `pac:ready_for_agent`. It is the authoritative implementation contract. The original issue body and discussion are context; the brief is what a future agent can work from.
 
 Every brief comment must start with the triage disclaimer:
 

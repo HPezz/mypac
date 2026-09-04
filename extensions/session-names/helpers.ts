@@ -1,3 +1,5 @@
+import { parseForgeReference } from "../../lib/forge.ts";
+
 const DEFAULT_SESSION_SUFFIX_MAX_LENGTH = 60;
 
 function collapseWhitespace(input: string): string {
@@ -21,18 +23,12 @@ function truncate(input: string, maxLength: number): string {
 	return input.slice(0, maxLength - 3) + "...";
 }
 
-function normalizeGithubReference(input: string): string | null {
-	const issueMatch = input.match(/^https?:\/\/github\.com\/[^/\s]+\/[^/\s]+\/issues\/(\d+)(?=$|[/?#\s])/i);
-	if (issueMatch) {
-		return `issue #${issueMatch[1]}`;
-	}
-
-	const prMatch = input.match(/^https?:\/\/github\.com\/[^/\s]+\/[^/\s]+\/pull\/(\d+)(?=$|[/?#\s])/i);
-	if (prMatch) {
-		return `PR #${prMatch[1]}`;
-	}
-
-	return null;
+function normalizeForgeReference(input: string): string | null {
+	const target = input.match(/^https?:\/\/[^\s]+/i)?.[0] ?? input;
+	const reference = parseForgeReference(target);
+	if (!reference) return null;
+	if (reference.kind === "issue") return `issue #${reference.number}`;
+	return `${reference.provider === "github" ? "PR" : "MR"} #${reference.number}`;
 }
 
 function normalizeTodoReference(input: string): string | null {
@@ -61,7 +57,7 @@ export function normalizeSessionNameSuffix(
 	if (!normalized) return "";
 
 	return truncate(
-		normalizeGithubReference(normalized) ??
+		normalizeForgeReference(normalized) ??
 			normalizeTodoReference(normalized) ??
 			normalizeUrl(normalized) ??
 			normalized,

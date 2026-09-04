@@ -46,8 +46,14 @@ export function splitArgs(input: string): string[] {
 	return args;
 }
 
-function isOwnerRepo(value: string): boolean {
-	return /^[^\s/]+\/[^\s/]+$/.test(value);
+function isRepoTarget(value: string): boolean {
+	if (/^[^\s/]+\/[^\s/]+$/.test(value)) return true;
+	try {
+		const url = new URL(value);
+		return /^https?:$/.test(url.protocol) && url.pathname.split("/").filter(Boolean).length >= 2;
+	} catch {
+		return false;
+	}
 }
 
 export function parseCommand(input: string): ParsedCommand {
@@ -59,15 +65,15 @@ export function parseCommand(input: string): ParsedCommand {
 		const token = tokens[index];
 		if (token === "--repo") {
 			const value = tokens[index + 1];
-			if (!value) return { action: "error", message: "--repo requires owner/repo" };
-			if (!isOwnerRepo(value)) return { action: "error", message: `Invalid --repo value: ${value}` };
+			if (!value) return { action: "error", message: "--repo requires owner/repo or a forge URL" };
+			if (!isRepoTarget(value)) return { action: "error", message: `Invalid --repo value: ${value}` };
 			repo = value;
 			index++;
 			continue;
 		}
 		if (token.startsWith("--repo=")) {
 			const value = token.slice("--repo=".length);
-			if (!isOwnerRepo(value)) return { action: "error", message: `Invalid --repo value: ${value}` };
+			if (!isRepoTarget(value)) return { action: "error", message: `Invalid --repo value: ${value}` };
 			repo = value;
 			continue;
 		}
@@ -98,7 +104,7 @@ export async function resolveRepo(pi: ExtensionAPI, repo?: string): Promise<GhRe
 	const result = await runGh(pi, ["repo", "view", "--json", "nameWithOwner", "--jq", ".nameWithOwner"]);
 	if (!result.ok) return result;
 	const value = result.value.trim();
-	if (!isOwnerRepo(value)) return { ok: false, error: "Could not infer GitHub repository. Pass --repo owner/repo." };
+	if (!/^[^\s/]+\/[^\s/]+$/.test(value)) return { ok: false, error: "Could not infer GitHub repository. Pass --repo owner/repo." };
 	return { ok: true, value };
 }
 

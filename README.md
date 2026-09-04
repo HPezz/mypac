@@ -7,7 +7,7 @@ Use it as a personal lab, install it as a Pi package, or browse it for extension
 ## What you get
 
 - **Extensions** add commands, tools, UI flows, and workflow guardrails.
-- **Skills** encode repeatable repository and GitHub workflows.
+- **Skills** encode repeatable repository and forge-backed workflows.
 - **Prompts** expose common work modes as slash commands.
 - **Personas and themes** customize communication and presentation.
 

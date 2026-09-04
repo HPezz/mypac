@@ -4,22 +4,15 @@ Load this file only after the workflow determines that a checkpoint issue should
 
 ## Label
 
-Use the targeted registry result's `checkpoint_label`, defaulting to `pac:upstream-checkpoint`. The canonical color is defined in `extensions/pac-setup-workflows/config.ts`. Create a missing label only after setup approval:
+Use the targeted registry result's `checkpoint_label`, defaulting to `pac:upstream-checkpoint`. The canonical color is defined in `extensions/pac-setup-workflows/config.ts`.
 
-```bash
-repo="$(gh repo view --json nameWithOwner --jq .nameWithOwner)"
-checkpoint_label="<resolved checkpoint_label>"
-if ! gh label list --repo "$repo" --json name --jq '.[].name' | grep -Fxq "$checkpoint_label"; then
-  gh label create "$checkpoint_label" --repo "$repo" \
-    --description "pac artifact: upstream inspiration review checkpoint" --color "C2E0C6"
-fi
-```
+Inspect labels through the resolved provider. A matching inherited GitLab group label satisfies the requirement and is never mutated. If the label is absent, request the existing explicit setup approval before creating it; use `gh label create` for GitHub or `glab label create --repo <full-project-url>` for a GitLab project. Never create or edit a GitLab group label from this workflow.
 
-The issue marker is always `<!-- pac:upstream-checkpoint -->`; it is not the configurable label name. If label creation fails, publish without the label and report the failure.
+The issue marker is always `<!-- pac:upstream-checkpoint -->`; it is not the configurable label name. If label creation fails or approval is declined, publish without the label and report the exact failure.
 
 ## Issue
 
-Create one issue per useful run with a title like:
+After explicit publication confirmation, create exactly one issue per useful run with `gh issue create` or `glab issue create` on the resolved current forge, with a title like:
 
 ```text
 Upstream inspiration checkpoint — YYYY-MM-DD
@@ -97,4 +90,4 @@ watch_sources:
 - Registry baseline advancement requires separate human acceptance.
 ````
 
-For an explicitly requested no-change issue, state the absence of relevant changes and do not create follow-up issues.
+Use the exact issue URL returned by `gh` or `glab` in every `checkpoint_issue` field under `Next checkpoint data`; preserve self-hosted hosts and nested namespaces. For an explicitly requested no-change issue, state the absence of relevant changes and do not create follow-up issues.

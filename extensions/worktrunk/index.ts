@@ -1,4 +1,5 @@
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
+import { resolveForgeRepository, type ForgeRepository } from "../../lib/forge.ts";
 import {
 	buildIssueBranch,
 	findWorktreeByBranch,
@@ -60,14 +61,18 @@ export default function worktrunkExtension(pi: ExtensionAPI): void {
 				return;
 			}
 
-			const repoResult = target.kind === "url" ? { ok: true as const, value: `${target.owner}/${target.repo}` } : await inferRepo(pi);
+			const reference = target.kind === "url" ? target.reference : undefined;
+			const repoResult = reference
+				? { ok: true as const, value: { provider: reference.provider, host: reference.host, project: reference.project } }
+				: await resolveForgeRepository((command, commandArgs) => pi.exec(command, commandArgs, { timeout: 30_000 }));
 			if (!repoResult.ok) {
 				ctx.ui.notify(repoResult.error, "error");
 				return;
 			}
 
-			ctx.ui.notify(`Reading issue #${target.number} from ${repoResult.value}...`, "info");
-			const issueResult = await fetchIssue(pi, repoResult.value, target.number);
+			const issueNumber = target.kind === "url" ? target.reference.number : target.number;
+			ctx.ui.notify(`Reading issue #${issueNumber} from ${repoResult.value.host}/${repoResult.value.project}...`, "info");
+			const issueResult = await fetchIssue(pi, repoResult.value, issueNumber, reference?.url);
 			if (!issueResult.ok) {
 				ctx.ui.notify(issueResult.error, "error");
 				return;
@@ -97,31 +102,31 @@ export default function worktrunkExtension(pi: ExtensionAPI): void {
 	});
 }
 
-async function inferRepo(pi: ExtensionAPI): Promise<CommandResult<string>> {
-	const result = await pi.exec("gh", ["repo", "view", "--json", "nameWithOwner", "--jq", ".nameWithOwner"], {
-		timeout: 30_000,
-	});
-	if (result.code !== 0) return { ok: false, error: formatExecError("Could not infer GitHub repository", result) };
-
-	const repo = result.stdout.trim();
-	if (!/^[^/]+\/[^/]+$/.test(repo)) return { ok: false, error: "Could not infer GitHub repository." };
-	return { ok: true, value: repo };
-}
-
-async function fetchIssue(pi: ExtensionAPI, repo: string, number: number): Promise<CommandResult<IssueMetadata>> {
-	const result = await pi.exec(
-		"gh",
-		["issue", "view", String(number), "--repo", repo, "--json", "number,title,url"],
-		{ timeout: 30_000 },
-	);
+export async function fetchIssue(
+	pi: ExtensionAPI,
+	repository: ForgeRepository,
+	number: number,
+	explicitUrl?: string,
+): Promise<CommandResult<IssueMetadata>> {
+	const isGitHub = repository.provider === "github";
+	const command = isGitHub ? "gh" : "glab";
+	const repo = isGitHub
+		? repository.host === "github.com" ? repository.project : `${repository.host}/${repository.project}`
+		: `https://${repository.host}/${repository.project}`;
+	const args = isGitHub
+		? ["issue", "view", String(number), "--repo", repo, "--json", "number,title,url"]
+		: ["issue", "view", explicitUrl ?? String(number), "--repo", repo, "--output", "json"];
+	const result = await pi.exec(command, args, { timeout: 30_000 });
 	if (result.code !== 0) return { ok: false, error: formatExecError(`Could not read issue #${number}`, result) };
 
 	try {
-		const parsed = JSON.parse(result.stdout) as Partial<IssueMetadata>;
-		if (typeof parsed.number !== "number" || typeof parsed.title !== "string" || typeof parsed.url !== "string") {
-			return { ok: false, error: `Could not parse issue #${number} metadata from gh output.` };
+		const parsed = JSON.parse(result.stdout) as Record<string, unknown>;
+		const parsedNumber = parsed.number ?? parsed.iid;
+		const parsedUrl = parsed.url ?? parsed.web_url ?? parsed.webUrl;
+		if (typeof parsedNumber !== "number" || typeof parsed.title !== "string" || typeof parsedUrl !== "string") {
+			return { ok: false, error: `Could not parse issue #${number} metadata from ${command} output.` };
 		}
-		return { ok: true, value: { number: parsed.number, title: parsed.title, url: parsed.url } };
+		return { ok: true, value: { number: parsedNumber, title: parsed.title, url: parsedUrl } };
 	} catch (error) {
 		return { ok: false, error: `Could not parse issue #${number} metadata: ${error instanceof Error ? error.message : String(error)}` };
 	}

@@ -33,6 +33,21 @@ test("parseArgs: branch", () => {
 	assert.deepEqual(parseArgs("branch main"), { target: { type: "baseBranch", branch: "main" } });
 });
 
+test("parseArgs: explicit GitHub PR, GitLab MR, numeric, and current targets", () => {
+	assert.deepEqual(parseArgs("https://github.com/acme/app/pull/12").target, {
+		type: "changeRequest",
+		selector: "https://github.com/acme/app/pull/12",
+		repository: { provider: "github", host: "github.com", project: "acme/app" },
+	});
+	assert.deepEqual(parseArgs("https://git.example.com/group/sub/app/-/merge_requests/13").target, {
+		type: "changeRequest",
+		selector: "https://git.example.com/group/sub/app/-/merge_requests/13",
+		repository: { provider: "gitlab", host: "git.example.com", project: "group/sub/app" },
+	});
+	assert.deepEqual(parseArgs("14").target, { type: "changeRequest", selector: "14" });
+	assert.deepEqual(parseArgs("current").target, { type: "changeRequest", selector: "current" });
+});
+
 test("parseArgs: branch without name → null", () => {
 	assert.deepEqual(parseArgs("branch"), { target: null });
 });
@@ -56,6 +71,14 @@ test("parseArgs: unknown subcommand → null target", () => {
 
 test("buildReviewSessionName: branch target uses branch name", () => {
 	assert.equal(buildReviewSessionName({ type: "baseBranch", branch: "feature/foo" }), "review - feature/foo");
+});
+
+test("buildReviewSessionName: change requests use provider-native URL normalization", () => {
+	assert.equal(buildReviewSessionName({
+		type: "changeRequest",
+		selector: "https://gitlab.com/group/app/-/merge_requests/42",
+		repository: { provider: "gitlab", host: "gitlab.com", project: "group/app" },
+	}), "review - MR #42");
 });
 
 test("buildReviewSessionName: uncommitted target uses literal label", () => {
@@ -101,7 +124,7 @@ test("buildReviewFixFindingsPrompt: expected template placeholders stay covered"
 });
 
 test("buildReviewFixFindingsPrompt: supported workflows render without unresolved placeholders", () => {
-	for (const targetType of [undefined, "uncommitted", "baseBranch"]) {
+	for (const targetType of [undefined, "uncommitted", "baseBranch", "changeRequest"]) {
 		const prompt = buildReviewFixFindingsPrompt(reviewFixFindingsTemplate, targetType);
 		assert.doesNotMatch(prompt, /{{\s*[^{}\s]+\s*}}/, `target type: ${targetType ?? "unknown"}`);
 	}

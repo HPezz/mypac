@@ -5,19 +5,28 @@ import { stdin as input, stdout as output } from "node:process";
 import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
 
+import { resolveForgeRepository, type ExecResult, type ForgeRepository, type ForgeResult } from "../lib/forge.ts";
 import { analyzeLabels, buildApplyPlan, countPlannedChanges, hasCleanRequiredLabels, normalizeColor } from "../extensions/pac-setup-workflows/drift.ts";
 import { parsePaginatedLabels } from "../extensions/pac-setup-workflows/github.ts";
+import { parseGitLabLabels } from "../extensions/pac-setup-workflows/gitlab.ts";
 import { renderApplyPlan, renderApplyResults, renderCheckResult } from "../extensions/pac-setup-workflows/render.ts";
-import type { ApplyOperationResult, GitHubLabel, LabelCheckResult, LabelSpec, ParsedCommand } from "../extensions/pac-setup-workflows/types.ts";
+import type { ApplyOperationResult, ForgeLabel, LabelCheckResult, LabelSpec, ParsedCommand } from "../extensions/pac-setup-workflows/types.ts";
 
 const execFileAsync = promisify(execFile);
 
 type CliCommand = Exclude<ParsedCommand, { action: "menu" | "error" }> & { yes: boolean };
 type CliParseResult = CliCommand | { action: "error"; message: string; yes: boolean };
-type GhResult<T> = { ok: true; value: T } | { ok: false; error: string };
 
-function isOwnerRepo(value: string): boolean {
-	return /^[^\s/]+\/[^\s/]+$/.test(value);
+type CheckContext = { repository: ForgeRepository; displayRepo: string; result: LabelCheckResult };
+
+function isRepoTarget(value: string): boolean {
+	if (/^[^\s/]+\/[^\s/]+$/.test(value)) return true;
+	try {
+		const url = new URL(value);
+		return /^https?:$/.test(url.protocol) && url.pathname.split("/").filter(Boolean).length >= 2;
+	} catch {
+		return false;
+	}
 }
 
 export function parseCliCommand(argv: string[]): CliParseResult {
@@ -33,15 +42,15 @@ export function parseCliCommand(argv: string[]): CliParseResult {
 		}
 		if (arg === "--repo") {
 			const value = argv[index + 1];
-			if (!value) return { action: "error", message: "--repo requires owner/repo", yes };
-			if (!isOwnerRepo(value)) return { action: "error", message: `Invalid --repo value: ${value}`, yes };
+			if (!value) return { action: "error", message: "--repo requires owner/repo or a forge URL", yes };
+			if (!isRepoTarget(value)) return { action: "error", message: `Invalid --repo value: ${value}`, yes };
 			repo = value;
 			index++;
 			continue;
 		}
 		if (arg.startsWith("--repo=")) {
 			const value = arg.slice("--repo=".length);
-			if (!isOwnerRepo(value)) return { action: "error", message: `Invalid --repo value: ${value}`, yes };
+			if (!isRepoTarget(value)) return { action: "error", message: `Invalid --repo value: ${value}`, yes };
 			repo = value;
 			continue;
 		}
@@ -52,7 +61,6 @@ export function parseCliCommand(argv: string[]): CliParseResult {
 	if (rest.length === 1 && (rest[0] === "help" || rest[0] === "--help" || rest[0] === "-h")) return { action: "help", repo, yes };
 	if (rest.length === 2 && rest[0] === "labels" && rest[1] === "check") return { action: "check", repo, yes };
 	if (rest.length === 2 && rest[0] === "labels" && rest[1] === "apply") return { action: "apply", repo, yes };
-
 	return { action: "error", message: `Unknown arguments: ${rest.join(" ")}`, yes };
 }
 
@@ -60,25 +68,32 @@ export function isAffirmativeConfirmation(value: string): boolean {
 	return value.trim().toLowerCase() === "yes";
 }
 
-async function runGh(args: string[]): Promise<GhResult<string>> {
+async function runCommand(command: string, args: string[]): Promise<ExecResult> {
 	try {
-		const result = await execFileAsync("gh", args, { timeout: 30_000, maxBuffer: 10 * 1024 * 1024 });
-		return { ok: true, value: result.stdout };
+		const result = await execFileAsync(command, args, { timeout: 30_000, maxBuffer: 10 * 1024 * 1024 });
+		return { code: 0, stdout: result.stdout, stderr: result.stderr };
 	} catch (error) {
-		if (error && typeof error === "object" && "stderr" in error) {
+		if (error && typeof error === "object") {
 			const execError = error as { stderr?: string; stdout?: string; message?: string; code?: unknown };
-			const errorOutput = [execError.stderr?.trim(), execError.stdout?.trim()].filter(Boolean).join("\n");
-			return { ok: false, error: errorOutput || execError.message || `gh ${args.join(" ")} failed` };
+			return {
+				code: typeof execError.code === "number" ? execError.code : 1,
+				stdout: execError.stdout ?? "",
+				stderr: execError.stderr ?? execError.message ?? String(error),
+			};
 		}
-		return { ok: false, error: error instanceof Error ? error.message : String(error) };
+		return { code: 1, stdout: "", stderr: String(error) };
 	}
+}
+
+function resultError(command: string, args: string[], result: ExecResult): string {
+	return [result.stderr.trim(), result.stdout.trim()].filter(Boolean).join("\n") || `${command} ${args.join(" ")} failed`;
 }
 
 function renderCliHelp(): string {
 	return [
 		"# pac-setup-workflows",
 		"",
-		"Check and apply canonical pac GitHub workflow labels.",
+		"Check and apply canonical pac workflow labels on GitHub or GitLab.",
 		"",
 		"Usage:",
 		"",
@@ -87,110 +102,107 @@ function renderCliHelp(): string {
 		"pac-setup-workflows labels check",
 		"pac-setup-workflows labels apply",
 		"pac-setup-workflows labels check --repo owner/repo",
-		"pac-setup-workflows labels apply --repo owner/repo",
+		"pac-setup-workflows labels check --repo https://git.example.com/group/project",
 		"pac-setup-workflows labels apply --repo owner/repo --yes",
 		"```",
 		"",
-		"Check mode is dry-run. Apply mode requires typing `yes` interactively or passing `--yes` before creating labels, updating pac:* metadata, or renaming known legacy labels.",
+		"Check mode is dry-run. Apply mode requires typing `yes` interactively or passing `--yes`.",
 	].join("\n");
 }
 
 function setupError(message: string): string {
 	return [
-		"Could not inspect GitHub labels.",
+		"Could not inspect forge labels.",
 		"",
 		"Prerequisites:",
-		"- Run inside a GitHub repository or pass `--repo owner/repo`.",
-		"- Install GitHub CLI (`gh`).",
-		"- Authenticate with `gh auth login`.",
+		"- Run inside a GitHub or GitLab repository, or pass an explicit repository URL.",
+		"- Install and authenticate the matching CLI (`gh` or `glab`).",
 		"",
 		"Details:",
 		message,
 	].join("\n");
 }
 
-async function resolveRepo(repo?: string): Promise<GhResult<string>> {
-	if (repo) return { ok: true, value: repo };
-	const result = await runGh(["repo", "view", "--json", "nameWithOwner", "--jq", ".nameWithOwner"]);
-	if (!result.ok) return result;
-	const value = result.value.trim();
-	if (!/^[^\s/]+\/[^\s/]+$/.test(value)) return { ok: false, error: "Could not infer GitHub repository. Pass --repo owner/repo." };
-	return { ok: true, value };
+async function resolveRepository(repo?: string): Promise<ForgeResult<ForgeRepository>> {
+	if (repo && /^[^\s/]+\/[^\s/]+$/.test(repo)) {
+		return { ok: true, value: { provider: "github", host: "github.com", project: repo } };
+	}
+	return resolveForgeRepository(runCommand, repo ? { explicitUrl: repo } : {});
 }
 
-async function fetchLabels(repo: string): Promise<GhResult<GitHubLabel[]>> {
-	const result = await runGh(["api", "--paginate", "--slurp", `repos/${repo}/labels?per_page=100`]);
-	if (!result.ok) return result;
+function githubRepo(repository: ForgeRepository): string {
+	return repository.host === "github.com" ? repository.project : `${repository.host}/${repository.project}`;
+}
+
+function gitlabRepo(repository: ForgeRepository): string {
+	return `https://${repository.host}/${repository.project}`;
+}
+
+async function fetchLabels(repository: ForgeRepository): Promise<ForgeResult<ForgeLabel[]>> {
+	if (repository.provider === "github") {
+		const args = ["api", "--paginate", "--slurp", `repos/${repository.project}/labels?per_page=100`];
+		const result = await runCommand("gh", args);
+		if (result.code !== 0) return { ok: false, error: resultError("gh", args, result) };
+		try {
+			return { ok: true, value: parsePaginatedLabels(result.stdout) };
+		} catch (error) {
+			return { ok: false, error: `Could not parse gh labels output: ${error instanceof Error ? error.message : String(error)}` };
+		}
+	}
+
+	const args = [
+		"api", "--hostname", repository.host, "--paginate",
+		`projects/${encodeURIComponent(repository.project)}/labels?include_ancestor_groups=true&per_page=100`,
+	];
+	const result = await runCommand("glab", args);
+	if (result.code !== 0) return { ok: false, error: resultError("glab", args, result) };
 	try {
-		return { ok: true, value: parsePaginatedLabels(result.value) };
+		return { ok: true, value: parseGitLabLabels(result.stdout) };
 	} catch (error) {
-		return { ok: false, error: `Could not parse gh api labels output: ${error instanceof Error ? error.message : String(error)}` };
+		return { ok: false, error: `Could not parse glab labels output: ${error instanceof Error ? error.message : String(error)}` };
 	}
 }
 
-async function renameLabel(repo: string, legacyName: string, target: LabelSpec): Promise<ApplyOperationResult> {
-	const result = await runGh([
-		"label",
-		"edit",
-		legacyName,
-		"--repo",
-		repo,
-		"--name",
-		target.name,
-		"--color",
-		normalizeColor(target.color),
-		"--description",
-		target.description,
-	]);
+async function mutateLabel(
+	repository: ForgeRepository,
+	action: "rename" | "create" | "update",
+	label: LabelSpec,
+	actual?: ForgeLabel,
+): Promise<ApplyOperationResult> {
+	if (actual?.scope === "group") {
+		return { action, label: actual.name, target: action === "rename" ? label.name : undefined, success: false, message: "inherited group labels are read-only" };
+	}
 
+	let command: string;
+	let args: string[];
+	if (repository.provider === "github") {
+		command = "gh";
+		if (action === "create") {
+			args = ["label", "create", label.name, "--repo", githubRepo(repository), "--color", normalizeColor(label.color), "--description", label.description];
+		} else {
+			args = ["label", "edit", actual?.name ?? label.name, "--repo", githubRepo(repository)];
+			if (action === "rename") args.push("--name", label.name);
+			args.push("--color", normalizeColor(label.color), "--description", label.description);
+		}
+	} else {
+		command = "glab";
+		if (action === "create") {
+			args = ["label", "create", "--repo", gitlabRepo(repository), "--name", label.name, "--color", `#${normalizeColor(label.color)}`, "--description", label.description];
+		} else {
+			if (actual?.id === undefined) return { action, label: actual?.name ?? label.name, success: false, message: "GitLab project label ID is missing" };
+			args = ["label", "edit", "--repo", gitlabRepo(repository), "--label-id", String(actual.id)];
+			if (action === "rename") args.push("--new-name", label.name);
+			args.push("--color", `#${normalizeColor(label.color)}`, "--description", label.description);
+		}
+	}
+
+	const result = await runCommand(command, args);
 	return {
-		action: "rename",
-		label: legacyName,
-		target: target.name,
-		success: result.ok,
-		message: result.ok ? "renamed and metadata updated" : result.error,
-	};
-}
-
-async function createLabel(repo: string, label: LabelSpec): Promise<ApplyOperationResult> {
-	const result = await runGh([
-		"label",
-		"create",
-		label.name,
-		"--repo",
-		repo,
-		"--color",
-		normalizeColor(label.color),
-		"--description",
-		label.description,
-	]);
-
-	return {
-		action: "create",
-		label: label.name,
-		success: result.ok,
-		message: result.ok ? "created" : result.error,
-	};
-}
-
-async function updateLabel(repo: string, label: LabelSpec): Promise<ApplyOperationResult> {
-	const result = await runGh([
-		"label",
-		"edit",
-		label.name,
-		"--repo",
-		repo,
-		"--color",
-		normalizeColor(label.color),
-		"--description",
-		label.description,
-	]);
-
-	return {
-		action: "update",
-		label: label.name,
-		success: result.ok,
-		message: result.ok ? "metadata updated" : result.error,
+		action,
+		label: actual?.name ?? label.name,
+		target: action === "rename" ? label.name : undefined,
+		success: result.code === 0,
+		message: result.code === 0 ? action === "create" ? "created" : action === "rename" ? "renamed and metadata updated" : "metadata updated" : resultError(command, args, result),
 	};
 }
 
@@ -199,7 +211,6 @@ async function confirmApply(repo: string, changeCount: number): Promise<boolean>
 		console.error("Apply mode requires explicit confirmation. Re-run with --yes to apply non-interactively.");
 		return false;
 	}
-
 	const rl = createInterface({ input, output });
 	try {
 		const answer = await rl.question(`Apply ${changeCount} pac workflow label change(s) to ${repo}? Type yes to continue: `);
@@ -209,56 +220,47 @@ async function confirmApply(repo: string, changeCount: number): Promise<boolean>
 	}
 }
 
-async function checkLabels(repoArg?: string): Promise<{ repo: string; result: LabelCheckResult } | undefined> {
-	const resolved = await resolveRepo(repoArg);
+async function checkLabels(repoArg?: string): Promise<CheckContext | undefined> {
+	const resolved = await resolveRepository(repoArg);
 	if (!resolved.ok) {
 		console.error(setupError(resolved.error));
 		return;
 	}
-
 	const labels = await fetchLabels(resolved.value);
 	if (!labels.ok) {
 		console.error(setupError(labels.error));
 		return;
 	}
-
 	const result = analyzeLabels(labels.value);
-	console.log(renderCheckResult(resolved.value, result));
-	return { repo: resolved.value, result };
+	const displayRepo = `${resolved.value.host}/${resolved.value.project}`;
+	console.log(renderCheckResult(displayRepo, result));
+	return { repository: resolved.value, displayRepo, result };
 }
 
 async function applyLabels(repoArg: string | undefined, yes: boolean): Promise<number> {
 	const check = await checkLabels(repoArg);
 	if (!check) return 1;
-
-	const result = check.result;
-	const plan = buildApplyPlan(result);
+	const plan = buildApplyPlan(check.result);
 	const changeCount = countPlannedChanges(plan);
-	console.log("\n" + renderApplyPlan(check.repo, plan));
-
+	console.log("\n" + renderApplyPlan(check.displayRepo, plan));
 	if (changeCount === 0) {
 		console.log("\nNo pac workflow label changes needed.");
-		return hasCleanRequiredLabels(result) ? 0 : 1;
+		return hasCleanRequiredLabels(check.result) ? 0 : 1;
 	}
-
-	if (!yes && !(await confirmApply(check.repo, changeCount))) {
+	if (!yes && !(await confirmApply(check.displayRepo, changeCount))) {
 		console.error("Pac workflow label apply cancelled.");
 		return 1;
 	}
 
 	const results: ApplyOperationResult[] = [];
-	for (const rename of plan.renames) {
-		results.push(await renameLabel(check.repo, rename.mapping.legacy, rename.expected));
-	}
-	for (const create of plan.creates) {
-		results.push(await createLabel(check.repo, create));
-	}
-	for (const update of plan.updates) {
-		results.push(await updateLabel(check.repo, update.expected));
-	}
+	for (const rename of plan.renames) results.push(await mutateLabel(check.repository, "rename", rename.expected, rename.legacyLabel));
+	for (const create of plan.creates) results.push(await mutateLabel(check.repository, "create", create));
+	for (const update of plan.updates) results.push(await mutateLabel(check.repository, "update", update.expected, update.actual));
+	console.log("\n" + renderApplyResults(check.displayRepo, results));
+	if (!results.every((result) => result.success)) return 1;
 
-	console.log("\n" + renderApplyResults(check.repo, results));
-	return results.every((result) => result.success) ? 0 : 1;
+	const verification = await checkLabels(`https://${check.repository.host}/${check.repository.project}`);
+	return verification && hasCleanRequiredLabels(verification.result) ? 0 : 1;
 }
 
 export async function main(argv = process.argv.slice(2)): Promise<number> {
@@ -278,6 +280,4 @@ export async function main(argv = process.argv.slice(2)): Promise<number> {
 	return applyLabels(command.repo, command.yes);
 }
 
-if (process.argv[1] === fileURLToPath(import.meta.url)) {
-	process.exitCode = await main();
-}
+if (process.argv[1] === fileURLToPath(import.meta.url)) process.exitCode = await main();

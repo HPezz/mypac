@@ -26,8 +26,23 @@ test("renderApplyPlan shows renames and creates", () => {
 	assert.doesNotMatch(text, /- `pac:prd` #/);
 });
 
+test("rendering exposes inherited labels and ownership conflicts before apply", () => {
+	const result = analyzeLabels([
+		{ id: 1, name: "pac:prd", color: "#000000", description: "project", scope: "project" },
+		{ id: 2, name: "pac:prd", color: "#BFDADC", description: "group", scope: "group" },
+	]);
+	const check = renderCheckResult("git.example.com/group/app", result);
+	const plan = renderApplyPlan("git.example.com/group/app", buildApplyPlan(result));
+
+	assert.match(check, /Inherited GitLab group labels \(read-only\)/);
+	assert.match(check, /exists at both project and group scope/);
+	assert.match(plan, /Inherited\/project conflicts not auto-resolved/);
+	assert.match(plan, /will not overwrite either label/);
+});
+
 test("renderHelp documents supported command forms", () => {
 	const text = renderHelp();
 	assert.match(text, /\/pac-setup-workflows labels check --repo owner\/repo/);
+	assert.match(text, /gitlab\.example\/group\/project/);
 	assert.match(text, /Apply mode requires explicit confirmation/);
 });

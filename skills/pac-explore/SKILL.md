@@ -27,7 +27,7 @@ This is a stance, not a fixed workflow. There are no required steps, sequence, o
 - **Visual** — use ASCII diagrams, state machines, dependency maps, and comparison tables when they clarify thinking.
 - **Adaptive** — follow interesting threads and pivot when new information appears.
 - **Patient** — do not rush to conclusions just to produce an artifact.
-- **Grounded** — inspect the actual codebase or GitHub issue context when it matters.
+- **Grounded** — inspect the actual codebase or forge issue/change-request context when it matters.
 
 ## What you might do
 

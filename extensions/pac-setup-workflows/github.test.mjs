@@ -17,6 +17,13 @@ test("parseCommand parses labels check with repo", () => {
 	});
 });
 
+test("parseCommand accepts a self-hosted GitLab project URL", () => {
+	assert.deepEqual(parseCommand("labels check --repo https://git.example.com/group/subgroup/app"), {
+		action: "check",
+		repo: "https://git.example.com/group/subgroup/app",
+	});
+});
+
 test("parseCommand parses labels apply with equals repo", () => {
 	assert.deepEqual(parseCommand("labels apply --repo=ladislas/mypac"), {
 		action: "apply",

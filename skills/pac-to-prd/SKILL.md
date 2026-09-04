@@ -1,7 +1,7 @@
 ---
 name: pac-to-prd
 disable-model-invocation: true
-description: "Synthesize current context into a structured PRD draft or publishable PRD artifact using a shared template. Use when the user wants a PRD from conversation context, a GitHub issue, or a saved draft path."
+description: "Synthesize current context into a structured PRD draft or publishable PRD artifact using a shared template. Use when the user wants a PRD from conversation context, a forge issue or change request, or a saved draft path."
 license: MIT
 compatibility: Pi coding agent
 metadata:
@@ -22,7 +22,7 @@ If a critical ambiguity blocks a useful draft, ask at most one narrow follow-up 
 The input may be:
 
 - current conversation context
-- a GitHub issue or PR URL
+- a GitHub issue/PR or GitLab issue/MR URL
 - a local draft path under `~/.pi/agent/prds/`
 - short free text that points at the work
 
@@ -36,16 +36,17 @@ Support exactly these modes:
 - `comment-on-issue`
 - `create-issue`
 
-Default to `draft-only` unless the user clearly asks for GitHub publication.
+Default to `draft-only` unless the user clearly asks for publication to the resolved GitHub or GitLab forge.
 
 ## Process
 
 1. Resolve the source material.
 
-   - If given an issue or PR URL, read the minimum relevant context first.
+   - If given an issue or change-request URL, read the minimum relevant context first through `gh` or `glab`; call it a pull request on GitHub and a merge request on GitLab.
    - If given a local draft path, read the file and use it as the authoritative source.
    - Otherwise, use the current conversation plus focused repo exploration.
-   - If the user wants `comment-on-issue` and no target issue is obvious, ask one narrow follow-up question.
+   - PRs and MRs may provide context but are never PRD publication destinations. Resolve an explicitly linked issue first (`closingIssuesReferences` on GitHub or the MR's closing-issue references on GitLab).
+   - If the user wants `comment-on-issue` and no target issue is obvious or linked from the change request, ask one narrow follow-up question. Do not create a target issue automatically.
 
 2. Explore the repo enough to sketch the likely module shape and testing scope.
 
@@ -54,7 +55,7 @@ Default to `draft-only` unless the user clearly asks for GitHub publication.
    - Actively look for opportunities to propose deep, testable modules instead of shallow glue.
    - Keep this sketch concrete enough to review, but do not drop into file-by-file implementation planning.
 
-3. Show one review checkpoint **before producing the draft or publishing to GitHub**.
+3. Show one review checkpoint **before producing the draft or publishing to a forge issue**.
 
    Present:
 
@@ -107,7 +108,7 @@ Return the saved path to the user. Treat this draft file as a first-class artifa
 
 ### `comment-on-issue`
 
-Before any GitHub write, require an explicit final confirmation from the user.
+Before any remote write, read the latest issue body, comments, and labels, show the exact write set (new comment, issue-body section update, and optional label), and require explicit final confirmation from the user.
 
 When publishing from a local draft file:
 
@@ -115,7 +116,7 @@ When publishing from a local draft file:
 - do not silently resynthesise the PRD
 - strip local draft frontmatter from the published comment body
 
-Then:
+Then, use `gh issue comment`/`gh issue edit` for GitHub or `glab issue note create`/`glab issue update` for GitLab against the resolved issue:
 
 - prepend `<!-- pac:prd -->`
 - create a **new** PRD iteration comment each run
@@ -126,7 +127,7 @@ Then:
 
 ### `create-issue`
 
-Before any GitHub write, require an explicit final confirmation from the user.
+Before issue creation, show the resolved provider, destination project, title, body source, and existing labels to apply, then require explicit final confirmation from the user.
 
 When publishing from a local draft file:
 
@@ -135,7 +136,7 @@ When publishing from a local draft file:
 
 Then:
 
-- create a new GitHub issue whose title is a concise, scannable version of the PRD title and whose **body is the PRD itself**
+- create a new GitHub or GitLab issue through `gh issue create` or `glab issue create`; its title is a concise, scannable version of the PRD title and its **body is the PRD itself**
   - derive the issue title from the PRD title, but do not mirror it mechanically when a shorter title is clearer
   - prefer a short imperative or descriptive title that names the concrete work, such as `Improve pac-to-prd issue titles`
   - strip PRD/publication wrappers and redundant framing such as `PRD —`, `Create issue for`, or broad context already obvious from the repository
@@ -145,11 +146,13 @@ Then:
 - add `pac:ready_for_agent` and `pac:prd` only when those labels already exist in the target repository
 - never create missing labels automatically
 
-## GitHub safety rules
+## Forge publication safety rules
 
-- Surface `gh` failures plainly.
-- If expected pac workflow labels are missing, warn clearly, skip them without turning that into a blocker, and tell the user to run the repo-local `/pac-setup-workflows` command.
-- Keep GitHub publication explicit and non-invasive.
+- Publish PRD artifacts only to issues. Never post them to a pull request or merge request discussion.
+- Surface `gh` or `glab` failures plainly; never fall back to the other provider.
+- Re-read the latest issue state immediately before each confirmed mutation so reserved `## PRDs` links do not stomp concurrent edits.
+- Missing labels remain non-blocking: warn clearly, skip them, and tell the user to run the repo-local `/pac-setup-workflows` command.
+- Keep forge publication explicit and non-invasive.
 - Do not reference external setup skills or ad hoc setup mechanisms; `/pac-setup-workflows` is the canonical pac label setup command.
 
 ## When to stop and redirect

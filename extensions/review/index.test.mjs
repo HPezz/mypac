@@ -157,6 +157,62 @@ test("/review-start can retry after pac-review skill load failure without leavin
 	]);
 });
 
+test("/review-start gathers provider-native metadata for GitHub PRs and GitLab MRs", async () => {
+	for (const scenario of [
+		{
+			target: "https://github.com/acme/app/pull/12",
+			command: "gh",
+			kind: "pull request",
+			metadata: { number: 12, title: "GitHub change", url: "https://github.com/acme/app/pull/12", state: "OPEN" },
+		},
+		{
+			target: "https://git.example.com/group/sub/app/-/merge_requests/13",
+			command: "glab",
+			kind: "merge request",
+			metadata: { iid: 13, title: "GitLab change", web_url: "https://git.example.com/group/sub/app/-/merge_requests/13", state: "opened" },
+		},
+	]) {
+		const commands = new Map();
+		const calls = [];
+		const messages = [];
+		const pi = {
+			registerCommand(name, definition) { commands.set(name, definition.handler); },
+			on() {},
+			async exec(command, args) {
+				calls.push([command, args]);
+				if (command === "git") return { code: 0, stdout: ".git\n", stderr: "" };
+				assert.equal(command, scenario.command);
+				return { code: 0, stdout: JSON.stringify(scenario.metadata), stderr: "" };
+			},
+			appendEntry() {},
+			setSessionName() {},
+			sendUserMessage(message) { messages.push(message); },
+		};
+		reviewExtension(pi, { loadPackageSkill: async () => ({ content: "review skill" }) });
+		await commands.get("review-start")(scenario.target, {
+			mode: "rpc",
+			hasUI: true,
+			cwd: process.cwd(),
+			isProjectTrusted: () => false,
+			sessionManager: {
+				getEntries: () => [{ id: "msg-1", type: "message", message: { role: "user" } }],
+				getBranch: () => [],
+				getLeafId: () => "leaf-1",
+			},
+			ui: {
+				notify() {}, setWidget() {}, setEditorText() {},
+				select: async () => "Current session",
+			},
+		});
+
+		assert.equal(messages.length, 1);
+		assert.match(messages[0], new RegExp(scenario.kind, "i"));
+		assert.match(messages[0], new RegExp(`${scenario.command}.*checkout`, "i"));
+		assert.match(messages[0], /unresolved (?:review threads|discussions)/i);
+		assert.equal(calls.some(([command]) => command === scenario.command), true);
+	}
+});
+
 test("/review-start includes project review guidelines only for trusted projects", async () => {
 	const projectDir = await mkdtemp(path.join(tmpdir(), "mypac-review-trust-"));
 	try {

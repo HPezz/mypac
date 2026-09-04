@@ -1,200 +1,132 @@
 ---
 name: pac-to-issues
 disable-model-invocation: true
-description: "Break a plan, PRD, or discussion into independently-grabbable GitHub issues using tracer-bullet vertical slices. Use when the user wants to convert a plan into issues, decompose a PRD into tickets, or create a set of linked implementation issues with explicit dependencies."
+description: "Break a plan, PRD, or discussion into independently grabbable issues with a portable Markdown dependency graph. Use when creating tracer-bullet issues on GitHub or GitLab."
 license: MIT
-compatibility: Git repository; gh CLI required.
+compatibility: Git repository; gh or glab CLI required.
 metadata:
   author: mypac
   stage: shared
 ---
 
-# pac-to-issues
+# Create portable issue graphs
 
-Break a plan into independently-grabbable GitHub issues using vertical slices (tracer bullets).
+Break an approved plan into thin, independently verifiable vertical slices. The issue bodies are the authoritative portable graph; provider-native parent and dependency relationships are optional enrichment.
 
-## Process
+## 1. Resolve source and destination
 
-### 1. Gather context
+Use conversation context, a local PRD draft, free text, or a GitHub issue/PR or GitLab issue/MR URL. Resolve an explicit URL first, then the current tracking remote, then `origin`; ask rather than guessing if ambiguous.
 
-Work from whatever is already in the conversation. If the user passes a GitHub issue number or URL, fetch it with:
+Read a forge source through its provider:
 
-```bash
+```sh
 gh issue view <number> --repo <owner/repo> --comments
+gh pr view <number-or-url> --repo <owner/repo> --comments
+glab issue view <full-url> --output json --comments --per-page 100
+glab mr view <iid> --repo <full-project-url> --output json --comments --per-page 100
 ```
 
-Note the issue number — it becomes the parent for all created sub-issues.
+A source issue becomes the optional parent. A conversation, draft, free-text plan, PR, or MR may have no parent; do not invent one.
 
-If the input is a free-form plan or PRD with no parent issue, skip parent wiring steps.
+## 2. Draft tracer-bullet slices
 
-### 2. Explore the codebase (optional)
+Each slice must deliver a narrow end-to-end behavior across every relevant layer. Do not create horizontal tickets such as “all tests” or “all schemas.” Classify each slice:
 
-If you have not already explored the relevant areas of the codebase, do so to understand the current state before slicing.
+- **HITL** — requires human judgment, access, design review, or approval
+- **AFK** — can be implemented autonomously with deterministic verification
 
-### 3. Draft vertical slices
+For each slice show title, type, blockers, and one-sentence summary. Ask the user to approve granularity, dependencies, and HITL/AFK classifications before any remote write.
 
-Break the plan into **tracer bullet** issues. Each slice is a thin vertical cut through ALL relevant layers end-to-end, not a horizontal layer (e.g. not "write all the tests" or "update all the schemas").
+## 3. Create in dependency order
 
-Classify each slice as **HITL** or **AFK**:
+After explicit confirmation, create blockers first so every dependent body can contain real references. Use a temporary body file.
 
-- **HITL** (Human In The Loop): requires a human decision, design review, or approval before work can proceed or be merged.
-- **AFK** (Away From Keyboard): can be implemented and merged autonomously without human interaction.
+GitHub:
 
-Prefer AFK over HITL where possible.
-
-<vertical-slice-rules>
-- Each slice delivers a narrow but complete path through every relevant layer
-- A completed slice is demoable or verifiable on its own
-- Prefer many thin slices over few thick ones
-- Do not create horizontal slices (one layer at a time)
-</vertical-slice-rules>
-
-### 4. Quiz the user
-
-Present the proposed breakdown as a numbered list. For each slice, show:
-
-- **Title**: short descriptive name
-- **Type**: HITL / AFK
-- **Blocked by**: which other slices (if any) must complete first
-- **Summary**: one sentence describing the end-to-end behavior
-
-Ask the user:
-
-- Does the granularity feel right? (too coarse / too fine)
-- Are the dependency relationships correct?
-- Should any slices be merged or split?
-- Are the HITL / AFK classifications correct?
-
-Iterate until the user approves the breakdown.
-
-### 5. Create the GitHub issues
-
-Create issues in **dependency order** — blockers first — so real issue numbers are available when writing `## Blocked by` in dependent issues.
-
-For each approved slice:
-
-#### 5a. Create the issue
-
-```bash
-gh issue create \
-  --repo <owner/repo> \
-  --title "<title>" \
-  --body-file <temp-file>
+```sh
+gh issue create --repo <owner/repo> --title "<title>" --body-file <body-file>
 ```
 
-Use the issue body template below.
+GitLab:
 
-Apply the `pac:hitl` or `pac:afk` label only if it already exists in the repository. Create the issue first, then add the label conditionally:
-
-```bash
-issue_url=$(gh issue create \
-  --repo <owner/repo> \
-  --title "<title>" \
-  --body-file <temp-file>)
-
-issue_number=${issue_url##*/}
-label_name="pac:hitl"   # or "pac:afk"
-
-if gh label list --repo <owner/repo> --json name --jq '.[].name' | grep -Fxq "$label_name"; then
-  gh issue edit "$issue_number" --repo <owner/repo> --add-label "$label_name"
-else
-  echo "Warning: expected pac workflow label is missing: $label_name; run /pac-setup-workflows; skipping label"
-fi
+```sh
+glab issue create --repo <full-project-url> --title "<title>" \
+  --description-file <body-file> --yes
 ```
 
-If the label does not exist, warn the user to run `/pac-setup-workflows` and skip it — do not fail the run.
+Apply `pac:hitl` or `pac:afk` only when it already exists. Missing labels are non-blocking: report the exact label, skip it, and direct the user to `/pac-setup-workflows`. Never create labels from this workflow.
 
-#### 5b. Wire GraphQL relationships
+If any issue creation fails, keep and report all successfully created issue URLs. Do not claim relationships for an issue that was not created.
 
-After creating each issue, resolve its node ID:
+## Portable issue body
 
-```bash
-gh issue view <number> --repo <owner/repo> --json id --jq .id
-```
-
-**Attach to parent** (if a parent issue exists):
-
-```bash
-gh api graphql \
-  -f query='mutation($issueId:ID!, $subIssueId:ID!) {
-    addSubIssue(input:{issueId:$issueId, subIssueId:$subIssueId}) {
-      issue { number }
-      subIssue { number }
-    }
-  }' \
-  -f issueId=<parent-node-id> \
-  -f subIssueId=<new-issue-node-id>
-```
-
-**Wire blockers** (for each declared blocker):
-
-```bash
-gh api graphql \
-  -f query='mutation($issueId:ID!, $blockingIssueId:ID!) {
-    addBlockedBy(input:{issueId:$issueId, blockingIssueId:$blockingIssueId}) {
-      issue { number }
-      blockingIssue { number }
-    }
-  }' \
-  -f issueId=<new-issue-node-id> \
-  -f blockingIssueId=<blocker-node-id>
-```
-
-Surface GraphQL errors clearly. Do not abort the run on failure — the text body is the reliable record.
-
-### 6. Update the parent issue body
-
-After all issues are created, append or update a `## Tasks` section in the parent issue body:
-
-```md
-## Tasks
-
-- [ ] #<number> — <title>
-- [ ] #<number> — <title>
-```
-
-Read the current body first to avoid stomping existing content. If a `## Tasks` section already exists, update it in place.
-
-If there is no parent issue, skip this step.
-
-## Issue body template
+Every created issue records its graph in Markdown using the actual URLs returned by the provider:
 
 ```md
 ## Summary
 
-<concise description of this vertical slice — end-to-end behavior, not layer-by-layer implementation>
+<one complete vertical slice>
 
 ## Motivation
 
-<one or two sentences on why this slice matters; may point back to the parent issue>
+<why this slice matters>
 
 ## Acceptance Criteria
 
-- [ ] <criterion 1>
-- [ ] <criterion 2>
-- [ ] <criterion 3>
+- [ ] <observable outcome>
+- [ ] <verification outcome>
 
 ## Type
 
-HITL / AFK — <one sentence explaining why>
+HITL / AFK — <reason>
 
 ## Parent
 
-#<parent-issue-number>
-
-(Omit this section if there is no parent issue.)
+- [<parent title>](<real parent issue URL>)
 
 ## Blocked by
 
-- #<issue-number> — <title>
-
-Or: None — can start immediately.
+- [<blocker title>](<real created blocker issue URL>)
 ```
 
-## Constraints
+Omit `## Parent` when there is no parent. Write `None — can start immediately.` under `## Blocked by` when there are no blockers. This Markdown graph must be complete even when native relationships are unavailable.
 
-- Create issues in dependency order (blockers first) so issue numbers are real when referenced.
-- Do not close or modify the parent issue beyond adding `## Tasks`.
-- Surface `gh` and GraphQL errors clearly instead of paraphrasing them away.
-- If a `pac:hitl` or `pac:afk` label does not exist in the repository, warn the user to run `/pac-setup-workflows` and skip — do not fail the run.
-- Use a temp file for issue bodies to avoid shell-escaping issues.
+## 4. Add native relationships when supported
+
+After each issue is created and its Markdown graph is durable, discover provider support and attempt native relationships:
+
+- GitHub: `addSubIssue` and `addBlockedBy` GraphQL mutations.
+- GitLab: issue-link APIs for blocking dependencies and the available work-item parent/child API only when supported by the host version, project settings, and license.
+
+Native relationships are non-blocking enrichment. For every unsupported or failed relationship, report:
+
+- provider and operation
+- source and target issue URLs
+- unsupported capability or exact CLI/API failure
+- confirmation that the Markdown relationship remains authoritative
+
+Do not discard created issues, remove Markdown relationships, switch providers, or report enrichment as successful after a failure.
+
+## 5. Update the parent safely
+
+If a parent issue exists:
+
+1. Re-read its latest body immediately before mutation.
+2. Preserve all non-reserved content.
+3. Create or update only `## Tasks` with real issue links:
+
+   ```md
+   ## Tasks
+
+   - [ ] [First slice](<real issue URL>)
+   - [ ] [Second slice](<real issue URL>)
+   ```
+
+4. Show the body update and require explicit confirmation.
+5. Apply it through `gh issue edit` or `glab issue update`.
+
+With no parent, skip this step.
+
+## Completion report
+
+Report created issue URLs in dependency order, applied or missing labels, native relationship successes, precise enrichment failures, and whether the parent task section was updated. Surface `gh` and `glab` errors plainly.
