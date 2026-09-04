@@ -1,10 +1,12 @@
+import { parseForgeReference, type ForgeRepository } from "../../lib/forge.ts";
 import { buildWorkflowSessionName } from "../session-names/helpers.ts";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 export type ReviewTarget =
 	| { type: "uncommitted" }
-	| { type: "baseBranch"; branch: string };
+	| { type: "baseBranch"; branch: string }
+	| { type: "changeRequest"; selector: string; repository?: ForgeRepository };
 
 export type ParsedReviewArgs = {
 	target: ReviewTarget | null;
@@ -41,6 +43,8 @@ function getReviewModeLabel(targetType?: ReviewTarget["type"]): string {
 			return "uncommitted changes";
 		case "baseBranch":
 			return "base branch";
+		case "changeRequest":
+			return "change request";
 		default:
 			return "unknown";
 	}
@@ -179,6 +183,17 @@ export function parseArgs(args: string | undefined): ParsedReviewArgs {
 	}
 
 	const subcommand = parts[0]?.toLowerCase();
+	const reference = parseForgeReference(parts[0] ?? "");
+	if (reference?.kind === "change" && parts.length === 1) {
+		return result({
+			type: "changeRequest",
+			selector: reference.url,
+			repository: { provider: reference.provider, host: reference.host, project: reference.project },
+		});
+	}
+	if (parts.length === 1 && (/^\d+$/.test(parts[0] ?? "") || subcommand === "current")) {
+		return result({ type: "changeRequest", selector: subcommand === "current" ? "current" : parts[0] });
+	}
 
 	switch (subcommand) {
 		case "uncommitted":
@@ -203,6 +218,10 @@ export function getUserFacingHint(target: ReviewTarget): string {
 			return "current changes";
 		case "baseBranch":
 			return `changes against '${target.branch}'`;
+		case "changeRequest": {
+			const label = target.repository?.provider === "gitlab" ? "merge request" : target.repository?.provider === "github" ? "pull request" : "change request";
+			return `${label} ${target.selector === "current" ? "for the current branch" : target.selector}`;
+		}
 	}
 }
 
@@ -212,5 +231,7 @@ export function buildReviewSessionName(target: ReviewTarget): string | undefined
 			return buildWorkflowSessionName("review", "uncommitted");
 		case "baseBranch":
 			return buildWorkflowSessionName("review", target.branch);
+		case "changeRequest":
+			return buildWorkflowSessionName("review", target.selector);
 	}
 }

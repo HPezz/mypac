@@ -17,7 +17,7 @@ mypac groups reusable Pi assets by how they affect a session. Repo-local prompts
 | [`notify`](../extensions/notify/) | `/notify-test`, background behavior | Terminal notifications when Pi is ready for input |
 | [`pac-setup-workflows`](../extensions/pac-setup-workflows/) | `/pac-setup-workflows` | GitHub and GitLab workflow label inspection and setup |
 | [`personas`](../extensions/personas/) | `/persona` | Runtime persona discovery and selection |
-| [`review`](../extensions/review/) | `/review-start`, `/review-end` | Guided code-review sessions |
+| [`review`](../extensions/review/) | `/review-start`, `/review-end` | Guided local, GitHub PR, and GitLab MR review sessions |
 | [`session-breakdown`](../extensions/session-breakdown/) | `/session-breakdown` | Session cost, model, directory, cache, and context statistics |
 | [`session-names`](../extensions/session-names/) | Background behavior | Work-context names for implementation and planning sessions |
 | [`shared-append-system`](../extensions/shared-append-system/) | Background behavior | Shared project instructions appended to the system prompt |

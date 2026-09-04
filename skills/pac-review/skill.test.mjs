@@ -23,6 +23,17 @@ test("core review skill retains the default defect and output contracts", async 
 	assert.match(core, /fail-fast/i);
 });
 
+test("core review discovers GitHub PRs and GitLab MRs with provider-native context", async () => {
+	const core = await read(coreUrl);
+
+	assert.match(core, /explicit forge URLs.*provider from the URL/i);
+	assert.match(core, /numeric or current-branch targets.*tracking remote.*origin.*ambiguity/i);
+	assert.match(core, /gh pr view.*gh pr checkout.*gh pr diff/is);
+	assert.match(core, /glab mr view.*--unresolved.*glab mr checkout.*glab mr diff/is);
+	assert.match(core, /pull request for GitHub and merge request for GitLab/i);
+	assert.match(core, /surface provider failures without switching CLIs/i);
+});
+
 test("core routes detailed fix guidance only for an actual fix-findings workflow", async () => {
 	const core = await read(coreUrl);
 	const fix = await read(fixUrl);

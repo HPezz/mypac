@@ -3,7 +3,7 @@ description: "Address GitHub Copilot PR review comments with explicit fixup comm
 argument-hint: "[PR URL | PR number | current PR]"
 ---
 
-Handle GitHub Copilot review comments on a pull request.
+Handle GitHub Copilot review comments on a pull request. This workflow is GitHub-only; do not add or infer GitLab Duo behavior.
 
 Use the optional argument after `/pac-fix-copilot-review` as the target PR. It may be:
 

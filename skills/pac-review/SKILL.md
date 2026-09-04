@@ -1,8 +1,8 @@
 ---
 name: pac-review
-description: "Review code changes following project review guidelines. Use when the user asks to review code, uncommitted changes, a pull request, a branch comparison, or a specific commit."
+description: "Review code changes following project review guidelines. Use when the user asks to review uncommitted changes, a branch, commit, GitHub pull request, or GitLab merge request."
 license: MIT
-compatibility: Git repository; gh CLI required for pull request reviews.
+compatibility: Git repository; gh or glab CLI required for forge change-request reviews.
 metadata:
   author: mypac
   stage: shared
@@ -30,12 +30,19 @@ git diff <merge-base-sha>
 # commit
 git show <sha>
 
-# pull request
-gh pr view <number> --json baseRefName,title,headRefName
-gh pr checkout <number>
-git merge-base HEAD <base-branch>
-git diff <merge-base-sha>
+# GitHub pull request
+gh pr view <number-or-url> --json baseRefName,title,headRefName,url,state,comments,reviews
+gh pr checkout <number-or-url>
+gh pr diff <number-or-url>
+# Use gh api graphql when unresolved review-thread state is materially needed.
+
+# GitLab merge request
+glab mr view <iid-or-branch> --repo <full-project-url> --output json --unresolved --per-page 100
+glab mr checkout <iid-or-branch> --repo <full-project-url>
+glab mr diff <iid-or-branch> --repo <full-project-url> --color=never
 ```
+
+For explicit forge URLs, resolve the provider from the URL. For numeric or current-branch targets, use tracking remote then `origin` and ask on ambiguity. Say pull request for GitHub and merge request for GitLab. Check the working tree before checkout, never use force, and surface provider failures without switching CLIs.
 
 For a requested file snapshot rather than a diff, read only those files. After inspecting the diff, read surrounding code, callers, tests, or runtime context only to prove or disprove a concrete finding. Do not sweep repository docs or unrelated source for general understanding.
 

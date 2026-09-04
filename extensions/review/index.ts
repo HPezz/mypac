@@ -37,6 +37,7 @@ import {
 } from "@earendil-works/pi-tui";
 import path from "node:path";
 import { promises as fs } from "node:fs";
+import { resolveForgeRepository, type ForgeRepository } from "../../lib/forge.ts";
 import { loadPackageSkill } from "../../lib/skill-loader.ts";
 import {
 	formatReviewPromptError,
@@ -238,6 +239,53 @@ async function getDefaultBranch(pi: ExtensionAPI): Promise<string> {
  * Build the diff-specific part of the review prompt based on target.
  * The review skill/rubric is prepended separately in executeReview.
  */
+async function resolveChangeRequestTarget(pi: ExtensionAPI, target: ReviewTarget): Promise<ReviewTarget> {
+	if (target.type !== "changeRequest" || target.repository) return target;
+	const resolved = await resolveForgeRepository(
+		(command, args) => pi.exec(command, args, { timeout: 30_000 }),
+	);
+	if (!resolved.ok) throw new Error(resolved.error);
+	return { ...target, repository: resolved.value };
+}
+
+function providerRepo(repository: ForgeRepository): string {
+	if (repository.provider === "gitlab") return `https://${repository.host}/${repository.project}`;
+	return repository.host === "github.com" ? repository.project : `${repository.host}/${repository.project}`;
+}
+
+async function buildChangeRequestPrompt(pi: ExtensionAPI, target: Extract<ReviewTarget, { type: "changeRequest" }>): Promise<string> {
+	if (!target.repository) throw new Error("Change-request forge was not resolved.");
+	const repository = target.repository;
+	const selectorArgs = target.selector === "current" ? [] : [target.selector];
+	const isGitHub = repository.provider === "github";
+	const command = isGitHub ? "gh" : "glab";
+	const args = isGitHub
+		? ["pr", "view", ...selectorArgs, "--repo", providerRepo(repository), "--json", "number,title,url,state,baseRefName,headRefName,comments,reviews"]
+		: ["mr", "view", ...selectorArgs, "--repo", providerRepo(repository), "--output", "json", "--unresolved", "--per-page", "100"];
+	const metadata = await pi.exec(command, args, { timeout: 30_000 });
+	if (metadata.code !== 0) {
+		const details = [metadata.stderr.trim(), metadata.stdout.trim()].filter(Boolean).join("\n");
+		throw new Error(`Could not read ${isGitHub ? "pull request" : "merge request"}: ${details || `${command} exited ${metadata.code}`}`);
+	}
+
+	const noun = isGitHub ? "GitHub pull request" : "GitLab merge request";
+	const cli = isGitHub ? "gh" : "glab";
+	const checkout = isGitHub ? "gh pr checkout" : "glab mr checkout";
+	const diff = isGitHub ? "gh pr diff" : "glab mr diff --color=never";
+	const discussions = isGitHub ? "gh pr view plus gh api graphql for unresolved review threads" : "glab mr view --unresolved for unresolved discussions";
+	return [
+		`Review the ${noun} resolved from ${repository.host}/${repository.project}.`,
+		"Provider metadata gathered before review:",
+		"```json",
+		metadata.stdout.trim(),
+		"```",
+		`Use ${cli} only. Check git status before checkout; if checkout is needed and safe, use \`${checkout}\` without force.`,
+		`Inspect the provider diff with \`${diff}\` (or the equivalent merge-base diff after checkout).`,
+		`Gather comments and unresolved discussion context with ${discussions}.`,
+		"Do not switch providers when an operation fails. Provide prioritized, actionable findings.",
+	].join("\n\n");
+}
+
 async function buildReviewPrompt(
 	pi: ExtensionAPI,
 	target: ReviewTarget,
@@ -252,12 +300,15 @@ async function buildReviewPrompt(
 				? BASE_BRANCH_PROMPT_WITH_MERGE_BASE.replace(/{baseBranch}/g, target.branch).replace(/{mergeBaseSha}/g, mergeBase)
 				: BASE_BRANCH_PROMPT_FALLBACK.replace(/{branch}/g, target.branch);
 		}
+		case "changeRequest":
+			return buildChangeRequestPrompt(pi, target);
 	}
 }
 
 // Review preset options for the selector
 const REVIEW_PRESETS = [
 	{ value: "baseBranch", label: "Review against a base branch", description: "(local)" },
+	{ value: "changeRequest", label: "Review current pull/merge request", description: "(forge)" },
 	{ value: "uncommitted", label: "Review uncommitted changes", description: "" },
 ] as const;
 
@@ -353,6 +404,7 @@ export default function reviewExtension(pi: ExtensionAPI, deps: ReviewExtensionD
 			const label = await ctx.ui.select("Select a review preset", items.map((item) => item.label));
 			const value = items.find((item) => item.label === label)?.value;
 			if (value === "uncommitted") return { type: "uncommitted" };
+			if (value === "changeRequest") return { type: "changeRequest", selector: "current" };
 			if (value === "baseBranch") return showBranchSelector(ctx);
 			return null;
 		}
@@ -401,6 +453,9 @@ export default function reviewExtension(pi: ExtensionAPI, deps: ReviewExtensionD
 		switch (result) {
 			case "uncommitted":
 				return { type: "uncommitted" };
+
+			case "changeRequest":
+				return { type: "changeRequest", selector: "current" };
 
 			case "baseBranch": {
 				const target = await showBranchSelector(ctx);
@@ -546,9 +601,17 @@ export default function reviewExtension(pi: ExtensionAPI, deps: ReviewExtensionD
 			return false;
 		}
 
-		const focusPrompt = await buildReviewPrompt(pi, target);
-		const hint = getUserFacingHint(target);
-		const sessionName = buildReviewSessionName(target);
+		let resolvedTarget: ReviewTarget;
+		let focusPrompt: string;
+		try {
+			resolvedTarget = await resolveChangeRequestTarget(pi, target);
+			focusPrompt = await buildReviewPrompt(pi, resolvedTarget);
+		} catch (error) {
+			ctx.ui.notify(`Could not prepare review target: ${error instanceof Error ? error.message : String(error)}`, "error");
+			return false;
+		}
+		const hint = getUserFacingHint(resolvedTarget);
+		const sessionName = buildReviewSessionName(resolvedTarget);
 
 		// Load the review skill (stable content, goes first for cache efficiency).
 		const skillResult = await loadSkill("pac-review");
@@ -609,7 +672,7 @@ export default function reviewExtension(pi: ExtensionAPI, deps: ReviewExtensionD
 			setReviewWidget(ctx, true);
 
 			// Persist review state so tree navigation can restore/reset it
-			pi.appendEntry(REVIEW_STATE_TYPE, { active: true, originId: lockedOriginId, targetType: target.type });
+			pi.appendEntry(REVIEW_STATE_TYPE, { active: true, originId: lockedOriginId, targetType: resolvedTarget.type });
 		}
 		const projectGuidelines = ctx.isProjectTrusted()
 			? await loadProjectReviewGuidelines(ctx.cwd)
@@ -637,7 +700,7 @@ export default function reviewExtension(pi: ExtensionAPI, deps: ReviewExtensionD
 
 	// Register the /review-start command
 	pi.registerCommand("review-start", {
-		description: "Review code changes (uncommitted or against a base branch)",
+		description: "Review local changes or a GitHub pull request/GitLab merge request",
 		handler: async (args, ctx) => {
 			if (!ctx.hasUI) {
 				ctx.ui.notify("Review requires interactive mode", "error");
