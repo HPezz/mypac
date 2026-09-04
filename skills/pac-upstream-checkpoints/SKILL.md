@@ -1,8 +1,8 @@
 ---
 name: pac-upstream-checkpoints
-description: "Review upstream/reference sources against this repository and create GitHub checkpoint issues. Use when checking .pac/upstream-sources.yaml, tracking inspiration drift, or running /pac-upstream-checkpoints."
+description: "Review upstream/reference sources against this repository and create checkpoint issues on its resolved forge. Use when checking .pac/upstream-sources.yaml, tracking inspiration drift, or running /pac-upstream-checkpoints."
 license: MIT
-compatibility: Git repository; gh CLI recommended; network access required for remote sources.
+compatibility: Git repository; gh or glab CLI recommended; network access required for remote sources.
 metadata:
   author: mypac
   stage: shared
@@ -31,10 +31,9 @@ Review sources registered in `.pac/upstream-sources.yaml` against the exact loca
 ```bash
 git rev-parse --show-toplevel
 git branch --show-current
-gh repo view --json nameWithOwner --jq .nameWithOwner
 ```
 
-If `gh` is unavailable or unauthenticated, continue with local comparison where possible and report that publication needs GitHub access. Never update `.pac/upstream-sources.yaml` on the default branch.
+Resolve the destination forge by explicit repository context, then the current tracking remote, then `origin`. Use `gh repo view` for GitHub or `glab repo view` for GitLab, preserving configured self-hosted hosts and nested namespaces. If the matching CLI is unavailable or unauthenticated, continue with local comparison where possible and report that publication needs forge access. Never update `.pac/upstream-sources.yaml` on the default branch.
 
 ### 2. Resolve the requested registry scope progressively
 
@@ -76,7 +75,7 @@ Scope semantics:
 
 ### 3. Fetch or refresh upstream repositories
 
-Prefer `pac-librarian` for GitHub repositories so cached checkouts are reused:
+Use `pac-librarian` for remote git repositories from GitHub, GitLab, or other hosts so the host-neutral checkout cache is reused:
 
 ```bash
 bash skills/pac-librarian/checkout.sh <repo-url-or-owner/repo> --path-only
@@ -96,7 +95,7 @@ git -C <checkout> log --oneline --decorate <last_reviewed_commit>..<current_head
 git -C <checkout> diff --stat <last_reviewed_commit>..<current_head> -- <source paths...>
 ```
 
-For an initial baseline, inspect current files and enough recent history to understand the relationship without claiming a complete historical review. Pull linked upstream PRs/issues only when commit evidence leaves important rationale unclear.
+For an initial baseline, inspect current files and enough recent history to understand the relationship without claiming a complete historical review. Pull linked upstream issues and pull/merge requests only when commit evidence leaves important rationale unclear.
 
 Then inspect mapped `local.paths` and report relevant differences, ideas already present, exclusions from `known_divergence` or `do_not_chase`, and possible follow-up areas. Suggested statuses are `adopt`, `ignore`, `defer`, `investigate`, or `intentional divergence`.
 
@@ -106,11 +105,13 @@ For a watch scope, follow `WATCH_INVENTORY.md`; requested watch inventories must
 
 A checkpoint issue is needed when relevant changes, partial failures, or blocked sources were found, or when the user explicitly requests an issue. A no-change run normally ends in conversation with the baseline unchanged.
 
-Only after deciding a checkpoint issue is needed, load `CHECKPOINT_ISSUE_TEMPLATE.md` and follow its label and publication procedure. Do not load that template for a no-change run that will not publish.
+Only after deciding a checkpoint issue is needed, load `CHECKPOINT_ISSUE_TEMPLATE.md` and follow its provider-specific label and publication procedure. Relevant findings and partial failures produce exactly one checkpoint issue on the current forge. Do not load that template for a no-change run that will not publish.
 
 ### 6. Protect checkpoint baselines
 
 Do not advance `.pac/upstream-sources.yaml` automatically. After publication, ask whether the human accepts the `Next checkpoint data`. Update `last_reviewed` only after explicit human confirmation of baseline advancement.
+
+Store the issue URL returned by either provider verbatim in `checkpoint_issue`; do not reconstruct it from provider-specific assumptions.
 
 If a corrected checkpoint supersedes an earlier one, comment on both issues, close the stale checkpoint, and use only the accepted latest checkpoint data. Never create follow-up implementation issues without human confirmation.
 

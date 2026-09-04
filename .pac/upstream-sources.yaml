@@ -2,7 +2,7 @@
 # Model contract: skills/pac-upstream-checkpoints/MODEL.md
 #
 # This file is the machine-readable checkpoint for /pac-upstream-checkpoints.
-# GitHub checkpoint issues are the durable review narrative and decision log.
+# Forge checkpoint issues are the durable review narrative and decision log.
 # Advance last_reviewed only after human confirmation from a checkpoint issue.
 schema_version: 4
 checkpoint_label: pac:upstream-checkpoint
