@@ -52,7 +52,11 @@ export function parseForgeReference(input: string): ForgeReference | null {
 	const separator = parts.lastIndexOf("-");
 	if (separator <= 0 || separator + 2 >= parts.length) return null;
 	const resource = parts[separator + 1];
-	const kind = resource === "issues" ? "issue" : resource === "merge_requests" ? "change" : null;
+	const kind = resource === "issues" || resource === "work_items"
+		? "issue"
+		: resource === "merge_requests"
+			? "change"
+			: null;
 	const number = positiveNumber(parts[separator + 2]);
 	if (!kind || number === null) return null;
 	const project = parts.slice(0, separator).join("/");
