@@ -15,13 +15,6 @@ export type TaskIssue = {
 	updatedAt: string;
 };
 
-export type TaskBoard = {
-	todo: TaskIssue[];
-	doing: TaskIssue[];
-	review: TaskIssue[];
-	done: TaskIssue[];
-};
-
 export type TaskPointer = {
 	repository: ForgeRepository;
 	iid: number;

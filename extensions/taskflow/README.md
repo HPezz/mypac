@@ -8,7 +8,6 @@ All TaskFlow commands are extension commands: deterministic navigation and write
 ```text
 /task <iid|full GitLab issue URL>
 /task-next
-/task-board
 /task-status
 /task-save
 /task-move <todo|doing|review|done>
@@ -16,7 +15,6 @@ All TaskFlow commands are extension commands: deterministic navigation and write
 
 - `/task` selects an issue, displays its current status, and places concise issue context in Pi's editor for review. It does not submit the editor.
 - `/task-next` lists `pac:ready_for_agent` issues across the current GitLab group and opens a TUI selector.
-- `/task-board` renders open issues from every project in the group under the four `State::*` columns. It is read-only and works without GitLab group-board features.
 - `/task-status` refreshes the active issue and its checkpoint pointer.
 - `/task-save` opens a structured checkpoint editor, previews the remote write, and requires confirmation.
 - `/task-move` previews and confirms an exclusive `State::*` label transition.
@@ -43,9 +41,9 @@ TaskFlow never creates a missing label automatically.
 
 ## Multi-repository Kanban
 
-`/task-board` provides the group-wide delivery view without requiring GitLab Premium. It reads open issues separately for each group-scoped state label and displays their project, IID, title, and assignees.
+Use the native GitLab group board at `https://gitlab.com/groups/picto-access/-/boards`. The Free plan's single `Development` board is configured with the group-scoped `State::*` lists in workflow order; its default Open and Closed lists are hidden.
 
-A native GitLab group issue board can use the same labels when the namespace plan supports group-board creation. Board and label changes are remote mutations and must be previewed and explicitly authorized separately.
+Board and label changes are remote mutations and must be previewed and explicitly authorized separately.
 
 ## Checkpoints
 

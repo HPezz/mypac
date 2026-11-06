@@ -1,5 +1,5 @@
 import { parseForgeReference } from "../../lib/forge.ts";
-import type { GitStatus, TaskBoard, TaskIssue, TaskTarget } from "./types.ts";
+import type { GitStatus, TaskIssue, TaskTarget } from "./types.ts";
 
 const STATE_PREFIX = "State::";
 const PAC_PREFIX = "pac:";
@@ -54,38 +54,6 @@ export function extractTaskContext(description: string): {
 		decisions: extractSection(description, ["Decisions", "Décisions"]),
 		checkpoint: extractSection(description, ["Pi TaskFlow"]),
 	};
-}
-
-function taskProject(issue: TaskIssue): string {
-	try {
-		const path = new URL(issue.webUrl).pathname.split("/-/")[0];
-		return path?.split("/").filter(Boolean).at(-1) ?? "unknown";
-	} catch {
-		return "unknown";
-	}
-}
-
-export function formatTaskBoard(group: string, board: TaskBoard): string {
-	const columns: [keyof TaskBoard, string][] = [
-		["todo", "To Do"],
-		["doing", "Doing"],
-		["review", "Waiting for Review"],
-		["done", "Done"],
-	];
-	const lines = [`TaskFlow board · ${group}`];
-	for (const [key, title] of columns) {
-		const issues = board[key];
-		lines.push("", `${title} (${issues.length})`);
-		if (issues.length === 0) {
-			lines.push("  (none)");
-			continue;
-		}
-		for (const issue of issues) {
-			const assignees = issue.assignees.length ? ` · ${issue.assignees.map((name) => `@${name}`).join(", ")}` : "";
-			lines.push(`  ${taskProject(issue)}#${issue.iid} · ${issue.title}${assignees}`);
-		}
-	}
-	return lines.join("\n");
 }
 
 export function formatTaskStatus(issue: TaskIssue, git: GitStatus = {}): string {

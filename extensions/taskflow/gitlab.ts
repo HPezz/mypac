@@ -1,6 +1,6 @@
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import type { ForgeRepository, ForgeResult } from "../../lib/forge.ts";
-import type { TaskBoard, TaskIssue } from "./types.ts";
+import type { TaskIssue } from "./types.ts";
 
 const STATE_LABELS = {
 	todo: "State::To Do",
@@ -108,33 +108,6 @@ export async function listReadyTasks(
 	} catch (error) {
 		return { ok: false, error: `Could not parse ready GitLab issues: ${error instanceof Error ? error.message : String(error)}` };
 	}
-}
-
-export async function listTaskBoard(
-	pi: ExecLike,
-	repository: ForgeRepository,
-): Promise<ForgeResult<TaskBoard>> {
-	const group = repositoryGroup(repository);
-	if (!group) return { ok: false, error: `Could not derive a GitLab group from ${repository.project}` };
-	const entries = Object.entries(STATE_LABELS) as [TaskStateAlias, string][];
-	const results = await Promise.all(entries.map(async ([alias, label]) => {
-		const endpoint = `groups/${encodeURIComponent(group)}/issues?state=opened&labels=${encodeURIComponent(label)}&per_page=100`;
-		const result = await pi.exec("glab", ["api", "--hostname", repository.host, endpoint], { timeout: 30_000 });
-		if (result.code !== 0) return { alias, result: { ok: false, error: executionError(`Could not list ${label} issues`, result) } as ForgeResult<TaskIssue[]> };
-		try {
-			const parsed = JSON.parse(result.stdout) as unknown;
-			if (!Array.isArray(parsed)) throw new Error("expected issue array");
-			return { alias, result: { ok: true, value: parsed.map(parseIssue) } as ForgeResult<TaskIssue[]> };
-		} catch (error) {
-			return { alias, result: { ok: false, error: `Could not parse ${label} issues: ${error instanceof Error ? error.message : String(error)}` } as ForgeResult<TaskIssue[]> };
-		}
-	}));
-	const failed = results.find((entry) => !entry.result.ok);
-	if (failed && !failed.result.ok) return failed.result;
-	return {
-		ok: true,
-		value: Object.fromEntries(results.map(({ alias, result }) => [alias, result.ok ? result.value : []])) as TaskBoard,
-	};
 }
 
 async function fetchAvailableStateLabels(

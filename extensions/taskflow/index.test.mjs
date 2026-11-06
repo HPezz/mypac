@@ -14,7 +14,7 @@ test("registers deterministic TaskFlow commands without exposing an LLM tool", (
 
 	taskflowExtension(pi);
 
-	assert.deepEqual(commands.map(([name]) => name), ["task", "task-next", "task-board", "task-status", "task-save", "task-move"]);
+	assert.deepEqual(commands.map(([name]) => name), ["task", "task-next", "task-status", "task-save", "task-move"]);
 	assert.deepEqual(events, ["session_start"]);
 	assert.equal(toolRegistrations, 0);
 });

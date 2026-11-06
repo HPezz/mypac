@@ -12,12 +12,11 @@ import {
 	fetchTaskIssue,
 	isTaskStateAlias,
 	listReadyTasks,
-	listTaskBoard,
 	moveTaskState,
 	resolveCurrentGitLabRepository,
 	taskStateLabel,
 } from "./gitlab.ts";
-import { buildTaskContextPreview, formatTaskBoard, formatTaskStatus, parseTaskTarget } from "./issue-format.ts";
+import { buildTaskContextPreview, formatTaskStatus, parseTaskTarget } from "./issue-format.ts";
 import { readTaskPointer, writeTaskPointer } from "./state.ts";
 import type { GitStatus, TaskIssue, TaskPointer } from "./types.ts";
 
@@ -176,24 +175,6 @@ export default function taskflowExtension(pi: ExtensionAPI): void {
 				host: target.reference.host,
 				project: target.reference.project,
 			}, target.reference.number, true);
-		},
-	});
-
-	pi.registerCommand("task-board", {
-		description: "Show a read-only multi-project board from GitLab State labels",
-		handler: async (_args, ctx) => {
-			const repository = await resolveRepository(pi, ctx);
-			if (!repository.ok) {
-				ctx.ui.notify(repository.error, "error");
-				return;
-			}
-			const board = await listTaskBoard(pi, repository.value);
-			if (!board.ok) {
-				ctx.ui.notify(board.error, "error");
-				return;
-			}
-			const group = repository.value.project.split("/").slice(0, -1).join("/");
-			ctx.ui.notify(formatTaskBoard(group, board.value), "info");
 		},
 	});
 
