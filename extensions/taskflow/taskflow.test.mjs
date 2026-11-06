@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { parseTaskTarget, extractTaskContext, formatTaskStatus } from "./issue-format.ts";
+import { parseTaskTarget, extractTaskContext, formatTaskBoard, formatTaskStatus } from "./issue-format.ts";
 
 test("parses numeric and GitLab issue/work-item task targets", () => {
 	assert.deepEqual(parseTaskTarget("42"), { kind: "iid", iid: 42 });
@@ -27,6 +27,29 @@ test("extracts concise task context from reserved issue sections", () => {
 		decisions: "- [Use GitLab](https://gitlab.com/group/app/-/work_items/42#note_1)",
 		checkpoint: "Latest checkpoint: https://gitlab.com/group/app/-/work_items/42#note_2",
 	});
+});
+
+test("formats a compact multi-project task board", () => {
+	const issue = {
+		iid: 9, title: "Audit accessibility", description: "", state: "opened",
+		labels: ["State::Doing"], assignees: ["HPezz"],
+		webUrl: "https://gitlab.com/picto-access/picto-audit/-/work_items/9", updatedAt: "2026-11-05T10:00:00Z",
+	};
+	assert.equal(formatTaskBoard("picto-access", { todo: [], doing: [issue], review: [], done: [] }), [
+		"TaskFlow board · picto-access",
+		"",
+		"To Do (0)",
+		"  (none)",
+		"",
+		"Doing (1)",
+		"  picto-audit#9 · Audit accessibility · @HPezz",
+		"",
+		"Waiting for Review (0)",
+		"  (none)",
+		"",
+		"Done (0)",
+		"  (none)",
+	].join("\n"));
 });
 
 test("formats task status without adding unrelated issue history", () => {

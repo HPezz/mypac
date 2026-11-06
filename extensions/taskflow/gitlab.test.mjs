@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { fetchTaskIssue, listReadyTasks, moveTaskState, resolveCurrentGitLabRepository } from "./gitlab.ts";
+import { fetchTaskIssue, listReadyTasks, listTaskBoard, moveTaskState, resolveCurrentGitLabRepository } from "./gitlab.ts";
 
 const repository = { provider: "gitlab", host: "gitlab.com", project: "picto-access/picto-api" };
 
@@ -57,6 +57,25 @@ test("lists ready tasks across the repository group", async () => {
 	assert.equal(result.ok, true);
 	assert.equal(result.value[0].iid, 8);
 	assert.deepEqual(calls[0], ["glab", ["api", "--hostname", "gitlab.com", "groups/picto-access/issues?state=opened&labels=pac%3Aready_for_agent&per_page=100"]]);
+});
+
+test("lists the group task board by existing State labels", async () => {
+	const calls = [];
+	const pi = { async exec(command, args) {
+		calls.push([command, args]);
+		const endpoint = args.at(-1);
+		const label = new URLSearchParams(endpoint.split("?")[1]).get("labels");
+		return { code: 0, stderr: "", stdout: JSON.stringify(label === "State::Doing" ? [
+			{ iid: 9, title: "Active", state: "opened", labels: [label], assignees: [{ username: "HPezz" }], web_url: "https://gitlab.com/picto-access/picto-audit/-/work_items/9", updated_at: "2026-11-05T10:00:00Z", description: "" },
+		] : []) };
+	} };
+
+	const result = await listTaskBoard(pi, repository);
+	assert.equal(result.ok, true);
+	assert.deepEqual(result.value.doing.map((issue) => issue.iid), [9]);
+	assert.equal(result.value.todo.length, 0);
+	assert.equal(calls.length, 4);
+	assert.deepEqual(calls[0], ["glab", ["api", "--hostname", "gitlab.com", "groups/picto-access/issues?state=opened&labels=State%3A%3ATo%20Do&per_page=100"]]);
 });
 
 test("moves workflow state by removing other State labels and adding the target", async () => {

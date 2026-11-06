@@ -1,6 +1,6 @@
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import type { ForgeRepository, ForgeResult } from "../../lib/forge.ts";
-import type { TaskIssue } from "./types.ts";
+import type { TaskBoard, TaskIssue } from "./types.ts";
 
 const STATE_LABELS = {
 	todo: "State::To Do",
@@ -10,6 +10,11 @@ const STATE_LABELS = {
 } as const;
 
 export type TaskStateAlias = keyof typeof STATE_LABELS;
+
+function repositoryGroup(repository: ForgeRepository): string | null {
+	const parts = repository.project.split("/");
+	return parts.length < 2 ? null : parts.slice(0, -1).join("/");
+}
 
 type ExecLike = Pick<ExtensionAPI, "exec">;
 
@@ -91,9 +96,8 @@ export async function listReadyTasks(
 	pi: ExecLike,
 	repository: ForgeRepository,
 ): Promise<ForgeResult<TaskIssue[]>> {
-	const parts = repository.project.split("/");
-	if (parts.length < 2) return { ok: false, error: `Could not derive a GitLab group from ${repository.project}` };
-	const group = parts.slice(0, -1).join("/");
+	const group = repositoryGroup(repository);
+	if (!group) return { ok: false, error: `Could not derive a GitLab group from ${repository.project}` };
 	const endpoint = `groups/${encodeURIComponent(group)}/issues?state=opened&labels=pac%3Aready_for_agent&per_page=100`;
 	const result = await pi.exec("glab", ["api", "--hostname", repository.host, endpoint], { timeout: 30_000 });
 	if (result.code !== 0) return { ok: false, error: executionError("Could not list ready GitLab issues", result) };
@@ -104,6 +108,33 @@ export async function listReadyTasks(
 	} catch (error) {
 		return { ok: false, error: `Could not parse ready GitLab issues: ${error instanceof Error ? error.message : String(error)}` };
 	}
+}
+
+export async function listTaskBoard(
+	pi: ExecLike,
+	repository: ForgeRepository,
+): Promise<ForgeResult<TaskBoard>> {
+	const group = repositoryGroup(repository);
+	if (!group) return { ok: false, error: `Could not derive a GitLab group from ${repository.project}` };
+	const entries = Object.entries(STATE_LABELS) as [TaskStateAlias, string][];
+	const results = await Promise.all(entries.map(async ([alias, label]) => {
+		const endpoint = `groups/${encodeURIComponent(group)}/issues?state=opened&labels=${encodeURIComponent(label)}&per_page=100`;
+		const result = await pi.exec("glab", ["api", "--hostname", repository.host, endpoint], { timeout: 30_000 });
+		if (result.code !== 0) return { alias, result: { ok: false, error: executionError(`Could not list ${label} issues`, result) } as ForgeResult<TaskIssue[]> };
+		try {
+			const parsed = JSON.parse(result.stdout) as unknown;
+			if (!Array.isArray(parsed)) throw new Error("expected issue array");
+			return { alias, result: { ok: true, value: parsed.map(parseIssue) } as ForgeResult<TaskIssue[]> };
+		} catch (error) {
+			return { alias, result: { ok: false, error: `Could not parse ${label} issues: ${error instanceof Error ? error.message : String(error)}` } as ForgeResult<TaskIssue[]> };
+		}
+	}));
+	const failed = results.find((entry) => !entry.result.ok);
+	if (failed && !failed.result.ok) return failed.result;
+	return {
+		ok: true,
+		value: Object.fromEntries(results.map(({ alias, result }) => [alias, result.ok ? result.value : []])) as TaskBoard,
+	};
 }
 
 async function fetchAvailableStateLabels(
