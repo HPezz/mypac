@@ -14,7 +14,7 @@ const hostDependencies = sourcePackageJson.peerDependencies;
 const expectedExtensions = [
 	"answer", "ask", "btw", "compact-verification-output", "context", "files", "footer", "ghi", "headroom", "notify",
 	"pac-setup-workflows", "personas", "review", "session-breakdown", "session-names", "shared-append-system",
-	"slidedeck", "todos", "undo", "uv", "whimsical", "worktrunk",
+	"slidedeck", "taskflow", "todos", "undo", "uv", "whimsical", "worktrunk",
 ];
 const expectedSkills = [
 	"pac-caveman", "pac-changelog", "pac-commit", "pac-deep-read", "pac-diagnose", "pac-explore", "pac-github",
