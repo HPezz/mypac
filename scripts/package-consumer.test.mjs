@@ -28,7 +28,7 @@ const expectedPrompts = [
 	"pac-caveman", "pac-deep-read", "pac-diagnose", "pac-explore", "pac-fix-copilot-review", "pac-grill-me",
 	"pac-grill-with-docs", "pac-handoff", "pac-hello-world", "pac-improve-architecture",
 	"pac-llat", "pac-lwot", "pac-session-review", "pac-to-issues", "pac-to-prd", "pac-triage", "pac-upstream-checkpoints",
-	"pac-zoom-out",
+	"pac-wave-7", "pac-zoom-out",
 ];
 const expectedThemes = ["gruvbox-dark", "nightowl", "nord"];
 
